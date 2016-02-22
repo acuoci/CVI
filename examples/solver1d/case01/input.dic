@@ -1,0 +1,58 @@
+//-----------------------------------------------------------------//
+//     ____                    ______ __  __  ____  _  ________    //
+//    / __ \                  /  ___ |  \/  |/ __ \| |/ /  ____|   //
+//   | |  | |_ __   ___ _ __ |  (___ | \  / | |  | | ' /| |__      //
+//   | |  | | '_ \ / _ \ '_ \ \___  \| |\/| | |  | |  < |  __|     //
+//   | |__| | |_) |  __/ | | |____)  | |  | | |__| | . \| |____    //
+//    \____/| .__/ \___|_| |_|______/|_|  |_|\____/|_|\_\______|   //
+//         | |                                                     //
+//         |_|                                                     //
+//                                                                 //
+//                http://www.opensmoke.polimi.it/                  //
+//             http://creckmodeling.chem.polimi.it/                //
+//-----------------------------------------------------------------//
+
+Dictionary CVI_Solver1D
+{
+	@KineticsPreProcessor	Paolucci_PreProcessor;
+
+	@FiberRadius			4 micron;
+	@InitialPorosity		0.775;
+	@PorousSubstrate		random_hardcore;
+	
+	@HeterogeneousMechanism	Ibrahim-Paolucci;
+	@HydrogenInhibition		Becker;
+	
+	@PlugFlowResidenceTime	0.1 s;
+	
+	@Points				20;
+	@Length				21 mm;
+	@StretchingFactor	1.;
+	
+	@InletStream		inlet-stream;
+	@InitialConditions	initial-conditions;
+}
+
+Dictionary inlet-stream
+{	
+	@Temperature	1368 K;
+	@Pressure		30e3 Pa;
+	@Moles			CH4 1;
+}
+
+Dictionary initial-conditions
+{	
+	@Temperature	1368 K;
+	@Pressure		30e3 Pa;
+	@Moles			N2 1;
+}
+
+Dictionary Paolucci_PreProcessor
+{
+	@Thermodynamics thermo30.dat;
+	@Transport		transport.dat;
+	@Kinetics 		grimech30_reduced.dat;
+		
+	@Output			kinetics-Paolucci;
+}
+
