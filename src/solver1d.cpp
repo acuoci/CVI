@@ -49,7 +49,7 @@
 #include "Reactor1D.h"
 
 // Numerical parameters
-#include "premixedlaminarflame1d/parameters/DAE_Parameters.h"
+#include "math/multivalue-dae-solvers/parameters/DaeSolver_Parameters.h"
 
 int main(int argc, char** argv)
 {
@@ -185,24 +185,19 @@ int main(int argc, char** argv)
 			else OpenSMOKE::FatalErrorMessage("Unknown length units");
 		}
 
-		Eigen::VectorXd x(number_of_points);
-		x(0) = 0.;
-		for (unsigned int i = 1; i < number_of_points; i++)
-			x(i) = x(i - 1) + length / double(number_of_points - 1);
-		
-//		grid = new OpenSMOKE::Grid1D(number_of_points, 0., length, stretching_factor);
-		grid = new OpenSMOKE::Grid1D(x);
+		grid = new OpenSMOKE::Grid1D(number_of_points, 0., length, stretching_factor);
 	}
 
 	// Dae Options
-	OpenSMOKE::DAE_Parameters* dae_parameters;
-	dae_parameters = new OpenSMOKE::DAE_Parameters();
+	DaeSMOKE::DaeSolver_Parameters* dae_parameters;
+	dae_parameters = new DaeSMOKE::DaeSolver_Parameters();
 	if (dictionaries(main_dictionary_name_).CheckOption("@DaeParameters") == true)
 	{
 		std::string name_of_subdictionary;
 		dictionaries(main_dictionary_name_).ReadDictionary("@DaeParameters", name_of_subdictionary);
 		dae_parameters->SetupFromDictionary(dictionaries(name_of_subdictionary));
 	}
+	dae_parameters->SetMinimumMeanThreshold(0.);
 
 	// Read inlet conditions
 	double inlet_T;
@@ -238,7 +233,21 @@ int main(int argc, char** argv)
 			else if (units == "cm")			rf = value / 1.e2;
 			else if (units == "mm")			rf = value / 1.e3;
 			else if (units == "micron")		rf = value / 1.e6;
-			else OpenSMOKE::FatalErrorMessage("Unknown fiber units");
+			else OpenSMOKE::FatalErrorMessage("Unknown fiber radius units");
+		}
+	}
+
+	// Read fiber density
+	double rho_fiber = 0.;
+	{
+		double value;
+		std::string units;
+		if (dictionaries(main_dictionary_name_).CheckOption("@FiberDensity") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadMeasure("@FiberDensity", value, units);
+			if (units == "kg/m3")			rho_fiber = value;
+			else if (units == "g/cm3")		rho_fiber = value*1.e3;
+			else OpenSMOKE::FatalErrorMessage("Unknown fiber density units");
 		}
 	}
 
@@ -320,7 +329,7 @@ int main(int argc, char** argv)
 	getchar();
 
 	CVI::PorousMedium* porous_medium = new CVI::PorousMedium(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, 
-																porous_substrate_type, rf, epsilon0, 
+																porous_substrate_type, rf, rho_fiber, epsilon0,
 																heterogeneous_mechanism_type, hydrogen_inhibition_type);
 
 	CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *grid);
@@ -334,7 +343,7 @@ int main(int argc, char** argv)
 		time_t timerEnd;
 
 		time(&timerStart);
-		reactor1d->SolveFromScratch(*dae_parameters);
+		int flag = reactor1d->SolveFromScratch(*dae_parameters);
 		time(&timerEnd);
 
 		std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;

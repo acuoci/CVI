@@ -40,7 +40,7 @@
 #include "grids/adaptive/Grid1D.h"
 
 // Numerical parameters
-#include "premixedlaminarflame1d/parameters/DAE_Parameters.h"
+#include "math/multivalue-dae-solvers/parameters/DaeSolver_Parameters.h"
 
 namespace CVI
 {
@@ -94,9 +94,9 @@ namespace CVI
 		/**
 		*@brief Solves the reactor equations
 		*@param dae_parameters parameters governing the solution of the DAE system
-		*@return true if solution was found successfully
+		*@return the returned value is >0 in case of success, otherwise is <0
 		*/
-		bool SolveFromScratch(OpenSMOKE::DAE_Parameters& dae_parameters);
+		int SolveFromScratch(DaeSMOKE::DaeSolver_Parameters& dae_parameters);
 
 		/**
 		*@brief Prints info on the screen
@@ -151,6 +151,18 @@ namespace CVI
 		*@param y vector the current unknowns are copied
 		*/
 		void CorrectedUnknownsVector(double* v);
+
+		/**
+		*@brief Returns the minimum constraints
+		*@param v the minimum constraints for each variable
+		*/
+		void MinimumUnknownsVector(double* v);
+
+		/**
+		*@brief Returns the maximum constraints
+		*@param v the maximum constraints for each variable
+		*/
+		void MaximumUnknownsVector(double* v);
 
 	private:
 
@@ -215,8 +227,9 @@ namespace CVI
 		*@param dae_parameters parameters governing the solution of the DAE system
 		*@param t0 starting time [s]
 		*@param tf final time [s]
+		*@return the returned value is >0 in case of success, otherwise is <0
 		*/
-		bool Solve(OpenSMOKE::DAE_Parameters& dae_parameters, const double t0, const double tf);
+		int Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, const double t0, const double tf);
 
 		/**
 		*@brief Sets the algebraic and differential equations
@@ -246,7 +259,7 @@ namespace CVI
 
 		// Properties
 		Eigen::VectorXd					rho_gas_;			//!< density of gaseous phase [kg/m3]
-		Eigen::VectorXd					rho_solid_;			//!< density of solid phase [kg/m3]
+		Eigen::VectorXd					rho_bulk_;			//!< density of bulk phase [kg/m3]
 		Eigen::VectorXd					mw_;				//!< molecular weight of gaseous phase [kg/kmol]
 		Eigen::VectorXd					epsilon_;			//!< porosity of porous medium [-]
 		Eigen::VectorXd					permeability_;		//!< permeability of porous medium [m2]

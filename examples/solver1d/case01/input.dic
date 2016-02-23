@@ -15,8 +15,10 @@
 Dictionary CVI_Solver1D
 {
 	@KineticsPreProcessor	Paolucci_PreProcessor;
+	//@KineticsFolder			kinetics-Polimi4Brembo;
 
 	@FiberRadius			4 micron;
+	@FiberDensity			1720 kg/m3;
 	@InitialPorosity		0.775;
 	@PorousSubstrate		random_hardcore;
 	
@@ -25,9 +27,9 @@ Dictionary CVI_Solver1D
 	
 	@PlugFlowResidenceTime	0.1 s;
 	
-	@Points				20;
+	@Points				41;
 	@Length				21 mm;
-	@StretchingFactor	1.;
+	@StretchingFactor	0.95;
 	
 	@InletStream		inlet-stream;
 	@InitialConditions	initial-conditions;
@@ -35,14 +37,14 @@ Dictionary CVI_Solver1D
 
 Dictionary inlet-stream
 {	
-	@Temperature	1368 K;
+	@Temperature	1418 K;
 	@Pressure		30e3 Pa;
 	@Moles			CH4 1;
 }
 
 Dictionary initial-conditions
 {	
-	@Temperature	1368 K;
+	@Temperature	1418 K;
 	@Pressure		30e3 Pa;
 	@Moles			N2 1;
 }

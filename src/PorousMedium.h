@@ -55,6 +55,7 @@ namespace CVI
 		*@param transportMap			reference to the transport map
 		*@param porous_substrate_type	porous substrate type
 		*@param rf						initial radius of the fibers [m]
+		*@param rho_fiber						fiber density [kg/m3]
 		*@param epsilon0						initial porosity
 		*@param heterogeneous_mechanism_type	heterogeneous mechanism type
 		*@param hydrogen_inhibition_type		hydrogen mechanism type
@@ -62,7 +63,7 @@ namespace CVI
 		PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
 						OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 						OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
-						PorousSubstrateType porous_substrate_type, const double rf, const double epsilon0, 
+						PorousSubstrateType porous_substrate_type, const double rf, const double rho_fiber, const double epsilon0,
 						const HeterogeneousMechanism heterogeneous_mechanism_type,
 						const HydrogenInhibitionType hydrogen_inhibition_type);
 
@@ -125,6 +126,12 @@ namespace CVI
 		*@return the permeability [m2]
 		*/
 		double permeability();
+
+		/**
+		*@brief Calculates and returns the bulk density
+		*@return the bulk density [kg/m3]
+		*/
+		double density_bulk();
 
 		/**
 		*@brief Returns the density of the carbon matrix
@@ -316,6 +323,7 @@ namespace CVI
 		double epsilon_;		//!< current porosity
 		double epsilon0_;		//!< initial porosity
 		double rf_;				//!< current radius of fibers [m]
+		double rho_fiber_;		//!< density of fibers [kg/m3]
 		double rho_carbon_;		//!< density of carbon matrix [kg/m3]
 		double mw_carbon_;		//!< molecular weight of carbon matrix [kg/kmol]
 

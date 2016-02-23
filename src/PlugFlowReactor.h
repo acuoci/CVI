@@ -152,7 +152,7 @@ namespace CVI
 		unsigned int count_video_;		//!< counter of steps for updating info on the screen
 
 		unsigned int ns_;						//!< total number of gaseous species
-		unsigned int ne_;						//!< total number of species
+		unsigned int ne_;						//!< total number of equations
 		boost::filesystem::path output_folder_;	//!< name of output folder
 
 		// Auxiliary vectors

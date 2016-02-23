@@ -29,7 +29,7 @@ namespace CVI
 	PorousMedium::PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
 								OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 								OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
-								PorousSubstrateType porous_substrate_type, const double rf, const double epsilon0,
+								PorousSubstrateType porous_substrate_type, const double rf, const double rho_fiber, const double epsilon0,
 								const HeterogeneousMechanism heterogeneous_mechanism_type,
 								const HydrogenInhibitionType hydrogen_inhibition_type) :
 
@@ -37,13 +37,14 @@ namespace CVI
 	kineticsMap_(kineticsMap),
 	transportMap_(transportMap),
 	rf_(rf),
+	rho_fiber_(rho_fiber),
 	epsilon0_(epsilon0),
 	porous_substrate_type_(porous_substrate_type),
 	heterogeneous_mechanism_type_(heterogeneous_mechanism_type),
 	hydrogen_inhibition_type_(hydrogen_inhibition_type)
 	{
 		// Deafult properties
-		rho_carbon_= 2150;					// [kg/m3]
+		rho_carbon_= 2200.;					// [kg/m3]
 		mw_carbon_ = 12.010999679565430;	// [kg/kmol]
 
 		// Number of species
@@ -89,7 +90,9 @@ namespace CVI
 		std::cout << "                      Porous Medium                    " << std::endl;
 		std::cout << "-------------------------------------------------------" << std::endl;
 		std::cout << " * Carbon density [kg/m3]:           " << rho_carbon_ << std::endl;
+		std::cout << " * Bulk density density [kg/m3]:     " << density_bulk() << std::endl;
 		std::cout << " * Porosity [-]:                     " << epsilon0_ << std::endl;
+		std::cout << " * Fiber density [kg/m3]:            " << rho_fiber_ << std::endl;
 		std::cout << " * Fiber radius [micron]:            " << rf_*1e6 << std::endl;
 		std::cout << " * Pore radius [micron]:             " << rp()*1e6 << std::endl;
 		std::cout << " * Surface per unit of volume [1/m]: " << Sv() << std::endl;
@@ -119,6 +122,11 @@ namespace CVI
 	void PorousMedium::SetCarbonDensity(const double rho_carbon)
 	{
 		rho_carbon_ = rho_carbon;
+	}
+
+	double PorousMedium::density_bulk()
+	{
+		return rho_fiber_*(1. - epsilon0_) + rho_carbon_*(epsilon0_ - epsilon_);
 	}
 
 	double PorousMedium::Sv()
@@ -264,12 +272,13 @@ namespace CVI
 		// Heterogeneous reactions
 		if (heterogeneous_mechanism_type_ == IBRAHIM_PAOLUCCI)
 		{
-			const double CH4 = C(index_CH4_);
+			const double CH4  = C(index_CH4_);
 			const double C2H4 = C(index_C2H4_);
 			const double C2H2 = C(index_C2H2_);
 			const double C6H6 = C(index_C6H6_);
 			const double H2   = C(index_H2_);
 
+			// Frequency factors are in [m/s]
 			const double kCH4  = 0.;
 			const double kC2H4 = 72.4*exp(-155000 / PhysicalConstants::R_J_mol / T_);
 			const double kC2H2 = 13.5*exp(-126000 / PhysicalConstants::R_J_mol / T_);
@@ -288,33 +297,18 @@ namespace CVI
 			r_(3) = rC6H6*I_C6H6_;
 
 			// Consumption rate of homogeneous species [kmol/m3/s]
-		//	Rgas_.setZero();
-		//	Rgas_(index_CH4_)  = -Sv_*r_(0);
-		//	Rgas_(index_C2H4_) = -Sv_*r_(1);
-		//	Rgas_(index_C2H2_) = -Sv_*r_(2);
-		//	Rgas_(index_C6H6_) = -Sv_*r_(3);
-		//	Rgas_(index_H2_)   =  Sv_*(2.*r_(0) + 2.*r_(1) + 1.*r_(2) + 3.*r_(3));
-
-
-			// Consumption rate of homogeneous species [kmol/m3/s]
 			Rgas_.setZero();
-			Rgas_(index_CH4_)  = -r_(0);
-			Rgas_(index_C2H4_) = -r_(1);
-			Rgas_(index_C2H2_) = -r_(2);
-			Rgas_(index_C6H6_) = -r_(3);
-			Rgas_(index_H2_)   = 2.*r_(0) + 2.*r_(1) + 1.*r_(2) + 3.*r_(3);
+			Rgas_(index_CH4_)  = -Sv_*r_(0);
+			Rgas_(index_C2H4_) = -Sv_*r_(1);
+			Rgas_(index_C2H2_) = -Sv_*r_(2);
+			Rgas_(index_C6H6_) = -Sv_*r_(3);
+			Rgas_(index_H2_)   =  Sv_*(2.*r_(0) + 2.*r_(1) + 1.*r_(2) + 3.*r_(3));
 		}
 	
 		// Heterogeneous deposition rate [kmol/m2/s]
-		//r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 2.*r_(2) + 6.*r_(3);
+		r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 2.*r_(2) + 6.*r_(3);
 
 		// Heterogeneous deposition rate [kmol/m3/s]
-		//r_deposition_per_unit_volume_ = Sv_*r_deposition_per_unit_area_;
-
-
-		// Heterogeneous deposition rate [kmol/m3/s]
-		r_deposition_per_unit_volume_ = r_(0) + 2.*r_(1) + 2.*r_(2) + 6.*r_(3);
-		// Heterogeneous deposition rate [kmol/m2/s]
-		r_deposition_per_unit_area_ = r_deposition_per_unit_volume_ / Sv_;
+		r_deposition_per_unit_volume_ = Sv_*r_deposition_per_unit_area_;
 	}
 }

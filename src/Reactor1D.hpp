@@ -64,87 +64,87 @@ namespace CVI
 		aux_eigen.resize(ns_);
 		
 		// Densities [kg/m3]
-		rho_gas_.resize(grid_.Np());
-		rho_solid_.resize(grid_.Np());
+		rho_gas_.resize(np_);
+		rho_bulk_.resize(np_);
 		
 		// Porosity [-]
-		epsilon_.resize(grid_.Np());
+		epsilon_.resize(np_);
 
 		// Permeability [m2]
-		permeability_.resize(grid_.Np());
+		permeability_.resize(np_);
 
 		// Tortuosities [-]
-		eta_bulk_.resize(grid_.Np());
-		eta_knudsen_.resize(grid_.Np());
-		eta_viscous_.resize(grid_.Np());
+		eta_bulk_.resize(np_);
+		eta_knudsen_.resize(np_);
+		eta_viscous_.resize(np_);
 
 		// Surface per unit of volume [1/m]
-		Sv_.resize(grid_.Np());
+		Sv_.resize(np_);
 
 		// Porous radius [m]
-		rp_.resize(grid_.Np());
+		rp_.resize(np_);
 
 		// Molecular weight [kg/kmol]
-		mw_.resize(grid_.Np());
+		mw_.resize(np_);
 
 		// Temperature and pressure
 		T_.resize(np_);
 		P_.resize(np_);
 
 		// Mole fractions [-]
-		X_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		X_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			X_[i].resize(ns_);
 
 		// Mass fractions [-]
-		Y_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		Y_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			Y_[i].resize(ns_);
 
 		// Formation rates in gas pahse [kg/m3/s]
-		omega_homogeneous_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		omega_homogeneous_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			omega_homogeneous_[i].resize(ns_);
 
 		// Heterogeneous formation rates [kg/m3/s]
-		omega_heterogeneous_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		omega_heterogeneous_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			omega_heterogeneous_[i].resize(ns_);
 
 		// Deposition rate [kg/m3/s]
 		omega_deposition_.resize(np_);
 
 		// Effective diffusion coefficiennts [m2/s]
-		gamma_star_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		gamma_star_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			gamma_star_[i].resize(ns_);
 
 		// Diffusion fluxes [???]
-		j_star_.resize(grid_.Np() - 1);
-		for (int i = 0; i < grid_.Np() - 1; i++)
+		j_star_.resize(np_ - 1);
+		for (int i = 0; i < np_ - 1; i++)
 			j_star_[i].resize(ns_);
 
 		// Correction diffusion flux [???]
-		jc_star_.resize(grid_.Np() - 1);
+		jc_star_.resize(np_ - 1);
 
 		// Spatial derivatives: mole fractions [1/m]
-		dX_over_dx_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		dX_over_dx_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			dX_over_dx_[i].resize(ns_);
 
 		// Spatial derivatives: mass fractions [1/m]
-		dY_over_dx_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		dY_over_dx_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			dY_over_dx_[i].resize(ns_);
 
 		// Second order spatial derivatives: mass fractions [1/m2]
-		d2Y_over_dx2_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		d2Y_over_dx2_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			d2Y_over_dx2_[i].resize(ns_);
 
 		// Time derivatives: mass fractions [1/s]
-		dY_over_dt_.resize(grid_.Np());
-		for (int i = 0; i < grid_.Np(); i++)
+		dY_over_dt_.resize(np_);
+		for (int i = 0; i < np_; i++)
 			dY_over_dt_[i].resize(ns_);
 
 		// Spatial derivatives: mass diffusion coefficients [m2/s/m]
@@ -156,14 +156,14 @@ namespace CVI
 		drho_gas_over_dx_.resize(np_);
 
 		// Time derivatives: porosity [1/s]
-		depsilon_over_dt_.resize(grid_.Np());
+		depsilon_over_dt_.resize(np_);
 
 		// Reset to zero
-		for (int i = 0; i < grid_.Np()-1; i++)
+		for (int i = 0; i < np_-1; i++)
 			j_star_[i].setZero();
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 			omega_homogeneous_[i].setZero();
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 			omega_heterogeneous_[i].setZero();
 		omega_deposition_.setZero();
 	}
@@ -215,7 +215,7 @@ namespace CVI
 
 	void Reactor1D::SetInitialConditions(const double T_gas, const double P_gas, const OpenSMOKE::OpenSMOKEVectorDouble& omega_gas)
 	{
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 			for (unsigned int j = 0; j < ns_; j++)
 				Y_[i](j) = omega_gas[j + 1];
 
@@ -226,7 +226,7 @@ namespace CVI
 
 	void Reactor1D::Properties()
 	{
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			// Thermodynamics
 			{
@@ -259,7 +259,7 @@ namespace CVI
 				Sv_(i) = porousMedium_.Sv();
 				rp_(i) = porousMedium_.rp();
 				permeability_(i) = porousMedium_.permeability();
-				rho_solid_(i) = (1. - epsilon_(i))*porousMedium_.rho_carbon();
+				rho_bulk_(i) = porousMedium_.density_bulk();
 				eta_bulk_(i) = porousMedium_.eta_bulk();
 				eta_knudsen_(i) = porousMedium_.eta_knudsen();
 				eta_viscous_(i) = porousMedium_.eta_viscous();
@@ -373,19 +373,37 @@ namespace CVI
 		// Gas side
 		for (unsigned int j = 0; j < ns_; j++)
 			dY_over_dt_[grid_.Ni()](j) = Y_[grid_.Ni()](j) - Y_gas_side_(j);
+
+		/*
+		{
+			const double dc = 2e-3;
+			const double v = 1.;
+			const double Re = rho_gas_(np_ - 1)*v*dc / 1.8e-5;
+			const double Pr = 1.;
+			const double Nu = 0.023*std::pow(Re, 0.8) * std::pow(Pr, 0.333);
+			const double hc = Nu*1.e-5 / dc;
+
+			std::cout << Re << " " << Nu << " " << hc << std::endl;
+			for (unsigned int j = 0; j < ns_; j++)
+			{
+				const double Diff_over_dx = gamma_star_[np_ - 1](j) / (grid_.x()(np_ - 1) - grid_.x()(np_ - 2));
+				dY_over_dt_[grid_.Ni()](j) = Y_[grid_.Ni()](j) - (Y_gas_side_(j)*hc + Y_[grid_.Ni() - 1](j)*Diff_over_dx) / (hc + Diff_over_dx);
+			}
+		}
+		*/
 	}
 
 	void Reactor1D::SubEquations_Porosity()
 	{
 		// Internal points
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 			depsilon_over_dt_(i) = -omega_deposition_(i) / porousMedium_.rho_carbon();
 	}
 
 	void Reactor1D::Recover_Unknowns(const double* y)
 	{
 		unsigned int count = 0;
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			// Species
 			for (unsigned int j = 0; j < ns_; j++)
@@ -399,7 +417,7 @@ namespace CVI
 	void Reactor1D::Recover_Residuals(double* dy)
 	{
 		unsigned int count = 0;
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			// Species
 			for (unsigned int j = 0; j < ns_; j++)
@@ -423,7 +441,7 @@ namespace CVI
 	void Reactor1D::UnknownsVector(double* v)
 	{
 		unsigned int count = 0;
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			for (unsigned int j = 0; j < ns_; j++)
 				v[count++] = Y_[i](j);
@@ -435,7 +453,7 @@ namespace CVI
 	void Reactor1D::CorrectedUnknownsVector(double* v)
 	{
 		unsigned int count = 0;
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			for (unsigned int j = 0; j < ns_; j++)
 				Y_[i](j) = v[count++];
@@ -446,6 +464,34 @@ namespace CVI
 			//const double sum = Y_[i].sum();
 			//for (unsigned int j = 0; j < ns_; j++)
 			//	Y_[i](j) /= sum;
+		}
+	}
+
+	void Reactor1D::MinimumUnknownsVector(double* v)
+	{
+		const double zero = 0.;
+
+		unsigned int count = 0;
+		for (int i = 0; i < np_; i++)
+		{
+			for (unsigned int j = 0; j < ns_; j++)
+				v[count++] = zero;
+
+			v[count++] = zero;
+		}
+	}
+
+	void Reactor1D::MaximumUnknownsVector(double* v)
+	{
+		const double one = 1.;
+
+		unsigned int count = 0;
+		for (int i = 0; i < np_; i++)
+		{
+			for (unsigned int j = 0; j < ns_; j++)
+				v[count++] = one;
+
+			v[count++] = one;
 		}
 	}
 
@@ -471,7 +517,7 @@ namespace CVI
 		Recover_Residuals(dy);
 	}
 
-	bool Reactor1D::SolveFromScratch(OpenSMOKE::DAE_Parameters& dae_parameters)
+	int Reactor1D::SolveFromScratch(DaeSMOKE::DaeSolver_Parameters& dae_parameters)
 	{
 		std::ofstream fMonitoring;
 		fMonitoring.open((output_folder_ / "monitoring.out").string().c_str(), std::ios::out);
@@ -486,8 +532,8 @@ namespace CVI
 			const double tf = t0 + time_interval;
 
 			// Solve
-			bool flag = Solve(dae_parameters, t0, tf);
-			if (flag == false)
+			int flag = Solve(dae_parameters, t0, tf);
+			if (flag < 0)
 				return flag;
 
 			// Write current solution
@@ -506,9 +552,9 @@ namespace CVI
 		return true;
 	}
 
-	bool Reactor1D::Solve(OpenSMOKE::DAE_Parameters& dae_parameters, const double t0, const double tf)
+	int Reactor1D::Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, const double t0, const double tf)
 	{
-		bool flag = OpenSMOKEppDAE(this, dae_parameters, t0, tf);
+		int flag = DaeSMOKE::Solve_Band_OpenSMOKEppDae<Reactor1D, OpenSMOKE_Reactor1D_DaeSystem>(this, dae_parameters, t0, tf);
 		return flag;
 	}
 
@@ -523,7 +569,7 @@ namespace CVI
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "T[K]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "P[Pa]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "eps[-]", count);
-			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "rhoS[kg/m3]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "rhoBulk[kg/m3]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "Sv[1/m]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "rp[micron]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "K[m2]", count);
@@ -545,7 +591,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			OpenSMOKE::OpenSMOKEVectorDouble yy(ns_);
 			OpenSMOKE::OpenSMOKEVectorDouble xx(ns_);
@@ -563,7 +609,7 @@ namespace CVI
 			fOutput << std::setprecision(9) << std::setw(20) << P_(i);
 			
 			fOutput << std::setprecision(9) << std::setw(20) << epsilon_(i);
-			fOutput << std::setprecision(9) << std::setw(20) << rho_solid_(i);
+			fOutput << std::setprecision(9) << std::setw(20) << rho_bulk_(i);
 			fOutput << std::setprecision(9) << std::setw(20) << Sv_(i);
 			fOutput << std::setprecision(9) << std::setw(20) << rp_(i)*1.e6;
 			fOutput << std::setprecision(9) << std::setw(20) << permeability_(i);
@@ -623,7 +669,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			// Calculate the diffusion coefficients
 			{
@@ -681,7 +727,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			// Formation rates
 			{
@@ -755,7 +801,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < grid_.Np(); i++)
+		for (int i = 0; i < np_; i++)
 		{
 			// Calculate the reaction and formation rates of heterogeneous reactions
 			{

@@ -32,7 +32,7 @@ public:
 
 	OpenSMOKE_Reactor1D_DaeSystem() {};
 
-	void assignReactor(CVI::Reactor1D *reactor);
+	void assign(CVI::Reactor1D *reactor);
 
 private:
 
@@ -61,13 +61,15 @@ protected:
 	}
 };
 
-void OpenSMOKE_Reactor1D_DaeSystem::assignReactor(CVI::Reactor1D *reactor)
+void OpenSMOKE_Reactor1D_DaeSystem::assign(CVI::Reactor1D *reactor)
 {
 	ptReactor = reactor;
 }
 
+#include "math\multivalue-dae-solvers\interfaces\Band_OpenSMOKEppDae.h"
 
-bool OpenSMOKEppDAE(CVI::Reactor1D* reactor, const OpenSMOKE::DAE_Parameters& parameters, const double t0, const double tf)
+/*
+bool OpenSMOKEppDAE(CVI::Reactor1D* reactor, const DaeSMOKE::DaeSolver_Parameters& parameters, const double t0, const double tf)
 {
 	std::cout << "DAE solution (OpenSMOKE++)..." << std::endl;
 
@@ -353,3 +355,4 @@ bool OpenSMOKEppDAE(CVI::Reactor1D* reactor, const OpenSMOKE::DAE_Parameters& pa
 		}
 	}
 }
+*/

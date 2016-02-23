@@ -70,6 +70,11 @@ namespace CVI
 				"Radius of the fiber",
 				true));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberDensity",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Fiber density",
+				true));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@InitialPorosity",
 				OpenSMOKE::SINGLE_DOUBLE,
 				"Initial porosity",
