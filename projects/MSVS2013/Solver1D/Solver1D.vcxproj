@@ -47,7 +47,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_57_0\src;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\MyCodes\OpenSMOKEpp\source;C:\Development\MyCodes\OpenSMOKEppSolvers\src;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_57_0\src;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\MyCodes\OpenSMOKEpp\source;C:\Development\MyCodes\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.1\libs\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -71,26 +71,39 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;OPENSMOKE_USE_MKL=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_57_0\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_57_0\lib32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.1\libs\lib32-intel;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\DVODE\lib\windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libmmd.lib;libBzzMath60dev_msvs2013_nomkl_Win32_Release.lib;libDASPK_XE14_LAPACK_32bit_Release.lib;libLINPACK_XE14_32bit_Release.lib;libDVODE_XE14_LAPACK_32bit_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_BzzDae.h" />
+    <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_Daspk.h" />
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PlugFlowReactor.h" />
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PorousMedium.h" />
     <ClInclude Include="..\..\..\src\Grammar_CVI_Solver1D.h" />
     <ClInclude Include="..\..\..\src\Interface_OpenSMOKEppDae.h" />
     <ClInclude Include="..\..\..\src\Interface_PlugFlowReactor_ODE.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_BzzDae.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_Daspk.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_Ida.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_OpenSMOKEppDae.h" />
     <ClInclude Include="..\..\..\src\PlugFlowReactor.h" />
     <ClInclude Include="..\..\..\src\PlugFlowReactor.hpp" />
+    <ClInclude Include="..\..\..\src\PlugFlowReactorProfiles.h" />
+    <ClInclude Include="..\..\..\src\PlugFlowReactorProfiles.hpp" />
     <ClInclude Include="..\..\..\src\PorousMedium.h" />
     <ClInclude Include="..\..\..\src\PorousMedium.hpp" />
     <ClInclude Include="..\..\..\src\Reactor1D.h" />
     <ClInclude Include="..\..\..\src\Reactor1D.hpp" />
+    <ClInclude Include="..\..\..\src\Reactor2D.h" />
+    <ClInclude Include="..\..\..\src\Reactor2D.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\solver1d.cpp" />

@@ -43,8 +43,106 @@ namespace CVI
 	heterogeneous_mechanism_type_(heterogeneous_mechanism_type),
 	hydrogen_inhibition_type_(hydrogen_inhibition_type)
 	{
-		// Deafult properties
-		rho_carbon_= 2200.;					// [kg/m3]
+		Initialize();
+	}
+
+	PorousMedium::PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
+								OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
+								OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+								OpenSMOKE::OpenSMOKE_Dictionary& dictionary ) :
+	thermodynamicsMap_(thermodynamicsMap),
+	kineticsMap_(kineticsMap),
+	transportMap_(transportMap)
+	{
+		// Read fiber radius
+		{
+			double value;
+			std::string units;
+			if (dictionary.CheckOption("@FiberRadius") == true)
+			{
+				dictionary.ReadMeasure("@FiberRadius", value, units);
+				if (units == "m")				rf_ = value;
+				else if (units == "cm")			rf_ = value / 1.e2;
+				else if (units == "mm")			rf_ = value / 1.e3;
+				else if (units == "micron")		rf_ = value / 1.e6;
+				else OpenSMOKE::FatalErrorMessage("@FiberRadius: Unknown fiber radius units");
+			}
+		}
+
+		// Read fiber density
+		{
+			double value;
+			std::string units;
+			if (dictionary.CheckOption("@FiberDensity") == true)
+			{
+				dictionary.ReadMeasure("@FiberDensity", value, units);
+				if (units == "kg/m3")			rho_fiber_ = value;
+				else if (units == "g/cm3")		rho_fiber_ = value*1.e3;
+				else OpenSMOKE::FatalErrorMessage("@FiberDensity: Unknown fiber density units");
+			}
+		}
+
+		// Read graphite density
+		{
+			double value;
+			std::string units;
+			if (dictionary.CheckOption("@GraphiteDensity") == true)
+			{
+				dictionary.ReadMeasure("@GraphiteDensity", value, units);
+				if (units == "kg/m3")			rho_graphite_ = value;
+				else if (units == "g/cm3")		rho_graphite_ = value*1.e3;
+				else OpenSMOKE::FatalErrorMessage("@GraphiteDensity: Unknown graphite density units");
+			}
+		}
+
+		// Read initial porosity
+		if (dictionary.CheckOption("@InitialPorosity") == true)
+			dictionary.ReadDouble("@InitialPorosity", epsilon0_);
+
+		// Read porous substrate type
+		{
+			std::string value;
+			if (dictionary.CheckOption("@PorousSubstrate") == true)
+			{
+				dictionary.ReadString("@PorousSubstrate", value);
+				if (value == "polynomial")						porous_substrate_type_ = CVI::POLYNOMIAL;
+				else if (value == "random")						porous_substrate_type_ = CVI::RANDOM;
+				else if (value == "random_hardcore")			porous_substrate_type_ = CVI::RANDOM_HARDCORE;
+				else if (value == "polynomial_onehalf")			porous_substrate_type_ = CVI::POLINOMIAL_ONEHALF;
+				else if (value == "from_spheres_to_cylinders")	porous_substrate_type_ = CVI::FROM_SPHERES_TO_CYLINDERS;
+				else OpenSMOKE::FatalErrorMessage("@PorousSubstrate: Substrates available: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders");
+			}
+		}
+
+		// Read heterogeneous mechanism type
+		{
+			std::string value;
+			if (dictionary.CheckOption("@HeterogeneousMechanism") == true)
+			{
+				dictionary.ReadString("@HeterogeneousMechanism", value);
+				if (value == "Ibrahim-Paolucci")		heterogeneous_mechanism_type_ = CVI::IBRAHIM_PAOLUCCI;
+				else OpenSMOKE::FatalErrorMessage("Heterogeneous mechanisms available: Ibrahim-Paolucci");
+			}
+		}
+
+		// Read hydrogen inhibition type
+		{
+			std::string value;
+			if (dictionary.CheckOption("@HydrogenInhibition") == true)
+			{
+				dictionary.ReadString("@HydrogenInhibition", value);
+				if (value == "none")			hydrogen_inhibition_type_ = CVI::NONE;
+				else if (value == "Becker")		hydrogen_inhibition_type_ = CVI::BECKER;
+				else OpenSMOKE::FatalErrorMessage("Hydrogen inhibitions available: none | Becker");
+			}
+		}
+
+		Initialize();
+	}
+
+	void PorousMedium::Initialize()
+	{
+		// Constants
 		mw_carbon_ = 12.010999679565430;	// [kg/kmol]
 
 		// Number of species
@@ -62,6 +160,8 @@ namespace CVI
 		gamma_effective_.resize(ns_);
 		Rgas_.resize(ns_);
 		r_.resize(nr_);
+		r_deposition_per_unit_area_per_single_reaction_.resize(nr_);
+		r_deposition_per_unit_volume_per_single_reaction_.resize(nr_);
 
 		// Set initial porosity
 		SetPorosity(epsilon0_);
@@ -71,7 +171,7 @@ namespace CVI
 		index_C2H4_ = thermodynamicsMap_.IndexOfSpecies("C2H4") - 1;
 		index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 		index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
-		index_H2_   = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+		index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
 
 		// Set default hydrogen inhibition coefficients
 		I_CH4_ = 1.;
@@ -89,7 +189,7 @@ namespace CVI
 		std::cout << "-------------------------------------------------------" << std::endl;
 		std::cout << "                      Porous Medium                    " << std::endl;
 		std::cout << "-------------------------------------------------------" << std::endl;
-		std::cout << " * Carbon density [kg/m3]:           " << rho_carbon_ << std::endl;
+		std::cout << " * Graphite density [kg/m3]:         " << rho_graphite_ << std::endl;
 		std::cout << " * Bulk density density [kg/m3]:     " << density_bulk() << std::endl;
 		std::cout << " * Porosity [-]:                     " << epsilon0_ << std::endl;
 		std::cout << " * Fiber density [kg/m3]:            " << rho_fiber_ << std::endl;
@@ -119,18 +219,21 @@ namespace CVI
 		epsilon_ = epsilon;
 	}
 
-	void PorousMedium::SetCarbonDensity(const double rho_carbon)
+	void PorousMedium::SetGraphiteDensity(const double rho_graphite)
 	{
-		rho_carbon_ = rho_carbon;
+		rho_graphite_ = rho_graphite;
 	}
 
 	double PorousMedium::density_bulk()
 	{
-		return rho_fiber_*(1. - epsilon0_) + rho_carbon_*(epsilon0_ - epsilon_);
+		return rho_fiber_*(1. - epsilon0_) + rho_graphite_*(epsilon0_ - epsilon_);
 	}
 
 	double PorousMedium::Sv()
 	{
+		if (epsilon_ < 1e-3)
+			return 1.;
+
 		if (porous_substrate_type_ == POLYNOMIAL)
 		{
 			const double ratio = epsilon_ / epsilon0_;
@@ -304,6 +407,15 @@ namespace CVI
 			Rgas_(index_C6H6_) = -Sv_*r_(3);
 			Rgas_(index_H2_)   =  Sv_*(2.*r_(0) + 2.*r_(1) + 1.*r_(2) + 3.*r_(3));
 		}
+
+		// Heterogeneous deposition rate [kmol/m2/s]
+		r_deposition_per_unit_area_per_single_reaction_(0) = r_(0);
+		r_deposition_per_unit_area_per_single_reaction_(1) = 2.*r_(1);
+		r_deposition_per_unit_area_per_single_reaction_(2) = 2.*r_(2);
+		r_deposition_per_unit_area_per_single_reaction_(3) = 6.*r_(3);
+
+		// Heterogeneous deposition rate [kmol/m3/s]
+		r_deposition_per_unit_volume_per_single_reaction_ = Sv_*r_deposition_per_unit_area_per_single_reaction_;
 	
 		// Heterogeneous deposition rate [kmol/m2/s]
 		r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 2.*r_(2) + 6.*r_(3);

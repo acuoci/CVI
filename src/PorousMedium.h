@@ -67,6 +67,11 @@ namespace CVI
 						const HeterogeneousMechanism heterogeneous_mechanism_type,
 						const HydrogenInhibitionType hydrogen_inhibition_type);
 
+		PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
+						OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
+						OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+						OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
+
 		/**
 		*@brief Sets the temperature at which the properties have to be evaluated
 		*@param T temperature [K]
@@ -86,10 +91,10 @@ namespace CVI
 		void SetPorosity(const double epsilon);
 
 		/**
-		*@brief Sets the density of carbon matrix
-		*@param rho_carbon density [kg/m3]
+		*@brief Sets the density of graphite
+		*@param rho_graphite density [kg/m3]
 		*/
-		void SetCarbonDensity(const double rho_carbon);
+		void SetGraphiteDensity(const double rho_graphite);
 
 		/**
 		*@brief Calculates and returns the surface per unit of volume
@@ -134,10 +139,10 @@ namespace CVI
 		double density_bulk();
 
 		/**
-		*@brief Returns the density of the carbon matrix
-		*@return the density of the carbon matrix [kg/m3]
+		*@brief Returns the density of graphite
+		*@return the density of graphite [kg/m3]
 		*/
-		double rho_carbon() const { return rho_carbon_; }
+		double rho_graphite() const { return rho_graphite_; }
 
 		/**
 		*@brief Returns the molecular weight of the carbon matrix
@@ -216,6 +221,19 @@ namespace CVI
 		*@return the deposition rate [kmol/m3/s]
 		*/
 		double r_deposition_per_unit_volume() const { return r_deposition_per_unit_volume_; }
+
+
+		/**
+		*@brief Returns the deposition rate per unit of surface for single reactions [kmol/m2/s]
+		*@return the deposition rate per unit of surface for single reactions [kmol/m2/s]
+		*/
+		const Eigen::VectorXd& r_deposition_per_unit_area_per_single_reaction() const { return r_deposition_per_unit_area_per_single_reaction_; }
+
+		/**
+		*@brief Returns the deposition rate per unit of volume for single reactions [kmol/m3/s]
+		*@return the deposition rate per unit of volume for single reactions [kmol/m3/s]
+		*/
+		const Eigen::VectorXd& r_deposition_per_unit_volume_per_single_reaction() const { return r_deposition_per_unit_volume_per_single_reaction_; }
 
 		/**
 		*@brief Returns the inhibition coefficient for methane
@@ -303,6 +321,8 @@ namespace CVI
 		*/
 		void Summary();
 
+		void Initialize();
+
 	private:
 
 		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;	//!< reference to the thermodynamic map
@@ -324,7 +344,7 @@ namespace CVI
 		double epsilon0_;		//!< initial porosity
 		double rf_;				//!< current radius of fibers [m]
 		double rho_fiber_;		//!< density of fibers [kg/m3]
-		double rho_carbon_;		//!< density of carbon matrix [kg/m3]
+		double rho_graphite_;	//!< density of graphite [kg/m3]
 		double mw_carbon_;		//!< molecular weight of carbon matrix [kg/kmol]
 
 		PorousSubstrateType porous_substrate_type_;		//!< type of substrate
@@ -341,11 +361,13 @@ namespace CVI
 		double I_C2H2_;										//!< inhibition coefficient for acetylene
 		double I_C6H6_;										//!< inhibition coefficient for benzene
 
-		HeterogeneousMechanism heterogeneous_mechanism_type_;		//!< type of heterogeneous mechanism
-		Eigen::VectorXd Rgas_;										//!< formation rate of gaseous species due to heterogeneous reactions [kmol/m3/s]
-		Eigen::VectorXd r_;											//!< reaction rates of heterogeneous reactions [kmol/m3/s]
-		double r_deposition_per_unit_area_;							//!< deposition rate per unit of surface [kmol/m2/s]
-		double r_deposition_per_unit_volume_;						//!< deposition rate per unit of surface [kmol/m3/s]
+		HeterogeneousMechanism heterogeneous_mechanism_type_;				//!< type of heterogeneous mechanism
+		Eigen::VectorXd Rgas_;												//!< formation rate of gaseous species due to heterogeneous reactions [kmol/m3/s]
+		Eigen::VectorXd r_;													//!< reaction rates of heterogeneous reactions [kmol/m3/s]
+		double r_deposition_per_unit_area_;									//!< deposition rate per unit of surface [kmol/m2/s]
+		double r_deposition_per_unit_volume_;								//!< deposition rate per unit of volume [kmol/m3/s]
+		Eigen::VectorXd r_deposition_per_unit_area_per_single_reaction_;	//!< deposition rate per unit of surface for single reactions [kmol/m2/s]
+		Eigen::VectorXd r_deposition_per_unit_volume_per_single_reaction_;	//!< deposition rate per unit of volume for single reactions [kmol/m3/s]
 	};
 }
 

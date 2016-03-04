@@ -1,4 +1,4 @@
-/*-----------------------------------------------------------------------*\
+/*----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -24,47 +24,57 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#include "math/multivalue-dae-solvers/MultiValueSolver"
+#ifndef OpenSMOKE_Grammar_CVI_PorousMedium_H
+#define OpenSMOKE_Grammar_CVI_PorousMedium_H
 
-class OpenSMOKE_Reactor1D_DaeSystem
+#include "dictionary/OpenSMOKE_DictionaryManager.h"
+#include "dictionary/OpenSMOKE_DictionaryGrammar.h"
+#include "dictionary/OpenSMOKE_DictionaryKeyWord.h"
+
+namespace CVI
 {
-public:
-
-	OpenSMOKE_Reactor1D_DaeSystem() {};
-
-	void assign(CVI::Reactor1D *reactor);
-
-private:
-
-	CVI::Reactor1D *ptReactor;
-
-protected:
-
-	unsigned int ne_;
-
-	void MemoryAllocation()
+	class Grammar_CVI_PorousMedium : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
 	{
-	}
+	protected:
 
-	virtual void Equations(const Eigen::VectorXd& y, const double t, Eigen::VectorXd& f)
-	{
-		ptReactor->Equations(t, y.data(), f.data());
-	}
+		virtual void DefineRules()
+		{
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberRadius",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Radius of the fiber",
+				true));
 
-	void Jacobian(const Eigen::VectorXd &y, const double t, Eigen::MatrixXd &J)
-	{
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberDensity",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Fiber density",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@GraphiteDensity",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Graphite density",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@InitialPorosity",
+				OpenSMOKE::SINGLE_DOUBLE,
+				"Initial porosity",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousSubstrate",
+				OpenSMOKE::SINGLE_STRING,
+				"Porous substrate type: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousMechanism",
+				OpenSMOKE::SINGLE_STRING,
+				"Heterogeneous mechanism: Ibrahim-Paolucci",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HydrogenInhibition",
+				OpenSMOKE::SINGLE_STRING,
+				"Hydrogen inhibition type: none | Becker",
+				true));
+		}
 	};
-
-	void Print(const double t, const Eigen::VectorXd &y)
-	{
-		ptReactor->Print(t, y.data());
-	}
-};
-
-void OpenSMOKE_Reactor1D_DaeSystem::assign(CVI::Reactor1D *reactor)
-{
-	ptReactor = reactor;
 }
 
-#include "math\multivalue-dae-solvers\interfaces\Band_OpenSMOKEppDae.h"
-
+#endif /* OpenSMOKE_Grammar_CVI_PorousMedium_H */

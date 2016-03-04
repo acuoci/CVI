@@ -4,6 +4,11 @@
 *.dep
 .*.sw[op]
 *~
+*.out
+*.tec.*
+*.log
+*.txt
+log*
 
 #Microsoft Visual studio
 ########################

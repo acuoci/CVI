@@ -24,47 +24,76 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#include "math/multivalue-dae-solvers/MultiValueSolver"
+#include <boost/timer/timer.hpp>
+#include <ida/ida_spgmr.h>
+#include <ida/ida_spbcgs.h>
+#include <ida/ida_sptfqmr.h>
 
-class OpenSMOKE_Reactor1D_DaeSystem
+typedef struct 
 {
-public:
+	N_Vector J;
+	N_Vector invJ;
+} *IDAUserData;
 
-	OpenSMOKE_Reactor1D_DaeSystem() {};
 
-	void assign(CVI::Reactor1D *reactor);
-
-private:
-
-	CVI::Reactor1D *ptReactor;
-
-protected:
-
-	unsigned int ne_;
-
-	void MemoryAllocation()
-	{
-	}
-
-	virtual void Equations(const Eigen::VectorXd& y, const double t, Eigen::VectorXd& f)
-	{
-		ptReactor->Equations(t, y.data(), f.data());
-	}
-
-	void Jacobian(const Eigen::VectorXd &y, const double t, Eigen::MatrixXd &J)
-	{
-	};
-
-	void Print(const double t, const Eigen::VectorXd &y)
-	{
-		ptReactor->Print(t, y.data());
-	}
-};
-
-void OpenSMOKE_Reactor1D_DaeSystem::assign(CVI::Reactor1D *reactor)
+int ida_equations(realtype t, N_Vector y, N_Vector yp, N_Vector res, void *user_data)
 {
-	ptReactor = reactor;
+	realtype *pt_y = NV_DATA_S(y);
+	realtype *pt_res = NV_DATA_S(res);
+	realtype *pt_yp = NV_DATA_S(yp);
+
+	reactor2d->Equations(t, pt_y, pt_res);
+	reactor2d->CorrectDifferentialEquations(pt_yp, pt_res);
+
+	return 0;
 }
 
-#include "math\multivalue-dae-solvers\interfaces\Band_OpenSMOKEppDae.h"
+int ida_initial_derivatives(realtype t, N_Vector y, N_Vector yp, void *user_data)
+{
+	realtype *pt_y = NV_DATA_S(y);
+	realtype *pt_yp = NV_DATA_S(yp);
+
+	reactor2d->Equations(t, pt_y, pt_yp);
+	reactor2d->CorrectAlgebraicEquations(pt_yp);
+
+	return 0;
+}
+
+int ida_preconditioner_setup(realtype t, N_Vector y, N_Vector yp, N_Vector rr, realtype c_j, void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
+{
+	IDAUserData data;
+	data = (IDAUserData)user_data;
+
+	realtype *pt_y = NV_DATA_S(y);
+	realtype *pt_J = NV_DATA_S(data->J);
+
+	reactor2d->DiagonalJacobian(t, pt_y, pt_J);
+	reactor2d->DiagonalJacobianForIDA(c_j, pt_J);
+
+	realtype *pt_invJ = NV_DATA_S(data->invJ);
+	for (unsigned int i = 0; i < NV_LENGTH_S(y); i++)
+		pt_invJ[i] = 1. / pt_J[i];
+
+	return(0);
+}
+
+int ida_preconditioner_solution(realtype t, N_Vector y, N_Vector yp, N_Vector rr, N_Vector rvec, N_Vector zvec, realtype c_j, realtype delta, void *user_data, N_Vector tmp)
+{
+	IDAUserData data;
+	data = (IDAUserData)user_data;
+
+	N_VProd(data->invJ, rvec, zvec);
+
+	return(0);
+}
+
+int ida_print_solution(realtype t, N_Vector y)
+{
+	double* ydata = N_VGetArrayPointer(y);
+	reactor2d->Print(t, ydata);
+	return 0;
+}
+
+
+#include "math\multivalue-dae-solvers\interfaces\Band_Ida.h"
 

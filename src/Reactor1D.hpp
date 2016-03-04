@@ -48,6 +48,7 @@ namespace CVI
 		block_ = ns_ + 1;
 		np_ = grid_.Np();
 		ne_ = block_*np_;
+		band_size_ = 2 * block_ - 1;
 
 		output_folder_ = "Output";
 
@@ -197,27 +198,27 @@ namespace CVI
 		}
 	}
 
-	void Reactor1D::SetGasSide(const double T_gas, const double P_gas, const OpenSMOKE::OpenSMOKEVectorDouble& omega_gas)
+	void Reactor1D::SetGasSide(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas)
 	{
 		Y_gas_side_.resize(ns_);
 		for (unsigned int j = 0; j < ns_; j++)
-			Y_gas_side_(j) = omega_gas[j + 1];
+			Y_gas_side_(j) = omega_gas(j);
 
 		P_gas_side_ = P_gas;
 		T_gas_side_ = T_gas;
 
 		for (unsigned int j = 0; j < ns_; j++)
-			Y_[grid_.Ni()](j) = omega_gas[j + 1];
+			Y_[grid_.Ni()](j) = omega_gas(j);
 
 		P_(grid_.Ni()) = P_gas;
 		T_(grid_.Ni()) = T_gas;
 	}
 
-	void Reactor1D::SetInitialConditions(const double T_gas, const double P_gas, const OpenSMOKE::OpenSMOKEVectorDouble& omega_gas)
+	void Reactor1D::SetInitialConditions(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas)
 	{
 		for (int i = 0; i < np_; i++)
 			for (unsigned int j = 0; j < ns_; j++)
-				Y_[i](j) = omega_gas[j + 1];
+				Y_[i](j) = omega_gas(j);
 
 		P_.setConstant(P_gas);
 		T_.setConstant(T_gas);
@@ -373,31 +374,13 @@ namespace CVI
 		// Gas side
 		for (unsigned int j = 0; j < ns_; j++)
 			dY_over_dt_[grid_.Ni()](j) = Y_[grid_.Ni()](j) - Y_gas_side_(j);
-
-		/*
-		{
-			const double dc = 2e-3;
-			const double v = 1.;
-			const double Re = rho_gas_(np_ - 1)*v*dc / 1.8e-5;
-			const double Pr = 1.;
-			const double Nu = 0.023*std::pow(Re, 0.8) * std::pow(Pr, 0.333);
-			const double hc = Nu*1.e-5 / dc;
-
-			std::cout << Re << " " << Nu << " " << hc << std::endl;
-			for (unsigned int j = 0; j < ns_; j++)
-			{
-				const double Diff_over_dx = gamma_star_[np_ - 1](j) / (grid_.x()(np_ - 1) - grid_.x()(np_ - 2));
-				dY_over_dt_[grid_.Ni()](j) = Y_[grid_.Ni()](j) - (Y_gas_side_(j)*hc + Y_[grid_.Ni() - 1](j)*Diff_over_dx) / (hc + Diff_over_dx);
-			}
-		}
-		*/
 	}
 
 	void Reactor1D::SubEquations_Porosity()
 	{
 		// Internal points
 		for (int i = 0; i < np_; i++)
-			depsilon_over_dt_(i) = -omega_deposition_(i) / porousMedium_.rho_carbon();
+			depsilon_over_dt_(i) = -omega_deposition_(i) / porousMedium_.rho_graphite();
 	}
 
 	void Reactor1D::Recover_Unknowns(const double* y)

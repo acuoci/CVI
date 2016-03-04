@@ -14,39 +14,79 @@
 
 Dictionary CVI_Solver1D
 {
-	@KineticsPreProcessor	Paolucci_PreProcessor;
-	//@KineticsFolder			kinetics-Polimi4Brembo;
+	
+	//@KineticsPreProcessor	Paolucci_PreProcessor;
+	//@KineticsPreProcessor	Test_PreProcessor;
+	@KineticsFolder			kinetics-Polimi4Brembo;
 
-	@FiberRadius			4 micron;
-	@FiberDensity			1720 kg/m3;
-	@InitialPorosity		0.775;
-	@PorousSubstrate		random_hardcore;
-	
-	@HeterogeneousMechanism	Ibrahim-Paolucci;
-	@HydrogenInhibition		Becker;
-	
-	@PlugFlowResidenceTime	0.1 s;
-	
-	@Points				41;
-	@Length				21 mm;
-	@StretchingFactor	0.95;
-	
+	@Type				2D;
+	@PlugFlowReactor	plug-flow-reactor;
+	@PorousMedium		porous-medium;
 	@InletStream		inlet-stream;
 	@InitialConditions	initial-conditions;
+		
+	@XPoints			6;
+	@YPoints			6;
+	@XLength			21 mm;
+	@YLength			40 mm;
+	@XStretchingFactor	0.95;
+	@YStretchingFactor	1.;
+	
+	@TimeTotal			120 h;
+	@TimeInterval		  5 h;
+	
+	@DaeParameters		dae-parameters;
+}
+Dictionary porous-medium
+{
+	@FiberRadius			4 micron;
+	@FiberDensity			1720 kg/m3;
+	@GraphiteDensity		2200 kg/m3;
+	@InitialPorosity		0.929;
+	@PorousSubstrate		random_hardcore;
+	@HeterogeneousMechanism	Ibrahim-Paolucci;
+	@HydrogenInhibition		Becker;
+}
+
+Dictionary plug-flow-reactor
+{
+	@Velocity					45 cm/s;
+	@InletLength				2.5 mm;
+	@HydraulicDiameter			3.5 mm;
+	@AsymptoticNusselt			4.00;
+	@InternalBoundaryLayer		false;
+	@GeometricPattern			OneSide;
 }
 
 Dictionary inlet-stream
 {	
-	@Temperature	1418 K;
-	@Pressure		30e3 Pa;
-	@Moles			CH4 1;
+	@Temperature	1438 K;
+	@Pressure		20e3 Pa;
+	@Masses			CH4 1;
 }
 
 Dictionary initial-conditions
 {	
-	@Temperature	1418 K;
-	@Pressure		30e3 Pa;
-	@Moles			N2 1;
+	@Temperature	1438 K;
+	@Pressure		20e3 Pa;
+	@Masses			N2 1;
+}
+
+Dictionary dae-parameters
+{
+	@DaeSolver				OpenSMOKE++;
+	@Jacobian				Sparse;
+	@SparseSolver			Pardiso;
+//	@Preconditioner			ILUT;
+	
+	//Sparse solvers: EigenSparseLU | EigenBiCGSTAB | EigenGMRES | EigenDGMRES
+	//                Pardiso       | SuperLUSerial | UMFPack
+	
+	//Preconditioners: ILUT | diagonal
+	
+	@RelativeTolerance		1e-6;
+	@AbsoluteTolerance		1e-10;
+	@VerbosityLevel			1;
 }
 
 Dictionary Paolucci_PreProcessor
@@ -54,7 +94,14 @@ Dictionary Paolucci_PreProcessor
 	@Thermodynamics thermo30.dat;
 	@Transport		transport.dat;
 	@Kinetics 		grimech30_reduced.dat;
-		
 	@Output			kinetics-Paolucci;
+}
+
+Dictionary Test_PreProcessor
+{
+	@Thermodynamics thermo30.dat;
+	@Transport		transport.dat;
+	@Kinetics 		test.dat;	
+	@Output			kinetics-Test;
 }
 

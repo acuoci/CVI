@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\interfaces">
+      <UniqueIdentifier>{7d8c5d05-b410-4a7e-886f-5dea0b861a81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\plugflow">
+      <UniqueIdentifier>{4b09fcf5-05ac-40d2-af1e-f5b7de5844bb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\PorousMedium.h">
@@ -30,17 +36,53 @@
     <ClInclude Include="..\..\..\src\Reactor1D.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\Reactor2D.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Reactor2D.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_Daspk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_BzzDae.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PlugFlowReactor.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PorousMedium.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\src\Interface_OpenSMOKEppDae.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\PlugFlowReactor.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\PlugFlowReactor.hpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\Interface_PlugFlowReactor_ODE.h">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_BzzDae.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_Daspk.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_Ida.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_OpenSMOKEppDae.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorProfiles.hpp">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactor.h">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactor.hpp">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorProfiles.h">
+      <Filter>Source Files\plugflow</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

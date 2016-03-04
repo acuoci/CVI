@@ -26,17 +26,17 @@
 
 #include "math/multivalue-dae-solvers/MultiValueSolver"
 
-class OpenSMOKE_Reactor1D_DaeSystem
+class OpenSMOKE_Reactor2D_DaeSystem
 {
 public:
 
-	OpenSMOKE_Reactor1D_DaeSystem() {};
+	OpenSMOKE_Reactor2D_DaeSystem() {};
 
-	void assign(CVI::Reactor1D *reactor);
+	void assign(CVI::Reactor2D *reactor);
 
 private:
 
-	CVI::Reactor1D *ptReactor;
+	CVI::Reactor2D *ptReactor;
 
 protected:
 
@@ -61,10 +61,11 @@ protected:
 	}
 };
 
-void OpenSMOKE_Reactor1D_DaeSystem::assign(CVI::Reactor1D *reactor)
+void OpenSMOKE_Reactor2D_DaeSystem::assign(CVI::Reactor2D *reactor)
 {
 	ptReactor = reactor;
 }
 
 #include "math\multivalue-dae-solvers\interfaces\Band_OpenSMOKEppDae.h"
+#include "math\multivalue-dae-solvers\interfaces\Sparse_OpenSMOKEppDae.h"
 

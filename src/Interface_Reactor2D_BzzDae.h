@@ -24,47 +24,37 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#include "math/multivalue-dae-solvers/MultiValueSolver"
-
-class OpenSMOKE_Reactor1D_DaeSystem
+class OpenSMOKE_Reactor2D_BzzDaeSystem : public BzzDaeSystemObject
 {
 public:
 
-	OpenSMOKE_Reactor1D_DaeSystem() {};
+	void assign(CVI::Reactor2D *reactor);
 
-	void assign(CVI::Reactor1D *reactor);
-
-private:
-
-	CVI::Reactor1D *ptReactor;
-
-protected:
-
-	unsigned int ne_;
-
-	void MemoryAllocation()
-	{
-	}
-
-	virtual void Equations(const Eigen::VectorXd& y, const double t, Eigen::VectorXd& f)
-	{
-		ptReactor->Equations(t, y.data(), f.data());
-	}
-
-	void Jacobian(const Eigen::VectorXd &y, const double t, Eigen::MatrixXd &J)
-	{
-	};
-
-	void Print(const double t, const Eigen::VectorXd &y)
-	{
-		ptReactor->Print(t, y.data());
-	}
+	CVI::Reactor2D *ptReactor;
+	virtual void GetSystemFunctions(BzzVector &y, double t, BzzVector &dy);
+	virtual void ObjectBzzPrint(void);
 };
 
-void OpenSMOKE_Reactor1D_DaeSystem::assign(CVI::Reactor1D *reactor)
+void OpenSMOKE_Reactor2D_BzzDaeSystem::ObjectBzzPrint(void)
+{
+}
+
+void OpenSMOKE_Reactor2D_BzzDaeSystem::GetSystemFunctions(BzzVector &x, double t, BzzVector &f)
+{
+	double* ptx = x.GetHandle();
+	double* ptf = f.GetHandle();
+
+	ptReactor->Equations(t, ptx, ptf);
+}
+
+void OpenSMOKE_Reactor2D_BzzDaeSystem::assign(CVI::Reactor2D *reactor)
 {
 	ptReactor = reactor;
 }
 
-#include "math\multivalue-dae-solvers\interfaces\Band_OpenSMOKEppDae.h"
+void DaePrint(BzzVector &y, double t)
+{
+	reactor2d->Print(t, y.GetHandle());
+}
 
+#include "math\multivalue-dae-solvers\interfaces\Band_BzzDae.h"

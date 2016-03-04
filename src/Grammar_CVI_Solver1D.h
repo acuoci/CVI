@@ -39,6 +39,11 @@ namespace CVI
 
 		virtual void DefineRules()
 		{
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Type",
+				OpenSMOKE::SINGLE_STRING,
+				"Type of problem to be solved: 1D | 2D",
+				true));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@KineticsFolder",
 				OpenSMOKE::SINGLE_PATH,
 				"Name of the folder containing the kinetic scheme (XML Version)",
@@ -55,6 +60,16 @@ namespace CVI
 				"none",
 				"none"));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PlugFlowReactor",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Name of the dictionary/dictionaries defining the plug flow reactor",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousMedium",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Name of the dictionary/dictionaries defining the porous medium",
+				true));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@InletStream",
 				OpenSMOKE::SINGLE_DICTIONARY,
 				"Name of the dictionary/dictionaries defining the inlet gas composition, temperature and pressure",
@@ -65,55 +80,65 @@ namespace CVI
 				"Name of the dictionary/dictionaries defining the initial gas composition, temperature and pressure",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberRadius",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Radius of the fiber",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberDensity",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Fiber density",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@InitialPorosity",
-				OpenSMOKE::SINGLE_DOUBLE,
-				"Initial porosity",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousSubstrate",
-				OpenSMOKE::SINGLE_STRING,
-				"Porous substrate type: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousMechanism",
-				OpenSMOKE::SINGLE_STRING,
-				"Heterogeneous mechanism: Ibrahim-Paolucci",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HydrogenInhibition",
-				OpenSMOKE::SINGLE_STRING,
-				"Hydrogen inhibition type: none | Becker",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Points",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@XPoints",
 				OpenSMOKE::SINGLE_INT,
-				"Number of grid points",
+				"Number of grid points along the x axis",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Length",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@YPoints",
+				OpenSMOKE::SINGLE_INT,
+				"Number of grid points along the y axis",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@XLength",
 				OpenSMOKE::SINGLE_MEASURE,
-				"Length of computational domain",
+				"Length of computational domain along the x axis",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@StretchingFactor",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@YLength",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Length of computational domain along the y axis",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@XStretchingFactor",
 				OpenSMOKE::SINGLE_DOUBLE,
-				"Stretching factor",
+				"Stretching factor along the x axis",
 				false));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PlugFlowResidenceTime",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@YStretchingFactor",
+				OpenSMOKE::SINGLE_DOUBLE,
+				"Stretching factor along the y axis",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DaeParameters",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Dictionary containing the numerical parameters for solving the stiff DAE system",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TimeInterval",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Interval of time",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TimeTotal",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Total time of simulation",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@StepsVideo",
+				OpenSMOKE::SINGLE_INT,
+				"Number steps to update info on the screen",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@StepsFile",
+				OpenSMOKE::SINGLE_INT,
+				"Number steps to update info on files",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@ResidenceTime",
 				OpenSMOKE::SINGLE_MEASURE,
 				"Residence time to be simulated in the gaseous phase",
-				true));
+				false));
 		}
 	};
 }

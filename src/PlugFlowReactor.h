@@ -42,14 +42,28 @@ namespace CVI
 
 	class PlugFlowReactor
 	{
+
+	public:
+
+		enum GeometricPattern {ONE_SIDE, THREE_SIDES};
+
 	public:
 
 		/**
 		*@brief Default constructor
 		*@param thermodynamicsMap	reference to the thermodynamic map
 		*@param kineticsMap			reference to the kinetic map
+		*@param v					the axial velocity [m/s]
+		*@param Dh					the hydraulic diameter [m]
 		*/
-		PlugFlowReactor(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap);
+		PlugFlowReactor(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap, const double v, const double Dh);
+
+		/**
+		*@brief Default constructor
+		*@param thermodynamicsMap	reference to the thermodynamic map
+		*@param kineticsMap			reference to the kinetic map
+		*/
+		PlugFlowReactor(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap, OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
 
 		/**
 		*@brief Sets the inlet/initial conditions
@@ -57,7 +71,31 @@ namespace CVI
 		*@param P		inlet/initial pressure [Pa]
 		*@param omega	inlet/initial composition in mass fractions
 		*/
-		void SetInitialConditions(const double T, const double P, const OpenSMOKE::OpenSMOKEVectorDouble& omega);
+		void SetInitialConditions(const double T, const double P, const Eigen::VectorXd& omega);
+
+		/**
+		*@brief Sets the length of the inert zone
+		*@param inert_length length of the inert zone [m]
+		*/
+		void SetInertLength(const double inert_length);
+
+		/**
+		*@brief Sets the asymptoti Nusselt number
+		*@param NuInf the asymptoti Nusselt number
+		*/
+		void SetAsymptoticNusseltNumber(const double NuInf);
+
+		/**
+		*@brief Sets the internal boundary layer correction (on/off)
+		*@param flag true if the internal boundary layer limitations have to be accounted for
+		*/
+		void SetInternalBoundaryLayerCorrection(const bool flag);
+
+		/**
+		*@brief Sets the geometric pattern: ONE_SIDE | THREE SIDES
+		*@param pattern the geometric pattern
+		*/
+		void SetGeometricPattern(const GeometricPattern pattern);
 
 		/**
 		*@brief Returns the differential equations
@@ -114,6 +152,61 @@ namespace CVI
 		*@brief Direct access to the current unknowns
 		*/
 		const Eigen::VectorXd& Y() const { return Y_; }
+
+		/**
+		*@brief Direct access to the history of tau
+		*/
+		const std::vector<double>& history_tau() const { return history_tau_; }
+
+		/**
+		*@brief Direct access to the history of csi
+		*/
+		const std::vector<double>& history_csi() const { return history_csi_; }
+
+		/**
+		*@brief Direct access to the history of mass fractions
+		*/
+		const std::vector<Eigen::VectorXd> history_Y() const { return history_Y_; }
+
+		/**
+		*@brief Returns the axial velocity [m/s]
+		*/
+		double v() const { return v_; }
+
+		/**
+		*@brief Returns the hydraulic diameter [m]
+		*/
+		double Dh() const { return Dh_; }
+
+		/**
+		*@brief Returns the asymptotic Nusselt number [-]
+		*/
+		double NuInf() const { return NuInf_; }
+
+		/**
+		*@brief Returns the length of the inert zone [m]
+		*/
+		double inert_length() const { return inert_length_; }
+
+		/**
+		*@brief Returns true if the internal boundary layer limitations have to be applied
+		*/
+		bool internal_boundary_layer_correction() const { return internal_boundary_layer_correction_; }
+
+		/**
+		*@brief Returns the geometric pattern
+		*/
+		GeometricPattern geometric_pattern() const { return geometric_pattern_; }
+
+		/**
+		*@brief Returns the mass transfer coeffcient as a function of the axial coordinate
+		*@param T temperature [K]
+		*@param P pressure [Pa]
+		*@param rho density [kg/m3]
+		*@param x axial coordinate [m]
+		*@return mass transfer coefficient [m/s]
+		*/
+		double mass_transfer_coefficient(const double T, const double P_Pa, const double rho, const double x);
 		
 	private:
 
@@ -133,9 +226,24 @@ namespace CVI
 		void SubEquations_MassFractions();
 
 		/**
+		*@brief Equations of space
+		*/
+		void SubEquations_Space();
+
+		/**
 		*@brief Prints the current solution on a file
 		*/
 		void PrintSolution(const std::string name_file);
+
+		/**
+		*@brief Sets the default values for relevant variables
+		*/
+		void DefaultValues();
+
+		/**
+		*@brief Initializes the variables
+		*/
+		void Initialize();
 
 	private:
 
@@ -144,9 +252,18 @@ namespace CVI
 
 		double T_;						//!< current temperature [K]
 		double P_;						//!< current pressure [Pa]
+		double csi_;					//!< axial coordinate [m]
+		double v_;						//!< axial velocity [m/s]
+		double Dh_;						//!< hydraulic diameter [m]
+		double NuInf_;					//!< asymptotic Nusselt number [-]
+		double inert_length_;			//!< length of inert zone [m]
+		bool internal_boundary_layer_correction_;		//!< true if the boundary layer limitations have to be accounted for
+		GeometricPattern geometric_pattern_;			//!< geometric pattern: ONE_SIDE | THREE_SIDES
+
 		double rho_;					//!< current density [kg/m3]
 		Eigen::VectorXd Y_;				//!< current mass fractions [-]
 		Eigen::VectorXd dY_over_dt_;	//!< current time derivatives of mass fractions [1/s]
+		double dcsi_over_dt_;			//!< current time derivative of space [m/s]
 
 		unsigned int n_steps_video_;	//!< number of steps for updating info on the screen
 		unsigned int count_video_;		//!< counter of steps for updating info on the screen
@@ -154,6 +271,11 @@ namespace CVI
 		unsigned int ns_;						//!< total number of gaseous species
 		unsigned int ne_;						//!< total number of equations
 		boost::filesystem::path output_folder_;	//!< name of output folder
+
+		// History
+		std::vector<double>				history_tau_;
+		std::vector<double>				history_csi_;
+		std::vector<Eigen::VectorXd>	history_Y_;
 
 		// Auxiliary vectors
 		OpenSMOKE::OpenSMOKEVectorDouble	aux_Y;	//!< vector containing the mass fractions

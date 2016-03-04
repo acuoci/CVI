@@ -24,47 +24,31 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#include "math/multivalue-dae-solvers/MultiValueSolver"
+#include <boost/timer/timer.hpp>
 
-class OpenSMOKE_Reactor1D_DaeSystem
+static void DaspkEquations(double *t, double *y, double *dy, double *cj, double *delta, int *ires, double *rpar, int *ipar)
 {
-public:
-
-	OpenSMOKE_Reactor1D_DaeSystem() {};
-
-	void assign(CVI::Reactor1D *reactor);
-
-private:
-
-	CVI::Reactor1D *ptReactor;
-
-protected:
-
-	unsigned int ne_;
-
-	void MemoryAllocation()
-	{
-	}
-
-	virtual void Equations(const Eigen::VectorXd& y, const double t, Eigen::VectorXd& f)
-	{
-		ptReactor->Equations(t, y.data(), f.data());
-	}
-
-	void Jacobian(const Eigen::VectorXd &y, const double t, Eigen::MatrixXd &J)
-	{
-	};
-
-	void Print(const double t, const Eigen::VectorXd &y)
-	{
-		ptReactor->Print(t, y.data());
-	}
-};
-
-void OpenSMOKE_Reactor1D_DaeSystem::assign(CVI::Reactor1D *reactor)
-{
-	ptReactor = reactor;
+	reactor2d->Equations(*t, y, delta);
+	reactor2d->CorrectDifferentialEquations(dy, delta);
 }
 
-#include "math\multivalue-dae-solvers\interfaces\Band_OpenSMOKEppDae.h"
+void DaspkInitialDerivatives(double t, double *y, double *yp)
+{
+	reactor2d->Equations(t, y, yp);
+	reactor2d->CorrectAlgebraicEquations(yp);
+}
 
+static void DaspkAnalyticalJacobian(double *x, double *y, double *dy, double *pd, double *cj, double *rpar, int *ipar)
+{
+}
+
+static void DaspkKrylovSolver(int *n, double *x, double *y, double *dy, double *savr, double *wk, double *cj, double *wght, double *wp, int *iwp, double *b, double *eplin, int *ier, double *rpar, int *ipar)
+{
+}
+
+static void DaspkPrintSolution(double *x, double *y)
+{
+	reactor2d->Print(*x, y);
+}
+
+#include "math\multivalue-dae-solvers\interfaces\Band_Daspk.h"
