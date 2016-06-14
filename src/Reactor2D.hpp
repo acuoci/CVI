@@ -86,6 +86,8 @@ namespace CVI
 		ne_ = block_*np_;
 		band_size_ = block_*(nx_+1)-1;
 
+		planar_symmetry_ = true;
+
 		output_folder_ = "Output";
 
 		fMonitoring_.open((output_folder_ / "monitor.out").string().c_str(), std::ios::out);
@@ -218,6 +220,11 @@ namespace CVI
 			omega_heterogeneous_[i].setZero();
 		omega_deposition_per_unit_volume_.setZero();
 		omega_deposition_per_unit_area_.setZero();
+	}
+
+	void Reactor2D::SetPlanarSymmetry(const bool flag)
+	{
+		planar_symmetry_ = flag;
 	}
 
 	void Reactor2D::SetAlgebraicDifferentialEquations()
@@ -578,12 +585,19 @@ namespace CVI
 					const double c_north = 0.50* (gamma_star_[north](j)*rho_gas_[north] + gamma_star_[center](j)*rho_gas_[center]);
 					const double c_south = 0.50* (gamma_star_[south](j)*rho_gas_[south] + gamma_star_[center](j)*rho_gas_[center]);
 
-					const double diffusion_x = (c_east*(Y_[east](j) - Y_[center](j)) / grid_x_.dxe()(i)-c_west*(Y_[center](j) - Y_[west](j)) / grid_x_.dxw()(i)) / grid_x_.dxc_over_2()(i);
+					      double diffusion_x = (c_east*(Y_[east](j) - Y_[center](j)) / grid_x_.dxe()(i)-c_west*(Y_[center](j) - Y_[west](j)) / grid_x_.dxw()(i)) / grid_x_.dxc_over_2()(i);
 					const double diffusion_y = (c_north*(Y_[north](j) - Y_[center](j)) / grid_y_.dxe()(k)-c_south*(Y_[center](j) - Y_[south](j)) / grid_y_.dxw()(k)) / grid_y_.dxc_over_2()(k);
 					const double diffusion = diffusion_x + diffusion_y;
 
 					const double homogeneous_reactions = epsilon_(center)*omega_homogeneous_[center](j);
 					const double heterogeneous_reactions = omega_heterogeneous_[center](j) + Y_[center](j)*omega_deposition_per_unit_volume_(center);
+
+					if (planar_symmetry_ == false)
+					{
+						const double dY_over_dr = (Y_[east](j) - Y_[west](j)) / (grid_x_.x()[i + 1] - grid_x_.x()[i - 1]);
+						const double diffusion_radial = gamma_star_[center](j)*rho_gas_[center] * dY_over_dr / grid_x_.x()[i];
+						diffusion_x += diffusion_radial;
+					}
 
 					dY_over_dt_[center](j) = diffusion + homogeneous_reactions + heterogeneous_reactions;
 					dY_over_dt_[center](j) /= (rho_gas_(center)*epsilon_(center));

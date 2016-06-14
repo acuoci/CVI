@@ -68,6 +68,12 @@ namespace CVI
 					OpenSMOKE::Grid1D& grid);
 
 		/**
+		*@brief Sets the planar symmetry
+		*@param flag if true, planar symmetry is adopted, otherwise cylindrical symmetry
+		*/
+		void SetPlanarSymmetry(const bool flag);
+
+		/**
 		*@brief Sets the conditions along the gas side
 		*@param T_gas		gas side temperature [K]
 		*@param P_gas		gas side pressure [Pa]
@@ -280,10 +286,11 @@ namespace CVI
 		Eigen::VectorXd					Sv_;				//!< available area per unit of volume [1/m]
 		Eigen::VectorXd					rp_;				//!< radius of pores [m]
 
-		// Reactions
-		std::vector<Eigen::VectorXd>	omega_homogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
-		std::vector<Eigen::VectorXd>	omega_heterogeneous_;	//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
-		Eigen::VectorXd					omega_deposition_;		//!< deposition rate [???]
+		// Reactions	
+		std::vector<Eigen::VectorXd>	omega_homogeneous_;					//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
+		std::vector<Eigen::VectorXd>	omega_heterogeneous_;				//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
+		Eigen::VectorXd					omega_deposition_per_unit_volume_;	//!< deposition rate [kg/m3/s]
+		Eigen::VectorXd					omega_deposition_per_unit_area_;	//!< deposition rate [kg/m2/s]
 
 		// Diffusion
 		std::vector<Eigen::VectorXd>	gamma_star_;			//!< mass diffusion coefficients [m2/s]
@@ -309,6 +316,9 @@ namespace CVI
 		// Algebraic/Differential equations
 		std::vector<bool>				id_equations_;			//!< algebraic/differential equations
 
+		// Additional options
+		bool planar_symmetry_;
+
 		// Auxiliary vectors
 		OpenSMOKE::OpenSMOKEVectorDouble	aux_Y;				//!< vector containing the mass fractions
 		OpenSMOKE::OpenSMOKEVectorDouble	aux_X;				//!< vector containing the mole fractions
@@ -318,8 +328,15 @@ namespace CVI
 		
 		// Output
 		unsigned int n_steps_video_;				//!< number of steps for updating info on the screen
+		unsigned int n_steps_file_;					//!< number of steps for updating info on files
 		unsigned int count_video_;					//!< counter of steps for updating info on the screen
+		unsigned int count_file_;					//!< counter of steps for updating info on file
 		boost::filesystem::path output_folder_;		//!< name of output folder
+		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
+
+		double AreaAveraged(const Eigen::VectorXd& v);
+		double AreaStandardDeviation(const double mean, const Eigen::VectorXd& v);
+		void Reactor1D::PrintLabelMonitoringFile();
 	};
 }
 

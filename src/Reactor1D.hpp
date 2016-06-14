@@ -43,6 +43,8 @@ namespace CVI
 	{
 		n_steps_video_ = 10;
 		count_video_ = n_steps_video_;
+		n_steps_file_ = 3;
+		count_file_ = n_steps_file_;
 
 		ns_ = thermodynamicsMap_.NumberOfSpecies();
 		block_ = ns_ + 1;
@@ -50,7 +52,13 @@ namespace CVI
 		ne_ = block_*np_;
 		band_size_ = 2 * block_ - 1;
 
+		planar_symmetry_ = true;
+
 		output_folder_ = "Output";
+
+		fMonitoring_.open((output_folder_ / "monitor.out").string().c_str(), std::ios::out);
+		fMonitoring_.setf(std::ios::scientific);
+		PrintLabelMonitoringFile();
 
 		MemoryAllocation();
 		SetAlgebraicDifferentialEquations();
@@ -113,7 +121,10 @@ namespace CVI
 			omega_heterogeneous_[i].resize(ns_);
 
 		// Deposition rate [kg/m3/s]
-		omega_deposition_.resize(np_);
+		omega_deposition_per_unit_volume_.resize(np_);
+
+		// Deposition rate [kg/m2/s]
+		omega_deposition_per_unit_area_.resize(np_);
 
 		// Effective diffusion coefficiennts [m2/s]
 		gamma_star_.resize(np_);
@@ -166,7 +177,13 @@ namespace CVI
 			omega_homogeneous_[i].setZero();
 		for (int i = 0; i < np_; i++)
 			omega_heterogeneous_[i].setZero();
-		omega_deposition_.setZero();
+		omega_deposition_per_unit_volume_.setZero();
+		omega_deposition_per_unit_area_.setZero();
+	}
+
+	void Reactor1D::SetPlanarSymmetry(const bool flag)
+	{
+		planar_symmetry_ = flag;
 	}
 
 	void Reactor1D::SetAlgebraicDifferentialEquations()
@@ -293,8 +310,9 @@ namespace CVI
 						aux_eigen(j) = aux_C[j + 1];
 					porousMedium_.FormationRates(aux_eigen);
 					for (unsigned int j = 0; j < ns_; j++)
-						omega_heterogeneous_[i](j) = porousMedium_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];			// [kg/m3/s]
-					omega_deposition_(i) = porousMedium_.r_deposition_per_unit_volume()*porousMedium_.mw_carbon();	// [kg/m3/s]
+						omega_heterogeneous_[i](j) = porousMedium_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];								// [kg/m3/s]
+					omega_deposition_per_unit_area_(i) = porousMedium_.r_deposition_per_unit_area()*porousMedium_.mw_carbon();			// [kg/m2/s]
+					omega_deposition_per_unit_volume_(i) = porousMedium_.r_deposition_per_unit_volume()*porousMedium_.mw_carbon();		// [kg/m3/s]
 				}
 			}
 		}
@@ -358,9 +376,19 @@ namespace CVI
 			for (unsigned int j = 0; j < ns_; j++)
 			{
 				// Explicit derivatives
-				dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) + 
-									(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
-									epsilon_(i)*omega_homogeneous_[i](j) + omega_heterogeneous_[i](j) + Y_[i](j)*omega_deposition_(i);
+				if (planar_symmetry_ == true)
+				{
+					dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
+										(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
+										epsilon_(i)*omega_homogeneous_[i](j) + omega_heterogeneous_[i](j) + Y_[i](j)*omega_deposition_per_unit_volume_(i);
+				}
+				else
+				{
+					dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
+										(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
+										gamma_star_[i](j)*rho_gas_(i)*dY_over_dx_[i](j)/grid_.x()[i] +
+										epsilon_(i)*omega_homogeneous_[i](j) + omega_heterogeneous_[i](j) + Y_[i](j)*omega_deposition_per_unit_volume_(i);
+				}
 
 				// Fluxes
 				// dY_over_dt_[i](j) = -(j_star_[i](j) - j_star_[i - 1](j)) / grid_.dxc_over_2()(i) +
@@ -380,7 +408,7 @@ namespace CVI
 	{
 		// Internal points
 		for (int i = 0; i < np_; i++)
-			depsilon_over_dt_(i) = -omega_deposition_(i) / porousMedium_.rho_graphite();
+			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / porousMedium_.rho_graphite();
 	}
 
 	void Reactor1D::Recover_Unknowns(const double* y)
@@ -856,7 +884,95 @@ namespace CVI
 			count_video_ = 0;
 		}
 
+		if (count_file_ == n_steps_file_)
+		{
+			const int width = 20;
+
+			const double T_mean = AreaAveraged(T_);
+			const double T_std = AreaStandardDeviation(T_mean, T_);
+
+			const double P_mean = AreaAveraged(P_);
+			const double P_std = AreaStandardDeviation(P_mean, P_);
+
+			const double epsilon_mean = AreaAveraged(epsilon_);
+			const double epsilon_std = AreaStandardDeviation(epsilon_mean, epsilon_);
+
+			const double rho_bulk_mean = AreaAveraged(rho_bulk_);
+			const double rho_bulk_std = AreaStandardDeviation(rho_bulk_mean, rho_bulk_);
+
+			const double Sv_mean = AreaAveraged(Sv_);
+			const double Sv_std = AreaStandardDeviation(Sv_mean, Sv_);
+
+			const double rp_mean = AreaAveraged(rp_);
+			const double rp_std = AreaStandardDeviation(rp_mean, rp_);
+
+			const double permeability_mean = AreaAveraged(permeability_);
+			const double permeability_std = AreaStandardDeviation(permeability_mean, permeability_);
+
+			const double eta_bulk_mean = AreaAveraged(eta_bulk_);
+			const double eta_bulk_std = AreaStandardDeviation(eta_bulk_mean, eta_bulk_);
+
+			const double eta_knudsen_mean = AreaAveraged(eta_knudsen_);
+			const double eta_knudsen_std = AreaStandardDeviation(eta_knudsen_mean, eta_knudsen_);
+
+			const double eta_viscous_mean = AreaAveraged(eta_viscous_);
+			const double eta_viscous_std = AreaStandardDeviation(eta_viscous_mean, eta_viscous_);
+
+			const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);
+			const double r_deposition_per_unit_area_std = AreaStandardDeviation(r_deposition_per_unit_area_mean, omega_deposition_per_unit_area_);
+
+			const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);
+			const double r_deposition_per_unit_volume_std = AreaStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
+
+			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t / 3600.;	// [h]
+			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t;			// [s]
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << T_mean;		// [K]
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << T_std;		// [K]
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << P_mean;		// [Pa]
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << P_std;		// [Pa]
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << epsilon_mean;
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << epsilon_std;
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rho_bulk_mean;		// [kg/m3]
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rho_bulk_std;		// [kg/m3]
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << Sv_mean;	// [1/m]
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << Sv_std;		// [1/m]
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rp_mean*1e6;	// [micron]
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rp_std*1e6;		// [micron]
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << permeability_mean;	// [m2]
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << permeability_std;	// [m2]
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_bulk_mean;
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_bulk_std;
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_knudsen_mean;
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_knudsen_std;
+
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_mean;
+			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_std;
+
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean / porousMedium_.rho_graphite()*1000.;		// [mm/s]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / porousMedium_.rho_graphite()*1000.;	// [mm/s]
+
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean *1000.*3600.;	// [g/m2/h]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std *1000.*3600.;		// [g/m2/h]
+
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_mean *1000.*3600.;	// [g/m3/h]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_std *1000.*3600.;	// [g/m3/h]
+
+			fMonitoring_ << std::endl;
+
+			count_file_ = 0;
+		}
+
 		count_video_++;
+		count_file_++;
 	}
 
 	void Reactor1D::SparsityPattern(std::vector<unsigned int>& rows, std::vector<unsigned int>& cols)
@@ -909,5 +1025,98 @@ namespace CVI
 				count++;
 			}
 		}
+	}
+
+	double Reactor1D::AreaAveraged(const Eigen::VectorXd& v)
+	{
+		double sum = 0.;
+		double sum_std = 0.;
+
+		// Internal
+		for (unsigned int i = 1; i < np_ - 1; i++)
+		{
+			const double area = grid_.dxc()(i)*0.50;
+			sum += v(i)*area;
+		}
+
+		// West (zero gradient)
+		{
+			const double area = grid_.dxe()(0)*0.50;
+			sum += v(0)*area;
+		}
+
+		// East (gas side)
+		{
+			const double area = grid_.dxw()(np_ - 1)*0.50;
+			sum += v(np_ - 1)*area;
+		}
+
+
+		const double area_total = grid_.L();
+		return sum / area_total;
+	}
+
+	double Reactor1D::AreaStandardDeviation(const double mean, const Eigen::VectorXd& v)
+	{
+		double sum_std = 0.;
+
+		// Internal
+		for (unsigned int i = 1; i < np_ - 1; i++)
+		{
+			const double area = grid_.dxc()(i)*0.50;
+			sum_std += boost::math::pow<2>(v(i) - mean)*area;
+		}
+
+		// West (zero gradient)
+		{
+			const double area = grid_.dxe()(0)*0.50;
+			sum_std += boost::math::pow<2>(v(0) - mean)*area;
+		}
+
+		// East (gas side)
+		{
+			const double area = grid_.dxw()(np_ - 1)*0.50;
+			sum_std += boost::math::pow<2>(v(np_-1) - mean)*area;
+		}
+
+		const double coefficient = double(np_ - 1) / double(np_);
+		const double area_total = grid_.L();
+		return std::sqrt(sum_std / area_total / coefficient);
+	}
+
+	void Reactor1D::PrintLabelMonitoringFile()
+	{
+		unsigned int count = 1;
+		const unsigned int width = 20;
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "time[h]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "time[s]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "T[K]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "Tstd[K]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "Pa[Pa]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "Pastd[Pa]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "eps[-]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "epsstd[-]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rhoB[kg/m3]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rhoBstd[kg/m3]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "Sv[1/]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "Svstd[1/m]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rp[micron]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rpstd[micron]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "K[m2]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "Kstd[m2]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaBulk[-]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaBulkstd[K]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaKn[-]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaKnstd[K]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaVisc[-]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaViscstd[K]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[mm/s]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[mm/s]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[g/m2/h]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[g/m2/h]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[g/m3/h]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[g/m3/h]", count);
+
+		fMonitoring_ << std::endl;
 	}
 }

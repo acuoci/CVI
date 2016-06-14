@@ -14,16 +14,18 @@
 
 Dictionary CVI_Solver1D
 {
-	@KineticsFolder		../kinetics/kinetics-Polimi4Brembo;
-
-	@Type			2D;
+	@KineticsFolder		../../kinetics/kinetics-Polimi4Brembo;
+	@Output				Output;
+	
+	@Symmetry			Planar;
+	@Type				2D;
 	@PlugFlowReactor	plug-flow-reactor;
 	@PorousMedium		porous-medium;
 	@InletStream		inlet-stream;
 	@InitialConditions	initial-conditions;
 		
-	@XPoints		36;
-	@YPoints		36;
+	@XPoints		6;
+	@YPoints		6;
 	@XLength		21 mm;
 	@YLength		40 mm;
 	@XStretchingFactor	0.98;

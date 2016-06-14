@@ -76,6 +76,12 @@ namespace CVI
 					CVI::PlugFlowReactor& plugFlowReactor);
 
 		/**
+		*@brief Sets the planar symmetry
+		*@param flag if true, planar symmetry is adopted, otherwise cylindrical symmetry
+		*/
+		void SetPlanarSymmetry(const bool flag);
+
+		/**
 		*@brief Sets the conditions along the gas side
 		*@param T_gas		gas side temperature [K]
 		*@param P_gas		gas side pressure [Pa]
@@ -384,6 +390,9 @@ namespace CVI
 		Eigen::VectorXi list_points_north_;
 		Eigen::VectorXi list_points_east_;
 		Eigen::VectorXi list_points_west_;
+
+		// Additional options
+		bool planar_symmetry_;
 
 		// Provisional
 		void PrintOnTheScreen(const std::string, const int k, double* v);

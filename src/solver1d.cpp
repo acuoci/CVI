@@ -309,6 +309,13 @@ int main(int argc, char** argv)
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
 	}
 
+	if (dictionaries(main_dictionary_name_).CheckOption("@Output") == true)
+	{
+		boost::filesystem::path output_path;
+		dictionaries(main_dictionary_name_).ReadPath("@Output", output_path);
+		OpenSMOKE::CreateDirectory(output_path);
+	}
+
 	// Type of problem
 	bool problem_2d = true;
 	{
@@ -318,6 +325,20 @@ int main(int argc, char** argv)
 		if (value == "1D")			problem_2d = false;
 		else if (value == "2D")		problem_2d = true;
 		else OpenSMOKE::FatalErrorMessage("Wrong @Type: 1D | 2D");
+	}
+
+	// Type of problem
+	bool symmetry_planar = true;
+	{
+		std::string value;
+		if (dictionaries(main_dictionary_name_).CheckOption("@Symmetry") == true)
+			dictionaries(main_dictionary_name_).ReadString("@Symmetry", value);
+		if (value == "Planar")				symmetry_planar = true;
+		else if (value == "Cylindrical")	symmetry_planar = false;
+		else OpenSMOKE::FatalErrorMessage("Wrong @Symmetry: Planar | Cylindrical");
+
+		if (symmetry_planar == false)
+			OpenSMOKE::FatalErrorMessage("The cylindrical symmetry was not yet implemented.");
 	}
 
 	// Monodimensional grid along the x axis
@@ -538,10 +559,6 @@ int main(int argc, char** argv)
 					profiles->Interpolate(coordinate, plug_flow_reactor->history_Y(), Y_gas_side[point]);
 				}
 			}
-
-			for (int i = 0; i < Y_gas_side.size(); i++)
-				std::cout << i << " " << Y_gas_side[i](2) << std::endl;
-			getchar();
 		}
 
 
@@ -549,6 +566,7 @@ int main(int argc, char** argv)
 		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *grid_x, *grid_y, *plug_flow_reactor);
 
 		// Set options
+		reactor2d->SetPlanarSymmetry(symmetry_planar);
 		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega);
 		reactor2d->SetGasSide(inlet_T, inlet_P, Y_gas_side);
 		reactor2d->SetTimeTotal(time_total);
@@ -586,6 +604,7 @@ int main(int argc, char** argv)
 
 		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *grid_x);
 
+		reactor1d->SetPlanarSymmetry(symmetry_planar);
 		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega);
 		reactor1d->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
 

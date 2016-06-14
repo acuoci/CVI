@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -14,22 +14,24 @@
     <ProjectGuid>{728C394B-7A7F-4E24-8309-31E3A28D9D9A}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Solver1D</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 16.0</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseIntelMKL>Sequential</UseIntelMKL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler 16.0</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <UseIntelMKL>Sequential</UseIntelMKL>
+    <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -43,11 +45,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_57_0\src;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\MyCodes\OpenSMOKEpp\source;C:\Development\MyCodes\OpenSMOKEppSolvers\src;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\MyCodes\OpenSMOKEpp\source;C:\Development\MyCodes\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_57_0\src;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\MyCodes\OpenSMOKEpp\source;C:\Development\MyCodes\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.1\libs\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\MyCodes\OpenSMOKEpp\source;C:\Development\MyCodes\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <OutDir>..\..\..\exe\Win32\</OutDir>
+    <TargetName>CVISMOKE++</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -60,7 +64,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_57_0\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-Win32-Debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -72,14 +76,17 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-D__is_assignable=__is_trivially_assignable %(AdditionalOptions)</AdditionalOptions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InterproceduralOptimization>NoIPO</InterproceduralOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_57_0\lib32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.1\libs\lib32-intel;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\DVODE\lib\windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libmmd.lib;libBzzMath60dev_msvs2013_nomkl_Win32_Release.lib;libDASPK_XE14_LAPACK_32bit_Release.lib;libLINPACK_XE14_32bit_Release.lib;libDVODE_XE14_LAPACK_32bit_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-Win32-Release\lib;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libmmd.lib;libboost_system-vc140-mt-1_60.lib;libboost_chrono-vc140-mt-1_60.lib;libboost_timer-vc140-mt-1_60.lib;libBzzMath60dev_XE2016_Win32_Release.lib;libDASPK20_LINPACK_XE2016_Win32_Release.lib;libLINPACK_XE2016_Win32_Release.lib;libODEPACK_LINPACK_XE2016_Win32_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

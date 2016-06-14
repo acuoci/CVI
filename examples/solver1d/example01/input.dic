@@ -14,9 +14,11 @@
 
 Dictionary CVI_Solver1D
 {
-	@KineticsFolder		../kinetics/kinetics-Polimi4Brembo;
+	@KineticsFolder		../../kinetics/kinetics-Polimi4Brembo;
+	@Output				Output;
 
-	@Type			1D;
+	@Type				1D;
+	@Symmetry			Planar;
 	@PlugFlowReactor	plug-flow-reactor;
 	@PorousMedium		porous-medium;
 	@InletStream		inlet-stream;
@@ -24,51 +26,51 @@ Dictionary CVI_Solver1D
 
 	@ResidenceTime		0.01 s;
 		
-	@XPoints		36;
-	@YPoints		36;
-	@XLength		21 mm;
-	@YLength		40 mm;
+	@XPoints			36;
+	@YPoints			36;
+	@XLength			21 mm;
+	@YLength			40 mm;
 	@XStretchingFactor	0.98;
 	@YStretchingFactor	1.;
 	
-	@TimeTotal		120 h;
+	@TimeTotal			120 h;
 	@TimeInterval		2.5 h;
 	
 	@DaeParameters		dae-parameters;
 }
 Dictionary porous-medium
 {
-	@FiberRadius			4 micron;
-	@FiberDensity			1720 kg/m3;
-	@GraphiteDensity		2200 kg/m3;
-	@InitialPorosity		0.929;
-	@PorousSubstrate		random_hardcore;
+	@FiberRadius				4 micron;
+	@FiberDensity				1720 kg/m3;
+	@GraphiteDensity			2200 kg/m3;
+	@InitialPorosity			0.929;
+	@PorousSubstrate			random_hardcore;
 	@HeterogeneousMechanism		Ibrahim-Paolucci;
-	@HydrogenInhibition		Becker;
+	@HydrogenInhibition			Becker;
 }
 
 Dictionary plug-flow-reactor
 {
-	@Velocity				45 cm/s;
+	@Velocity					45 cm/s;
 	@InletLength				2.5 mm;
 	@HydraulicDiameter			3.5 mm;
 	@AsymptoticNusselt			4.00;
-	@InternalBoundaryLayer			false;
+	@InternalBoundaryLayer		false;
 	@GeometricPattern			OneSide;
 }
 
 Dictionary inlet-stream
 {	
 	@Temperature	1438 K;
-	@Pressure	20e3 Pa;
-	@Masses		CH4 1;
+	@Pressure		20e3 Pa;
+	@Masses			CH4 1;
 }
 
 Dictionary initial-conditions
 {	
 	@Temperature	1438 K;
-	@Pressure	20e3 Pa;
-	@Masses		N2 1;
+	@Pressure		20e3 Pa;
+	@Masses			N2 1;
 }
 
 Dictionary dae-parameters

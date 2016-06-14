@@ -44,6 +44,11 @@ namespace CVI
 				"Type of problem to be solved: 1D | 2D",
 				true));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Symmetry",
+				OpenSMOKE::SINGLE_STRING,
+				"Type of symmetry: Planar | Cylindrical",
+				true));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@KineticsFolder",
 				OpenSMOKE::SINGLE_PATH,
 				"Name of the folder containing the kinetic scheme (XML Version)",
@@ -51,6 +56,11 @@ namespace CVI
 				"@KineticsPreProcessor",
 				"none",
 				"none"));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Output",
+				OpenSMOKE::SINGLE_PATH,
+				"Name of the folder containing the output files",
+				true ));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@KineticsPreProcessor",
 				OpenSMOKE::SINGLE_DICTIONARY,
