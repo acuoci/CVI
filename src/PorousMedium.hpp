@@ -353,7 +353,6 @@ namespace CVI
 
 		const double eps = 1.e-16;
 		
-		HeterogeneousMechanism ;
 		if (hydrogen_inhibition_type_ == BECKER)
 		{
 			I_CH4_ = CH4  > eps ? 1.112 / (1.112 + H2 / CH4) : 0.;

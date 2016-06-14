@@ -57,4 +57,4 @@ void DaePrint(BzzVector &y, double t)
 	reactor2d->Print(t, y.GetHandle());
 }
 
-#include "math\multivalue-dae-solvers\interfaces\Band_BzzDae.h"
+#include "math/multivalue-dae-solvers/interfaces/Band_BzzDae.h"

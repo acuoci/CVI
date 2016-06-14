@@ -16,11 +16,13 @@ Dictionary CVI_Solver1D
 {
 	@KineticsFolder		../kinetics/kinetics-Polimi4Brembo;
 
-	@Type			2D;
+	@Type			1D;
 	@PlugFlowReactor	plug-flow-reactor;
 	@PorousMedium		porous-medium;
 	@InletStream		inlet-stream;
 	@InitialConditions	initial-conditions;
+
+	@ResidenceTime		0.01 s;
 		
 	@XPoints		36;
 	@YPoints		36;
@@ -47,12 +49,12 @@ Dictionary porous-medium
 
 Dictionary plug-flow-reactor
 {
-	@Velocity			45 cm/s;
-	@InletLength			2.5 mm;
-	@HydraulicDiameter		3.5 mm;
-	@AsymptoticNusselt		4.00;
-	@InternalBoundaryLayer		false;
-	@GeometricPattern		OneSide;
+	@Velocity				45 cm/s;
+	@InletLength				2.5 mm;
+	@HydraulicDiameter			3.5 mm;
+	@AsymptoticNusselt			4.00;
+	@InternalBoundaryLayer			false;
+	@GeometricPattern			OneSide;
 }
 
 Dictionary inlet-stream

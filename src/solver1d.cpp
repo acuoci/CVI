@@ -57,8 +57,8 @@
 // Numerical parameters
 #include "math/multivalue-dae-solvers/parameters/DaeSolver_Parameters.h"
 
-#include "math\nls-solvers\NonLinearSolver.h"
-#include "math\nls-solvers\KernelSparse.h"
+#include "math/nls-solvers/NonLinearSolver.h"
+#include "math/nls-solvers/KernelSparse.h"
 
 class BrandBrandNewProblem01tris
 {
@@ -101,7 +101,7 @@ protected:
 
 int main(int argc, char** argv)
 {
-	
+	/*
 	{
 		// Brand New
 		{
@@ -182,7 +182,8 @@ int main(int argc, char** argv)
 		}
 	}
 	getchar();
-	/*
+	*/
+	
 	boost::filesystem::path executable_file = OpenSMOKE::GetExecutableFileName(argv);
 	boost::filesystem::path executable_folder = executable_file.parent_path();
 
