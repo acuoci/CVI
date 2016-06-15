@@ -4,11 +4,8 @@
 *.dep
 .*.sw[op]
 *~
-*.out
-*.tec.*
-*.log
-*.txt
-log*
+*.VC.db
+*.VC.opendb
 
 #Microsoft Visual studio
 ########################
@@ -266,3 +263,4 @@ tests
 /projects/NetBeans/OpenSMOKE_MicrogravityDroplet/dist/
 /projects/NetBeans/OpenSMOKE_PerfectlyStirredReactor/dist/
 /projects/NetBeans/OpenSMOKE_ShockTubeReactor/dist/
+projects/MSVS2015/OpenSMOKEpp_BatchReactor/BzzFile.txt
