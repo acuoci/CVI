@@ -45,7 +45,7 @@ Dictionary porous-medium
 	@GraphiteDensity			2200 kg/m3;
 	@InitialPorosity			0.929;
 	@PorousSubstrate			random_hardcore;
-	@HeterogeneousMechanism		Ibrahim-Paolucci;
+	@HeterogeneousMechanism		Huttinger;
 	@HydrogenInhibition			Becker;
 }
 

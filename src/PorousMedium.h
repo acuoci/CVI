@@ -37,7 +37,7 @@ namespace CVI
 {
 	enum PorousSubstrateType { POLYNOMIAL, RANDOM, RANDOM_HARDCORE, POLINOMIAL_ONEHALF, FROM_SPHERES_TO_CYLINDERS };
 	enum HydrogenInhibitionType { NONE, BECKER };
-	enum HeterogeneousMechanism { IBRAHIM_PAOLUCCI };
+	enum HeterogeneousMechanism { ZIEGLER, HUTTINGER, VIGNOLES };
 
 	//!  A class to manage properties of porous media
 	/*!
@@ -284,6 +284,12 @@ namespace CVI
 		unsigned int index_C6H6() const { return index_C6H6_; }
 
 		/**
+		*@brief Returns the index for antracene
+		*@return the index (0-based) for antracene
+		*/
+		unsigned int index_C14H10() const { return index_C14H10_; }
+
+		/**
 		*@brief Returns the index for hydrogen
 		*@return the index (0-based) for hydrogen
 		*/
@@ -336,6 +342,7 @@ namespace CVI
 		int index_C2H4_;	//!< index of C2H4 (0-based)
 		int index_C2H2_;	//!< index of C2H2 (0-based)
 		int index_C6H6_;	//!< index of C6H6 (0-based)
+		int index_C14H10_;	//!< index of C6H6 (0-based)
 		int index_H2_;		//!< index of H2   (0-based)
 
 		double T_;				//!< current temperature [K]
@@ -360,6 +367,7 @@ namespace CVI
 		double I_C2H4_;										//!< inhibition coefficient for ethylene
 		double I_C2H2_;										//!< inhibition coefficient for acetylene
 		double I_C6H6_;										//!< inhibition coefficient for benzene
+		double I_C14H10_;									//!< inhibition coefficient for benzene
 
 		HeterogeneousMechanism heterogeneous_mechanism_type_;				//!< type of heterogeneous mechanism
 		Eigen::VectorXd Rgas_;												//!< formation rate of gaseous species due to heterogeneous reactions [kmol/m3/s]
