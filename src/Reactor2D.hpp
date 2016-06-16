@@ -56,6 +56,7 @@ namespace CVI
 							OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 							OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
 							CVI::PorousMedium& porousMedium,
+							CVI::PorosityDefect& porosityDefect,
 							OpenSMOKE::Grid1D& grid_x, OpenSMOKE::Grid1D& grid_y,
 							CVI::PlugFlowReactor& plugFlowReactor) :
 
@@ -63,6 +64,7 @@ namespace CVI
 	kineticsMap_(kineticsMap),
 	transportMap_(transportMap),
 	porousMedium_(porousMedium),
+	porosityDefect_(porosityDefect),
 	grid_x_(grid_x),
 	grid_y_(grid_y),
 	plugFlowReactor_(plugFlowReactor)
@@ -374,6 +376,17 @@ namespace CVI
 		P_.setConstant(P_gas);
 		T_.setConstant(T_gas);
 		epsilon_.setConstant(porousMedium_.porosity());
+
+		// Set porosity defect
+		if (porosityDefect_.is_active() == true)
+		{
+			for (unsigned int k = 1; k < ny_ - 1; k++)
+				for (unsigned int i = 1; i < nx_ - 1; i++)
+				{
+					const int center = k*nx_ + i;
+					epsilon_(center) = porosityDefect_.set_porosity(grid_x_.x()(i), grid_y_.x()(k), epsilon_(center));
+				}
+		}
 	}
 
 	void Reactor2D::SetTimeTotal(const double time_total)
@@ -446,6 +459,7 @@ namespace CVI
 			// Kinetics
 			{
 				// Homogeneous phase
+				if (porousMedium_.homogeneous_reactions() == true)
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
@@ -456,6 +470,7 @@ namespace CVI
 				}
 
 				// Heterogeneous phase
+				if (porousMedium_.heterogeneous_reactions() == true)
 				{
 					aux_C.CopyTo(aux_eigen.data());
 					porousMedium_.FormationRates(aux_eigen);
@@ -743,9 +758,10 @@ namespace CVI
 				return flag;
 
 			// Write current solution
-			std::stringstream hours; hours << tf/3600.;
+			std::stringstream current_index; current_index << k;
+			std::stringstream hours; hours << tf / 3600.;
 			std::string solution_file = "Solution." + hours.str() + ".out";
-			std::string tecplot_file = "Solution.tec." + hours.str();
+			std::string tecplot_file = "Solution.tec." + current_index.str();
 			std::string diffusion_coefficients_file = "DiffusionCoefficients." + hours.str() + ".out";
 			std::string heterogeneous_rates_file = "HeterogeneousRates." + hours.str() + ".out";
 			std::string homogeneous_rates_file = "HomogeneousRates." + hours.str() + ".out";

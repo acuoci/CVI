@@ -295,6 +295,7 @@ namespace CVI
 			// Kinetics
 			{
 				// Homogeneous phase
+				if (porousMedium_.homogeneous_reactions() == true)
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
@@ -305,6 +306,7 @@ namespace CVI
 				}
 
 				// Heterogeneous phase
+				if (porousMedium_.heterogeneous_reactions() == true)
 				{
 					for (unsigned int j = 0; j < ns_; j++)
 						aux_eigen(j) = aux_C[j + 1];

@@ -80,6 +80,11 @@ namespace CVI
 				"Name of the dictionary/dictionaries defining the porous medium",
 				true));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorosityDefect",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Name of the dictionary/dictionaries defining the porosity defect (if any)",
+				false));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@InletStream",
 				OpenSMOKE::SINGLE_DICTIONARY,
 				"Name of the dictionary/dictionaries defining the inlet gas composition, temperature and pressure",

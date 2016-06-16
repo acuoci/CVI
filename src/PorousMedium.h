@@ -37,7 +37,7 @@ namespace CVI
 {
 	enum PorousSubstrateType { POLYNOMIAL, RANDOM, RANDOM_HARDCORE, POLINOMIAL_ONEHALF, FROM_SPHERES_TO_CYLINDERS };
 	enum HydrogenInhibitionType { NONE, BECKER };
-	enum HeterogeneousMechanism { ZIEGLER, HUTTINGER, VIGNOLES };
+	enum HeterogeneousMechanism { ZIEGLER, HUTTINGER, VIGNOLES, ZIEGLER_EXTENDED, HUTTINGER_EXTENDED, VIGNOLES_EXTENDED};
 
 	//!  A class to manage properties of porous media
 	/*!
@@ -290,10 +290,28 @@ namespace CVI
 		unsigned int index_C14H10() const { return index_C14H10_; }
 
 		/**
+		*@brief Returns the index for antracene
+		*@return the index (0-based) for antracene
+		*/
+		unsigned int index_C10H8() const { return index_C10H8_; }
+
+		/**
 		*@brief Returns the index for hydrogen
 		*@return the index (0-based) for hydrogen
 		*/
 		unsigned int index_H2() const { return index_H2_; }
+
+		/**
+		*@brief Returns the flag for homogenous reactions in the gaseous phase
+		*@return true if the homogeneous reactions are accounted for
+		*/
+		bool homogeneous_reactions() const { return homogeneous_reactions_; }
+
+		/**
+		*@brief Returns the flag for heterogeneous reactions in the gaseous phase
+		*@return true if the heterogeneous reactions are accounted for
+		*/
+		bool heterogeneous_reactions() const { return heterogeneous_reactions_; }
 
 	private:
 
@@ -342,7 +360,8 @@ namespace CVI
 		int index_C2H4_;	//!< index of C2H4 (0-based)
 		int index_C2H2_;	//!< index of C2H2 (0-based)
 		int index_C6H6_;	//!< index of C6H6 (0-based)
-		int index_C14H10_;	//!< index of C6H6 (0-based)
+		int index_C14H10_;	//!< index of C14H10 (0-based)
+		int index_C10H8_;	//!< index of C10H8 (0-based)
 		int index_H2_;		//!< index of H2   (0-based)
 
 		double T_;				//!< current temperature [K]
@@ -367,9 +386,12 @@ namespace CVI
 		double I_C2H4_;										//!< inhibition coefficient for ethylene
 		double I_C2H2_;										//!< inhibition coefficient for acetylene
 		double I_C6H6_;										//!< inhibition coefficient for benzene
-		double I_C14H10_;									//!< inhibition coefficient for benzene
+		double I_C14H10_;									//!< inhibition coefficient for antracene
+		double I_C10H8_;									//!< inhibition coefficient for naphtalene
 
 		HeterogeneousMechanism heterogeneous_mechanism_type_;				//!< type of heterogeneous mechanism
+		bool homogeneous_reactions_;										//!< homogeneous reactions on/off
+		bool heterogeneous_reactions_;										//!< heterogeneous reactions on/off
 		Eigen::VectorXd Rgas_;												//!< formation rate of gaseous species due to heterogeneous reactions [kmol/m3/s]
 		Eigen::VectorXd r_;													//!< reaction rates of heterogeneous reactions [kmol/m3/s]
 		double r_deposition_per_unit_area_;									//!< deposition rate per unit of surface [kmol/m2/s]
@@ -377,6 +399,135 @@ namespace CVI
 		Eigen::VectorXd r_deposition_per_unit_area_per_single_reaction_;	//!< deposition rate per unit of surface for single reactions [kmol/m2/s]
 		Eigen::VectorXd r_deposition_per_unit_volume_per_single_reaction_;	//!< deposition rate per unit of volume for single reactions [kmol/m3/s]
 	};
+
+	class Grammar_Defect_PorousMedium : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
+	{
+	protected:
+
+		virtual void DefineRules()
+		{
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Type",
+				OpenSMOKE::SINGLE_STRING,
+				"Type of porosity defect: circular",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@X",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Center of porosity defect",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Y",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Center of porosity defect",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Radius",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Radius of porosity defect",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Porosity",
+				OpenSMOKE::SINGLE_DOUBLE,
+				"Porosity of defect",
+				true));
+		}
+	};
+
+	class PorosityDefect
+	{
+	public:
+
+		enum defect_type { CIRCULAR };
+
+		PorosityDefect();
+
+		void ReadFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
+
+		double set_porosity(const double x, const double y, const double epsilon);
+
+		bool is_active() const { return is_active_; }
+
+	private:
+
+		bool is_active_;
+		defect_type type_;
+		double x_;
+		double y_;
+		double r_;
+		double epsilon_;
+	};
+
+	PorosityDefect::PorosityDefect()
+	{
+		is_active_ = false;
+		type_ = CIRCULAR;
+		x_ = 0.;
+		y_ = 0.;
+		r_ = 0.;
+		epsilon_ = 0.;
+	}
+
+	void PorosityDefect::ReadFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary& dictionary)
+	{
+		if (dictionary.CheckOption("@X") == true)
+		{
+			std::string units;
+			dictionary.ReadMeasure("@X", x_, units);
+			if (units == "m")	x_ *= 1.;
+			else if (units == "cm")	x_ *= 1.e-2;
+			else if (units == "mm")	x_ *= 1.e-3;
+			else if (units == "micron")	x_ *= 1.e-6;
+			else OpenSMOKE::FatalErrorMessage("@X: Unknown units. Available units: m | cm | mm | micron");
+		}
+
+		if (dictionary.CheckOption("@Y") == true)
+		{
+			std::string units;
+			dictionary.ReadMeasure("@Y", y_, units);
+			if (units == "m")	y_ *= 1.;
+			else if (units == "cm")	y_ *= 1.e-2;
+			else if (units == "mm")	y_ *= 1.e-3;
+			else if (units == "micron")	y_ *= 1.e-6;
+			else OpenSMOKE::FatalErrorMessage("@Y: Unknown units. Available units: m | cm | mm | micron");
+		}
+
+		if (dictionary.CheckOption("@Radius") == true)
+		{
+			std::string units;
+			dictionary.ReadMeasure("@Radius", r_, units);
+			if (units == "m")	r_ *= 1.;
+			else if (units == "cm")	r_ *= 1.e-2;
+			else if (units == "mm")	r_ *= 1.e-3;
+			else if (units == "micron")	r_ *= 1.e-6;
+			else OpenSMOKE::FatalErrorMessage("@Radius: Unknown units. Available units: m | cm | mm | micron");
+		}
+
+		if (dictionary.CheckOption("@Porosity") == true)
+			dictionary.ReadDouble("@Porosity", epsilon_);
+
+		if (dictionary.CheckOption("@Type") == true)
+		{
+			std::string type;
+			dictionary.ReadString("@Type", type);
+			if (type == "circular") type_ = CIRCULAR;
+			else  OpenSMOKE::FatalErrorMessage("Unknown @Type. Available types: circular");
+		}
+
+		is_active_ = true;
+	}
+
+	double PorosityDefect::set_porosity(const double x, const double y, const double epsilon)
+	{
+		if (type_ == CIRCULAR)
+		{
+			const double radius = std::sqrt(boost::math::pow<2>(x_ - x) + boost::math::pow<2>(y_ - y));
+
+			if (radius <= r_)
+				return epsilon_;
+			else
+				return epsilon;
+		}
+	}
 }
 
 #include "PorousMedium.hpp"

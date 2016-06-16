@@ -233,6 +233,7 @@ int main(int argc, char** argv)
 	CVI::Grammar_CVI_Solver1D			grammar_cvi_solver1d;
 	CVI::Grammar_CVI_PlugFlowReactor	grammar_cvi_plug_flow_reactor;
 	CVI::Grammar_CVI_PorousMedium		grammar_cvi_porous_medium;
+	CVI::Grammar_Defect_PorousMedium	grammar_defect_porous_medium;
 
 	// Define the dictionaries
 	OpenSMOKE::OpenSMOKE_DictionaryManager dictionaries;
@@ -248,6 +249,16 @@ int main(int argc, char** argv)
 	std::string dict_name_porous_medium;
 	if (dictionaries(main_dictionary_name_).CheckOption("@PorousMedium") == true)
 		dictionaries(main_dictionary_name_).ReadDictionary("@PorousMedium", dict_name_porous_medium);
+
+	// Porosity defect
+	CVI::PorosityDefect* porosity_defect = new CVI::PorosityDefect();
+	if (dictionaries(main_dictionary_name_).CheckOption("@PorosityDefect") == true)
+	{
+		std::string dict_name_porosity_defect;
+		dictionaries(main_dictionary_name_).ReadDictionary("@PorosityDefect", dict_name_porosity_defect);
+		dictionaries(dict_name_porosity_defect).SetGrammar(grammar_defect_porous_medium);
+		porosity_defect->ReadFromDictionary(dictionaries(dict_name_porosity_defect));
+	}
 
 	// Sets the grammars
 	dictionaries(dict_name_plug_flow).SetGrammar(grammar_cvi_plug_flow_reactor);
@@ -563,7 +574,7 @@ int main(int argc, char** argv)
 
 
 		// Creates the reactor
-		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *grid_x, *grid_y, *plug_flow_reactor);
+		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *porosity_defect, *grid_x, *grid_y, *plug_flow_reactor);
 
 		// Set options
 		reactor2d->SetPlanarSymmetry(symmetry_planar);

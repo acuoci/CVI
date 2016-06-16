@@ -54,6 +54,18 @@ namespace CVI
 	kineticsMap_(kineticsMap),
 	transportMap_(transportMap)
 	{
+		// Read homogeneous reactions true/false
+		{
+			if (dictionary.CheckOption("@HomogeneousReactions") == true)
+				dictionary.ReadBool("@HomogeneousReactions", homogeneous_reactions_);
+		}
+
+		// Read heterogeneous reactions true/false
+		{
+			if (dictionary.CheckOption("@HeterogeneousReactions") == true)
+				dictionary.ReadBool("@HeterogeneousReactions", heterogeneous_reactions_);
+		}
+
 		// Read fiber radius
 		{
 			double value;
@@ -120,10 +132,13 @@ namespace CVI
 			if (dictionary.CheckOption("@HeterogeneousMechanism") == true)
 			{
 				dictionary.ReadString("@HeterogeneousMechanism", value);
-				if (value == "Huttinger")			heterogeneous_mechanism_type_ = CVI::HUTTINGER;
-				else if (value == "Ziegler")		heterogeneous_mechanism_type_ = CVI::ZIEGLER;
-				else if (value == "Vignoles")		heterogeneous_mechanism_type_ = CVI::VIGNOLES;
-				else OpenSMOKE::FatalErrorMessage("Heterogeneous mechanisms available: Huttinger | Ziegler | Vignoles");
+				if (value == "Huttinger")					heterogeneous_mechanism_type_ = CVI::HUTTINGER;
+				else if (value == "Ziegler")				heterogeneous_mechanism_type_ = CVI::ZIEGLER;
+				else if (value == "Vignoles")				heterogeneous_mechanism_type_ = CVI::VIGNOLES;
+				else if (value == "Huttinger-extended")		heterogeneous_mechanism_type_ = CVI::HUTTINGER_EXTENDED;
+				else if (value == "Ziegler-extended")		heterogeneous_mechanism_type_ = CVI::ZIEGLER_EXTENDED;
+				else if (value == "Vignoles-extended")		heterogeneous_mechanism_type_ = CVI::VIGNOLES_EXTENDED;
+				else OpenSMOKE::FatalErrorMessage("Heterogeneous mechanisms available: Huttinger | Ziegler | Vignoles |  Huttinger-extended | Ziegler-extended | Vignoles-extended");
 			}
 		}
 
@@ -150,6 +165,10 @@ namespace CVI
 		// Number of species
 		ns_ = thermodynamicsMap_.NumberOfSpecies();
 
+		// Homogeneous/Heterogeneous reactions
+		homogeneous_reactions_ = true;
+		heterogeneous_reactions_ = true;
+
 		// Number of heterogeneous reactions
 		if (heterogeneous_mechanism_type_ == CVI::HUTTINGER)
 			nr_ = 4;
@@ -157,6 +176,12 @@ namespace CVI
 			nr_ = 4;
 		else if (heterogeneous_mechanism_type_ == CVI::VIGNOLES)
 			nr_ = 4;
+		else if (heterogeneous_mechanism_type_ == CVI::HUTTINGER_EXTENDED)
+			nr_ = 5;
+		else if (heterogeneous_mechanism_type_ == CVI::ZIEGLER_EXTENDED)
+			nr_ = 5;
+		else if (heterogeneous_mechanism_type_ == CVI::VIGNOLES_EXTENDED)
+			nr_ = 5;
 
 		// Memory allocation
 		gamma_knudsen_.resize(ns_);
@@ -197,12 +222,40 @@ namespace CVI
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
 		}
+		else if (heterogeneous_mechanism_type_ == CVI::HUTTINGER_EXTENDED)
+		{
+			index_CH4_ = thermodynamicsMap_.IndexOfSpecies("CH4") - 1;
+			index_C2H4_ = thermodynamicsMap_.IndexOfSpecies("C2H4") - 1;
+			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
+			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
+			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+		}
+		else if (heterogeneous_mechanism_type_ == CVI::ZIEGLER_EXTENDED)
+		{
+			index_CH4_ = thermodynamicsMap_.IndexOfSpecies("CH4") - 1;
+			index_C2H4_ = thermodynamicsMap_.IndexOfSpecies("C2H4") - 1;
+			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
+			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
+			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+		}
+		else if (heterogeneous_mechanism_type_ == CVI::VIGNOLES_EXTENDED)
+		{
+			index_CH4_ = thermodynamicsMap_.IndexOfSpecies("CH4") - 1;
+			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
+			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
+			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
+			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+		}
 
 		// Set default hydrogen inhibition coefficients
 		I_CH4_ = 1.;
 		I_C2H4_ = 1.;
 		I_C2H2_ = 1.;
 		I_C6H6_ = 1.;
+		I_C10H8_ = 1.;
 		I_C14H10_ = 1.;
 
 		// Summary on the screen
@@ -375,6 +428,7 @@ namespace CVI
 		const double C2H4 = C(index_C2H4_);
 		const double C2H2 = C(index_C2H2_);
 		const double C6H6 = C(index_C6H6_);
+		const double C10H8 = C(index_C10H8_);
 		const double H2   = C(index_H2_);
 
 		const double eps = 1.e-16;
@@ -385,6 +439,7 @@ namespace CVI
 			I_C2H4_ = C2H4 > eps ? 1.104 / (1.104 + H2 / C2H4) : 0.;
 			I_C2H2_ = C2H2 > eps ? 3.269 / (3.269 + H2 / C2H2) : 0.;
 			I_C6H6_ = C6H6 > eps ? 0.589 / (0.589 + H2 / C6H6) : 0.;
+			I_C10H8_ = C10H8 > eps ? 0.589 / (0.589 + H2 / C10H8) : 0.;
 			I_C14H10_ = 1.;
 		}
 	}
@@ -442,6 +497,55 @@ namespace CVI
 			// Heterogeneous deposition rate [kmol/m2/s]
 			r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 2.*r_(2) + 6.*r_(3);
 		}
+		else if (heterogeneous_mechanism_type_ == HUTTINGER_EXTENDED)
+		{
+			const double CH4 = C(index_CH4_);
+			const double C2H4 = C(index_C2H4_);
+			const double C2H2 = C(index_C2H2_);
+			const double C6H6 = C(index_C6H6_);
+			const double C10H8 = C(index_C10H8_);
+			const double H2 = C(index_H2_);
+
+			// Frequency factors are in [m/s]
+			const double kCH4 = 0.;
+			const double kC2H4 = 72.4*exp(-155000 / PhysicalConstants::R_J_mol / T_);
+			const double kC2H2 = 13.5*exp(-126000 / PhysicalConstants::R_J_mol / T_);
+			const double kC6H6 = 4.75e5*exp(-217000 / PhysicalConstants::R_J_mol / T_);
+			const double kC10H8 = 4.75e5*exp(-217000 / PhysicalConstants::R_J_mol / T_);
+
+			// Reaction rates (without corrections) [kmol/m2/s]
+			const double rCH4 = kCH4*CH4;
+			const double rC2H4 = kC2H4*C2H4;
+			const double rC2H2 = kC2H2*C2H2;
+			const double rC6H6 = kC6H6*C6H6;
+			const double rC10H8 = kC10H8*C10H8;
+
+			// Reaction rates [kmol/m2/s]
+			r_(0) = rCH4*I_CH4_;
+			r_(1) = rC2H4*I_C2H4_;
+			r_(2) = rC2H2*I_C2H2_;
+			r_(3) = rC6H6*I_C6H6_;
+			r_(4) = rC10H8*I_C10H8_;
+
+			// Consumption rate of homogeneous species [kmol/m3/s]
+			Rgas_.setZero();
+			Rgas_(index_CH4_) = -Sv_*r_(0);
+			Rgas_(index_C2H4_) = -Sv_*r_(1);
+			Rgas_(index_C2H2_) = -Sv_*r_(2);
+			Rgas_(index_C6H6_) = -Sv_*r_(3);
+			Rgas_(index_C10H8_) = -Sv_*r_(4);
+			Rgas_(index_H2_) = Sv_*(2.*r_(0) + 2.*r_(1) + 1.*r_(2) + 3.*r_(3) + 4.*r_(4));
+
+			// Heterogeneous deposition rate [kmol/m2/s]
+			r_deposition_per_unit_area_per_single_reaction_(0) = r_(0);
+			r_deposition_per_unit_area_per_single_reaction_(1) = 2.*r_(1);
+			r_deposition_per_unit_area_per_single_reaction_(2) = 2.*r_(2);
+			r_deposition_per_unit_area_per_single_reaction_(3) = 6.*r_(3);
+			r_deposition_per_unit_area_per_single_reaction_(4) = 10.*r_(4);
+
+			// Heterogeneous deposition rate [kmol/m2/s]
+			r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 2.*r_(2) + 6.*r_(3) + 10.*r_(4);
+		}
 
 		else if (heterogeneous_mechanism_type_ == ZIEGLER)
 		{
@@ -487,6 +591,56 @@ namespace CVI
 			r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 2.*r_(2) + 14.*r_(3);
 		}
 
+		else if (heterogeneous_mechanism_type_ == ZIEGLER_EXTENDED)
+		{
+			const double CH4 = C(index_CH4_);
+			const double C2H4 = C(index_C2H4_);
+			const double C2H2 = C(index_C2H2_);
+			const double C14H10 = C(index_C14H10_);
+			const double C10H8 = C(index_C10H8_);
+			const double H2 = C(index_H2_);
+
+			// Frequency factors are in [1/s]
+			const double kCH4 = 0.;
+			const double kC2H4 = 7.7e10*exp(-281000 / PhysicalConstants::R_J_mol / T_);
+			const double kC2H2 = 4.1e10*exp(-281000 / PhysicalConstants::R_J_mol / T_);
+			const double kC14H10 = 3.5e10*exp(-192000 / PhysicalConstants::R_J_mol / T_);
+			const double kC10H8 = 3.5e10*exp(-192000 / PhysicalConstants::R_J_mol / T_);
+
+			// Reaction rates (without corrections) [kmol/m2/s]
+			const double rCH4 = kCH4 / Sv_ * CH4;
+			const double rC2H4 = kC2H4 / Sv_ * C2H4;
+			const double rC2H2 = kC2H2 / Sv_ * C2H2;
+			const double rC14H10 = kC14H10 / Sv_ * C14H10;
+			const double rC10H8 = kC10H8 / Sv_ * C10H8;
+
+			// Reaction rates [kmol/m2/s]
+			r_(0) = rCH4*I_CH4_;
+			r_(1) = rC2H4*I_C2H4_;
+			r_(2) = rC2H2*I_C2H2_;
+			r_(3) = rC14H10*I_C14H10_;
+			r_(4) = rC10H8*I_C10H8_;
+
+			// Consumption rate of homogeneous species [kmol/m3/s]
+			Rgas_.setZero();
+			Rgas_(index_CH4_) = -Sv_*r_(0);
+			Rgas_(index_C2H4_) = -Sv_*r_(1);
+			Rgas_(index_C2H2_) = -Sv_*r_(2);
+			Rgas_(index_C14H10_) = -Sv_*r_(3);
+			Rgas_(index_C10H8_) = -Sv_*r_(4);
+			Rgas_(index_H2_) = Sv_*(2.*r_(0) + 2.*r_(1) + 1.*r_(2) + 5.*r_(3) + 4.*r_(4));
+
+			// Heterogeneous deposition rate [kmol/m2/s]
+			r_deposition_per_unit_area_per_single_reaction_(0) = r_(0);
+			r_deposition_per_unit_area_per_single_reaction_(1) = 2.*r_(1);
+			r_deposition_per_unit_area_per_single_reaction_(2) = 2.*r_(2);
+			r_deposition_per_unit_area_per_single_reaction_(3) = 14.*r_(3);
+			r_deposition_per_unit_area_per_single_reaction_(4) = 10.*r_(4);
+
+			// Heterogeneous deposition rate [kmol/m2/s]
+			r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 2.*r_(2) + 14.*r_(3) + 10.*r_(4);
+		}
+
 		else if (heterogeneous_mechanism_type_ == VIGNOLES)
 		{
 			const double CH4 = C(index_CH4_);
@@ -529,6 +683,56 @@ namespace CVI
 
 			// Heterogeneous deposition rate [kmol/m2/s]
 			r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 6.*r_(2) + 14.*r_(3);
+		}
+
+		else if (heterogeneous_mechanism_type_ == VIGNOLES_EXTENDED)
+		{
+			const double CH4 = C(index_CH4_);
+			const double C2H2 = C(index_C2H2_);
+			const double C6H6 = C(index_C6H6_);
+			const double C14H10 = C(index_C14H10_);
+			const double C10H8 = C(index_C10H8_);
+			const double H2 = C(index_H2_);
+
+			// Frequency factors are in [m/s]
+			const double kCH4 = 0.;
+			const double kC2H2 = 31.4*exp(-120000 / PhysicalConstants::R_J_mol / T_);
+			const double kC6H6 = 1.41e4*exp(-120000 / PhysicalConstants::R_J_mol / T_);
+			const double kC14H10 = 7e7*exp(-230000 / PhysicalConstants::R_J_mol / T_);
+			const double kC10H8 = 7e7*exp(-230000 / PhysicalConstants::R_J_mol / T_);
+
+			// Reaction rates (without corrections) [kmol/m2/s]
+			const double rCH4 = kCH4*CH4;
+			const double rC2H2 = kC2H2*C2H2;
+			const double rC6H6 = kC6H6*C6H6;
+			const double rC14H10 = kC14H10*C14H10;
+			const double rC10H8 = kC10H8*C10H8;
+
+			// Reaction rates [kmol/m2/s]
+			r_(0) = rCH4*I_CH4_;
+			r_(1) = rC2H2*I_C2H2_;
+			r_(2) = rC6H6*I_C6H6_;
+			r_(3) = rC14H10*I_C14H10_;
+			r_(4) = rC10H8*I_C10H8_;
+
+			// Consumption rate of homogeneous species [kmol/m3/s]
+			Rgas_.setZero();
+			Rgas_(index_CH4_) = -Sv_*r_(0);
+			Rgas_(index_C2H2_) = -Sv_*r_(1);
+			Rgas_(index_C6H6_) = -Sv_*r_(2);
+			Rgas_(index_C14H10_) = -Sv_*r_(3);
+			Rgas_(index_C10H8_) = -Sv_*r_(4);
+			Rgas_(index_H2_) = Sv_*(2.*r_(0) + 1.*r_(1) + 3.*r_(2) + 5.*r_(3) + 4.*r_(4));
+
+			// Heterogeneous deposition rate [kmol/m2/s]
+			r_deposition_per_unit_area_per_single_reaction_(0) = r_(0);
+			r_deposition_per_unit_area_per_single_reaction_(1) = 2.*r_(1);
+			r_deposition_per_unit_area_per_single_reaction_(2) = 6.*r_(2);
+			r_deposition_per_unit_area_per_single_reaction_(3) = 14.*r_(3);
+			r_deposition_per_unit_area_per_single_reaction_(4) = 10.*r_(4);
+
+			// Heterogeneous deposition rate [kmol/m2/s]
+			r_deposition_per_unit_area_ = r_(0) + 2.*r_(1) + 6.*r_(2) + 14.*r_(3) + 10.*r_(4);
 		}
 		
 		// Heterogeneous deposition rate [kmol/m3/s]

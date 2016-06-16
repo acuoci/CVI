@@ -39,6 +39,16 @@ namespace CVI
 
 		virtual void DefineRules()
 		{
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HomogeneousReactions",
+				OpenSMOKE::SINGLE_BOOL,
+				"Homogeneous reactions true/false",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousReactions",
+				OpenSMOKE::SINGLE_BOOL,
+				"Heterogeneous reactions true/false",
+				true));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberRadius",
 				OpenSMOKE::SINGLE_MEASURE,
 				"Radius of the fiber",
@@ -66,7 +76,7 @@ namespace CVI
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousMechanism",
 				OpenSMOKE::SINGLE_STRING,
-				"Heterogeneous mechanism: Ibrahim-Paolucci",
+				"Heterogeneous mechanism: Huttinger | Ziegler | Vignoles |  Huttinger-extended | Ziegler-extended | Vignoles-extended",
 				true));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HydrogenInhibition",
