@@ -203,6 +203,7 @@ namespace CVI
 			index_C2H4_ = thermodynamicsMap_.IndexOfSpecies("C2H4") - 1;
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::ZIEGLER)
@@ -211,6 +212,7 @@ namespace CVI
 			index_C2H4_ = thermodynamicsMap_.IndexOfSpecies("C2H4") - 1;
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::VIGNOLES)
@@ -219,6 +221,7 @@ namespace CVI
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::HUTTINGER_EXTENDED)

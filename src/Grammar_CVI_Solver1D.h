@@ -108,7 +108,17 @@ namespace CVI
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@XLength",
 				OpenSMOKE::SINGLE_MEASURE,
 				"Length of computational domain along the x axis",
-				true));
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@RadiusInternal",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Internal radius (needed only in case of cylindrical symmetry)",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@RadiusExternal",
+				OpenSMOKE::SINGLE_MEASURE,
+				"External radius (needed only in case of cylindrical symmetry)",
+				false));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@YLength",
 				OpenSMOKE::SINGLE_MEASURE,

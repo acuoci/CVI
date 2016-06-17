@@ -20,14 +20,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 16.0</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseIntelMKL>Sequential</UseIntelMKL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 16.0</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <UseIntelMKL>Sequential</UseIntelMKL>
@@ -64,7 +64,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-Win32-Debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-Win32-Debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -85,8 +85,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-Win32-Release\lib;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libmmd.lib;libboost_system-vc140-mt-1_60.lib;libboost_chrono-vc140-mt-1_60.lib;libboost_timer-vc140-mt-1_60.lib;libBzzMath60dev_XE2016_Win32_Release.lib;libDASPK20_LINPACK_XE2016_Win32_Release.lib;libLINPACK_XE2016_Win32_Release.lib;libODEPACK_LINPACK_XE2016_Win32_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-Win32-Release\lib;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2016.2.180\windows\compiler\lib\ia32_win;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libboost_system-vc140-mt-1_60.lib;libboost_chrono-vc140-mt-1_60.lib;libboost_timer-vc140-mt-1_60.lib;libBzzMath60dev_XE2016_Win32_Release.lib;libDASPK20_LINPACK_XE2016_Win32_Release.lib;libLINPACK_XE2016_Win32_Release.lib;libODEPACK_LINPACK_XE2016_Win32_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

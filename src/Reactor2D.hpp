@@ -1570,159 +1570,393 @@ namespace CVI
 
 	double Reactor2D::AreaAveraged(const Eigen::VectorXd& v)
 	{
-		double sum = 0.;
-		double sum_std = 0.;
-
-		// Internal
-		for (unsigned int k = 1; k < ny_ - 1; k++)
-		for (unsigned int i = 1; i < nx_ - 1; i++)
+		if (planar_symmetry_ == true)
 		{
-			const int point = k*nx_ + i;
+			double sum = 0.;
 
-			const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxc()(k)*0.50);
-			sum += v(point)*area;
+			// Internal
+			for (unsigned int k = 1; k < ny_ - 1; k++)
+				for (unsigned int i = 1; i < nx_ - 1; i++)
+				{
+					const int point = k*nx_ + i;
+
+					const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxc()(k)*0.50);
+					sum += v(point)*area;
+				}
+
+			// South (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const int point = list_points_south_(i);
+				const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxe()(0)*0.50);
+				sum += v(point)*area;
+			}
+
+			// North (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const int point = list_points_north_(i);
+				const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
+				sum += v(point)*area;
+			}
+
+			// West (zero gradient)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const int point = list_points_west_(i);
+				const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxc()(i)*0.50);
+				sum += v(point)*area;
+			}
+
+			// East (gas side)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const int point = list_points_east_(i);
+				const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxc()(i)*0.50);
+				sum += v(point)*area;
+			}
+
+			// Corner: north/east
+			{
+				const int point = list_points_north_(nx_ - 1);
+				const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
+				sum += v(point)*area;
+			}
+
+			// Corner: north/west
+			{
+				const int point = list_points_north_(0);
+				const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
+				sum += v(point)*area;
+			}
+
+			// Corner: south/west
+			{
+				const int point = list_points_south_(0);
+				const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxe()(0)*0.50);
+				sum += v(point)*area;
+			}
+
+			// Corner: south/east
+			{
+				const int point = list_points_south_(nx_ - 1);
+				const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxe()(0)*0.50);
+				sum += v(point)*area;
+			}
+
+			const double area_total = grid_x_.L()*grid_y_.L();
+			return sum / area_total;
 		}
-
-		// South (zero gradient)
-		for (unsigned int i = 1; i < nx_-1; i++)
+		else
 		{
-			const int point = list_points_south_(i);
-			const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxe()(0)*0.50);
-			sum += v(point)*area;
-		}
+			double sum = 0.;
 
-		// North (zero gradient)
-		for (unsigned int i = 1; i < nx_-1; i++)
-		{
-			const int point = list_points_north_(i);
-			const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
-			sum += v(point)*area;
-		}
+			// Internal
+			for (unsigned int k = 1; k < ny_ - 1; k++)
+				for (unsigned int i = 1; i < nx_ - 1; i++)
+				{
+					const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+					const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+					const double height = grid_y_.dxc()(k)*0.50;
+					const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
 
-		// West (zero gradient)
-		for (unsigned int i = 1; i < ny_-1; i++)
-		{
-			const int point = list_points_west_(i);
-			const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxc()(i)*0.50);
-			sum += v(point)*area;
-		}
+					const int point = k*nx_ + i;
+					sum += v(point)*volume;
+				}
 
-		// East (gas side)
-		for (unsigned int i = 1; i < ny_-1; i++)
-		{
-			const int point = list_points_east_(i);
-			const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxc()(i)*0.50);
-			sum += v(point)*area;
-		}
+			// South (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+				const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+				const double height = grid_y_.dxe()(0)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
 
-		// Corner: north/east
-		{
-			const int point = list_points_north_(nx_ - 1);
-			const double area = (grid_x_.dxw()(nx_-1)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
-			sum += v(point)*area;
-		}
+				const int point = list_points_south_(i);
+				sum += v(point)*volume;
+			}
 
-		// Corner: north/west
-		{
-			const int point = list_points_north_(0);
-			const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
-			sum += v(point)*area;
-		}
+			// North (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+				const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+				const double height = grid_y_.dxw()(ny_ - 1)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
 
-		// Corner: south/west
-		{
-			const int point = list_points_south_(0);
-			const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxe()(0)*0.50);
-			sum += v(point)*area;
-		}
+				const int point = list_points_north_(i);
+				sum += v(point)*volume;
+			}
 
-		// Corner: south/east
-		{
-			const int point = list_points_south_(nx_-1);
-			const double area = (grid_x_.dxw()(nx_-1)*0.50)*(grid_y_.dxe()(0)*0.50);
-			sum += v(point)*area;
+			// West (zero gradient)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxc()(i)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_west_(i);
+				sum += v(point)*volume;
+			}
+
+			// East (gas side)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxc()(i)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_east_(i);
+				sum += v(point)*volume;
+			}
+
+			// Corner: north/west
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxw()(ny_ - 1)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_north_(nx_ - 1);
+				sum += v(point)*volume;
+			}
+
+			// Corner: north/east
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxw()(ny_ - 1)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_north_(0);
+				sum += v(point)*volume;
+			}
+
+			// Corner: south/west
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxe()(0)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_south_(0);
+				sum += v(point)*volume;
+			}
+
+			// Corner: south/east
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxe()(0)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_south_(nx_ - 1);
+				sum += v(point)*volume;
+			}
+
+			const double Ri = grid_x_.x()(0);
+			const double Re = grid_x_.x()(nx_-1);
+			const double volume_total = boost::math::constants::pi<double>()*(Re*Re-Ri*Ri)*grid_y_.L();
+			return sum / volume_total;
 		}
-		
-		const double area_total = grid_x_.L()*grid_y_.L();
-		return sum / area_total;
 	}
 
 	double Reactor2D::AreaStandardDeviation(const double mean, const Eigen::VectorXd& v)
 	{
-		double sum_std = 0.;
-
-		// Internal
-		for (unsigned int k = 1; k < ny_ - 1; k++)
-		for (unsigned int i = 1; i < nx_ - 1; i++)
+		if (planar_symmetry_ == true)
 		{
-			const int point = k*nx_ + i;
+			double sum_std = 0.;
 
-			const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxc()(k)*0.50);
-			sum_std += boost::math::pow<2>(v(point)-mean)*area;
+			// Internal
+			for (unsigned int k = 1; k < ny_ - 1; k++)
+				for (unsigned int i = 1; i < nx_ - 1; i++)
+				{
+					const int point = k*nx_ + i;
+
+					const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxc()(k)*0.50);
+					sum_std += boost::math::pow<2>(v(point) - mean)*area;
+				}
+
+			// South (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const int point = list_points_south_(i);
+				const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxe()(0)*0.50);
+				sum_std += boost::math::pow<2>(v(point) - mean)*area;
+			}
+
+			// North (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const int point = list_points_north_(i);
+				const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
+				sum_std += boost::math::pow<2>(v(point) - mean)*area;
+			}
+
+			// West (zero gradient)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const int point = list_points_west_(i);
+				const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxc()(i)*0.50);
+				sum_std += boost::math::pow<2>(v(point) - mean)*area;
+			}
+
+			// East (gas side)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const int point = list_points_east_(i);
+				const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxc()(i)*0.50);
+				sum_std += boost::math::pow<2>(v(point) - mean)*area;
+			}
+
+			// Corner: north/east
+			{
+				const int point = list_points_north_(nx_ - 1);
+				const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
+				sum_std += boost::math::pow<2>(v(point) - mean)*area;
+			}
+
+			// Corner: north/west
+			{
+				const int point = list_points_north_(0);
+				const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
+				sum_std += boost::math::pow<2>(v(point) - mean)*area;
+			}
+
+			// Corner: south/west
+			{
+				const int point = list_points_south_(0);
+				const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxe()(0)*0.50);
+				sum_std += boost::math::pow<2>(v(point) - mean)*area;
+			}
+
+			// Corner: south/east
+			{
+				const int point = list_points_south_(nx_ - 1);
+				const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxe()(0)*0.50);
+				sum_std += boost::math::pow<2>(v(point) - mean)*area;
+			}
+
+			const double coefficient = double(np_ - 1) / double(np_);
+			const double area_total = grid_x_.L()*grid_y_.L();
+			return std::sqrt(sum_std / area_total / coefficient);
 		}
-
-		// South (zero gradient)
-		for (unsigned int i = 1; i < nx_ - 1; i++)
+		else
 		{
-			const int point = list_points_south_(i);
-			const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxe()(0)*0.50);
-			sum_std += boost::math::pow<2>(v(point) - mean)*area;
-		}
+			double sum_std = 0.;
 
-		// North (zero gradient)
-		for (unsigned int i = 1; i < nx_ - 1; i++)
-		{
-			const int point = list_points_north_(i);
-			const double area = (grid_x_.dxc()(i)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
-			sum_std += boost::math::pow<2>(v(point) - mean)*area;
-		}
+			// Internal
+			for (unsigned int k = 1; k < ny_ - 1; k++)
+				for (unsigned int i = 1; i < nx_ - 1; i++)
+				{
+					const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+					const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+					const double height = grid_y_.dxc()(k)*0.50;
+					const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
 
-		// West (zero gradient)
-		for (unsigned int i = 1; i < ny_ - 1; i++)
-		{
-			const int point = list_points_west_(i);
-			const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxc()(i)*0.50);
-			sum_std += boost::math::pow<2>(v(point) - mean)*area;
-		}
+					const int point = k*nx_ + i;
+					sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+				}
 
-		// East (gas side)
-		for (unsigned int i = 1; i < ny_ - 1; i++)
-		{
-			const int point = list_points_east_(i);
-			const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxc()(i)*0.50);
-			sum_std += boost::math::pow<2>(v(point) - mean)*area;
-		}
+			// South (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+				const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+				const double height = grid_y_.dxe()(0)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
 
-		// Corner: north/east
-		{
-			const int point = list_points_north_(nx_ - 1);
-			const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
-			sum_std += boost::math::pow<2>(v(point) - mean)*area;
-		}
+				const int point = list_points_south_(i);
+				sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+			}
 
-		// Corner: north/west
-		{
-			const int point = list_points_north_(0);
-			const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxw()(ny_ - 1)*0.50);
-			sum_std += boost::math::pow<2>(v(point) - mean)*area;
-		}
+			// North (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+				const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+				const double height = grid_y_.dxw()(ny_ - 1)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
 
-		// Corner: south/west
-		{
-			const int point = list_points_south_(0);
-			const double area = (grid_x_.dxe()(0)*0.50)*(grid_y_.dxe()(0)*0.50);
-			sum_std += boost::math::pow<2>(v(point) - mean)*area;
-		}
+				const int point = list_points_north_(i);
+				sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+			}
 
-		// Corner: south/east
-		{
-			const int point = list_points_south_(nx_ - 1);
-			const double area = (grid_x_.dxw()(nx_ - 1)*0.50)*(grid_y_.dxe()(0)*0.50);
-			sum_std += boost::math::pow<2>(v(point) - mean)*area;
-		}
+			// West (zero gradient)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxc()(i)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
 
-		const double coefficient = double(np_ - 1) / double(np_);
-		const double area_total = grid_x_.L()*grid_y_.L();
-		return std::sqrt(sum_std/area_total/coefficient);
+				const int point = list_points_west_(i);
+				sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+			}
+
+			// East (gas side)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxc()(i)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_east_(i);
+				sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+			}
+
+			// Corner: north/west
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxw()(ny_ - 1)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_north_(nx_ - 1);
+				sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+			}
+
+			// Corner: north/east
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxw()(ny_ - 1)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_north_(0);
+				sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+			}
+
+			// Corner: south/west
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxe()(0)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_south_(0);
+				sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+			}
+
+			// Corner: south/east
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxe()(0)*0.50;
+				const double volume = boost::math::constants::pi<double>()*(re*re - ri*ri)*height;
+
+				const int point = list_points_south_(nx_ - 1);
+				sum_std += boost::math::pow<2>(v(point) - mean)*volume;
+			}
+
+			const double Ri = grid_x_.x()(0);
+			const double Re = grid_x_.x()(nx_ - 1);
+			const double volume_total = boost::math::constants::pi<double>()*(Re*Re - Ri*Ri)*grid_y_.L();
+			const double coefficient = double(np_ - 1) / double(np_);
+			return std::sqrt(sum_std / volume_total / coefficient);
+		}
 	}
 }

@@ -347,9 +347,6 @@ int main(int argc, char** argv)
 		if (value == "Planar")				symmetry_planar = true;
 		else if (value == "Cylindrical")	symmetry_planar = false;
 		else OpenSMOKE::FatalErrorMessage("Wrong @Symmetry: Planar | Cylindrical");
-
-		if (symmetry_planar == false)
-			OpenSMOKE::FatalErrorMessage("The cylindrical symmetry was not yet implemented.");
 	}
 
 	// Monodimensional grid along the x axis
@@ -363,19 +360,41 @@ int main(int argc, char** argv)
 		if (dictionaries(main_dictionary_name_).CheckOption("@XStretchingFactor") == true)
 			dictionaries(main_dictionary_name_).ReadDouble("@XStretchingFactor", stretching_factor);
 
-		double length;
-		std::string units;
-		if (dictionaries(main_dictionary_name_).CheckOption("@XLength") == true)
+		if (symmetry_planar == true)
 		{
+			double length;
+			std::string units;
 			dictionaries(main_dictionary_name_).ReadMeasure("@XLength", length, units);
 			if (units == "m")			length = length;
 			else if (units == "cm")		length = length / 1.e2;
 			else if (units == "mm")		length = length / 1.e3;
 			else if (units == "micron")	length = length / 1.e6;
 			else OpenSMOKE::FatalErrorMessage("Unknown length units");
-		}
 
-		grid_x = new OpenSMOKE::Grid1D(number_of_points, 0., length, stretching_factor);
+			grid_x = new OpenSMOKE::Grid1D(number_of_points, 0., length, stretching_factor);
+		}
+		else
+		{
+			std::string units;
+
+			double radius_internal;
+			dictionaries(main_dictionary_name_).ReadMeasure("@RadiusInternal", radius_internal, units);
+			if (units == "m")			radius_internal = radius_internal;
+			else if (units == "cm")		radius_internal = radius_internal / 1.e2;
+			else if (units == "mm")		radius_internal = radius_internal / 1.e3;
+			else if (units == "micron")	radius_internal = radius_internal / 1.e6;
+			else OpenSMOKE::FatalErrorMessage("Unknown length units");
+
+			double radius_external;
+			dictionaries(main_dictionary_name_).ReadMeasure("@RadiusExternal", radius_external, units);
+			if (units == "m")			radius_external = radius_external;
+			else if (units == "cm")		radius_external = radius_external / 1.e2;
+			else if (units == "mm")		radius_external = radius_external / 1.e3;
+			else if (units == "micron")	radius_external = radius_external / 1.e6;
+			else OpenSMOKE::FatalErrorMessage("Unknown length units");
+
+			grid_x = new OpenSMOKE::Grid1D(number_of_points, radius_internal, radius_external, stretching_factor);
+		}
 	}
 
 	// Monodimensional grid along the y axis

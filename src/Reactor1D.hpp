@@ -1031,59 +1031,133 @@ namespace CVI
 
 	double Reactor1D::AreaAveraged(const Eigen::VectorXd& v)
 	{
-		double sum = 0.;
-		double sum_std = 0.;
-
-		// Internal
-		for (unsigned int i = 1; i < np_ - 1; i++)
+		if (planar_symmetry_ == true)
 		{
-			const double area = grid_.dxc()(i)*0.50;
-			sum += v(i)*area;
-		}
+			double sum = 0.;
 
-		// West (zero gradient)
+			// Internal
+			for (unsigned int i = 1; i < np_ - 1; i++)
+			{
+				const double area = grid_.dxc()(i)*0.50;
+				sum += v(i)*area;
+			}
+
+			// West (zero gradient)
+			{
+				const double area = grid_.dxe()(0)*0.50;
+				sum += v(0)*area;
+			}
+
+			// East (gas side)
+			{
+				const double area = grid_.dxw()(np_ - 1)*0.50;
+				sum += v(np_ - 1)*area;
+			}
+
+
+			const double area_total = grid_.L();
+			return sum / area_total;
+		}
+		else
 		{
-			const double area = grid_.dxe()(0)*0.50;
-			sum += v(0)*area;
+			double sum = 0.;
+
+			// Internal
+			for (unsigned int i = 1; i < np_ - 1; i++)
+			{
+				const double ri = (grid_.x()(i) + grid_.x()(i - 1)) / 2.;
+				const double re = (grid_.x()(i) + grid_.x()(i + 1)) / 2.;
+				const double area = boost::math::constants::pi<double>()*(re*re - ri*ri);
+				sum += v(i)*area;
+			}
+
+			// West (zero gradient)
+			{
+				const double ri = grid_.x()(0);
+				const double re = (grid_.x()(0) + grid_.x()(1)) / 2.;
+				const double area = boost::math::constants::pi<double>()*(re*re - ri*ri);
+				sum += v(0)*area;
+			}
+
+			// East (gas side)
+			{
+				const double ri = (grid_.x()(np_-1) + grid_.x()(np_ - 2)) / 2.;
+				const double re = grid_.x()(np_-1);
+				const double area = boost::math::constants::pi<double>()*(re*re - ri*ri);
+				sum += v(np_ - 1)*area;
+			}
+
+			const double Ri = grid_.x()(0);
+			const double Re = grid_.x()(np_ - 1);
+			const double area_total = boost::math::constants::pi<double>()*(Re*Re - Ri*Ri);
+			return sum / area_total;
 		}
-
-		// East (gas side)
-		{
-			const double area = grid_.dxw()(np_ - 1)*0.50;
-			sum += v(np_ - 1)*area;
-		}
-
-
-		const double area_total = grid_.L();
-		return sum / area_total;
 	}
 
 	double Reactor1D::AreaStandardDeviation(const double mean, const Eigen::VectorXd& v)
 	{
-		double sum_std = 0.;
-
-		// Internal
-		for (unsigned int i = 1; i < np_ - 1; i++)
+		if (planar_symmetry_ == true)
 		{
-			const double area = grid_.dxc()(i)*0.50;
-			sum_std += boost::math::pow<2>(v(i) - mean)*area;
-		}
+			double sum_std = 0.;
 
-		// West (zero gradient)
+			// Internal
+			for (unsigned int i = 1; i < np_ - 1; i++)
+			{
+				const double area = grid_.dxc()(i)*0.50;
+				sum_std += boost::math::pow<2>(v(i) - mean)*area;
+			}
+
+			// West (zero gradient)
+			{
+				const double area = grid_.dxe()(0)*0.50;
+				sum_std += boost::math::pow<2>(v(0) - mean)*area;
+			}
+
+			// East (gas side)
+			{
+				const double area = grid_.dxw()(np_ - 1)*0.50;
+				sum_std += boost::math::pow<2>(v(np_ - 1) - mean)*area;
+			}
+
+			const double coefficient = double(np_ - 1) / double(np_);
+			const double area_total = grid_.L();
+			return std::sqrt(sum_std / area_total / coefficient);
+		}
+		else
 		{
-			const double area = grid_.dxe()(0)*0.50;
-			sum_std += boost::math::pow<2>(v(0) - mean)*area;
-		}
+			double sum_std = 0.;
 
-		// East (gas side)
-		{
-			const double area = grid_.dxw()(np_ - 1)*0.50;
-			sum_std += boost::math::pow<2>(v(np_-1) - mean)*area;
-		}
+			// Internal
+			for (unsigned int i = 1; i < np_ - 1; i++)
+			{
+				const double ri = (grid_.x()(i) + grid_.x()(i - 1)) / 2.;
+				const double re = (grid_.x()(i) + grid_.x()(i + 1)) / 2.;
+				const double area = boost::math::constants::pi<double>()*(re*re - ri*ri);
+				sum_std += boost::math::pow<2>(v(np_ - 1) - mean)*area;
+			}
 
-		const double coefficient = double(np_ - 1) / double(np_);
-		const double area_total = grid_.L();
-		return std::sqrt(sum_std / area_total / coefficient);
+			// West (zero gradient)
+			{
+				const double ri = grid_.x()(0);
+				const double re = (grid_.x()(0) + grid_.x()(1)) / 2.;
+				const double area = boost::math::constants::pi<double>()*(re*re - ri*ri);
+				sum_std += boost::math::pow<2>(v(np_ - 1) - mean)*area;
+			}
+
+			// East (gas side)
+			{
+				const double ri = (grid_.x()(np_ - 1) + grid_.x()(np_ - 2)) / 2.;
+				const double re = grid_.x()(np_ - 1);
+				const double area = boost::math::constants::pi<double>()*(re*re - ri*ri);
+				sum_std += boost::math::pow<2>(v(np_ - 1) - mean)*area;
+			}
+
+			const double Ri = grid_.x()(0);
+			const double Re = grid_.x()(np_ - 1);
+			const double area_total = boost::math::constants::pi<double>()*(Re*Re - Ri*Ri);
+			const double coefficient = double(np_ - 1) / double(np_);
+			return std::sqrt(sum_std / area_total / coefficient);
+		}
 	}
 
 	void Reactor1D::PrintLabelMonitoringFile()

@@ -6,6 +6,8 @@
 *~
 *.VC.db
 *.VC.opendb
+*.iobj
+*.ipdb
 
 #Microsoft Visual studio
 ########################
