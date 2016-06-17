@@ -30,6 +30,7 @@ namespace CVI
 								OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 								OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
 								PorousSubstrateType porous_substrate_type, const double rf, const double rho_fiber, const double epsilon0,
+								const bool homogeneous_reactions, const bool heterogeneous_reactions, 
 								const HeterogeneousMechanism heterogeneous_mechanism_type,
 								const HydrogenInhibitionType hydrogen_inhibition_type) :
 
@@ -40,6 +41,8 @@ namespace CVI
 	rho_fiber_(rho_fiber),
 	epsilon0_(epsilon0),
 	porous_substrate_type_(porous_substrate_type),
+	homogeneous_reactions_(homogeneous_reactions),
+	heterogeneous_reactions_(heterogeneous_reactions),
 	heterogeneous_mechanism_type_(heterogeneous_mechanism_type),
 	hydrogen_inhibition_type_(hydrogen_inhibition_type)
 	{
@@ -164,10 +167,6 @@ namespace CVI
 
 		// Number of species
 		ns_ = thermodynamicsMap_.NumberOfSpecies();
-
-		// Homogeneous/Heterogeneous reactions
-		homogeneous_reactions_ = true;
-		heterogeneous_reactions_ = true;
 
 		// Number of heterogeneous reactions
 		if (heterogeneous_mechanism_type_ == CVI::HUTTINGER)

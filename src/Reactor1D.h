@@ -336,7 +336,7 @@ namespace CVI
 
 		double AreaAveraged(const Eigen::VectorXd& v);
 		double AreaStandardDeviation(const double mean, const Eigen::VectorXd& v);
-		void Reactor1D::PrintLabelMonitoringFile();
+		void PrintLabelMonitoringFile();
 	};
 }
 

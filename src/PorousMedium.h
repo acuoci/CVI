@@ -51,19 +51,22 @@ namespace CVI
 		/**
 		*@brief Default constructor
 		*@param thermodynamicsMap		reference to the thermodynamic map
-		*@param kineticsMap				reference to the kinetic map
+		*@param kineticsMap			reference to the kinetic map
 		*@param transportMap			reference to the transport map
-		*@param porous_substrate_type	porous substrate type
-		*@param rf						initial radius of the fibers [m]
-		*@param rho_fiber						fiber density [kg/m3]
-		*@param epsilon0						initial porosity
+		*@param porous_substrate_type		porous substrate type
+		*@param rf				initial radius of the fibers [m]
+		*@param rho_fiber			fiber density [kg/m3]
+		*@param epsilon0			initial porosity
+		*@param homogeneous_reactions		homogeneous reactions
+		*@param heterogeneous_reactions		heterogeneous reactions
 		*@param heterogeneous_mechanism_type	heterogeneous mechanism type
-		*@param hydrogen_inhibition_type		hydrogen mechanism type
+		*@param hydrogen_inhibition_type	hydrogen mechanism type
 		*/
 		PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
 						OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 						OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
 						PorousSubstrateType porous_substrate_type, const double rf, const double rho_fiber, const double epsilon0,
+						const bool homogeneous_reactions, const bool heterogeneous_reactions, 
 						const HeterogeneousMechanism heterogeneous_mechanism_type,
 						const HydrogenInhibitionType hydrogen_inhibition_type);
 
