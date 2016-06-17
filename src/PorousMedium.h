@@ -527,6 +527,10 @@ namespace CVI
 			else
 				return epsilon;
 		}
+		else
+		{
+			return epsilon;
+		}
 	}
 }
 
