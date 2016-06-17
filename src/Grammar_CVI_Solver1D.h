@@ -140,9 +140,14 @@ namespace CVI
 				"Dictionary containing the numerical parameters for solving the stiff DAE system",
 				false));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TimeInterval",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DaeTimeInterval",
 				OpenSMOKE::SINGLE_MEASURE,
-				"Interval of time",
+				"Interval of time for successive DAE system solutions",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TecplotTimeInterval",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Interval of time for writing Tecplot output",
 				true));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TimeTotal",

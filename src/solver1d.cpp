@@ -483,17 +483,32 @@ int main(int argc, char** argv)
 	}
 
 	// Interval time
-	double time_interval = 0.;
+	double dae_time_interval = 0.;
 	{
 		std::string units;
-		if (dictionaries(main_dictionary_name_).CheckOption("@TimeInterval") == true)
+		if (dictionaries(main_dictionary_name_).CheckOption("@DaeTimeInterval") == true)
 		{
-			dictionaries(main_dictionary_name_).ReadMeasure("@TimeInterval", time_interval, units);
-			if (units == "s")				time_interval = time_interval;
-			else if (units == "ms")			time_interval = time_interval / 1.e3;
-			else if (units == "min")		time_interval = time_interval * 60.;
-			else if (units == "h")			time_interval = time_interval * 3600.;
-			else OpenSMOKE::FatalErrorMessage("Unknown @TimeInterval units");
+			dictionaries(main_dictionary_name_).ReadMeasure("@DaeTimeInterval", dae_time_interval, units);
+			if (units == "s")				dae_time_interval = dae_time_interval;
+			else if (units == "ms")			dae_time_interval = dae_time_interval / 1.e3;
+			else if (units == "min")		dae_time_interval = dae_time_interval * 60.;
+			else if (units == "h")			dae_time_interval = dae_time_interval * 3600.;
+			else OpenSMOKE::FatalErrorMessage("Unknown @DaeTimeInterval units");
+		}
+	}
+
+	// Interval time
+	double tecplot_time_interval = 0.;
+	{
+		std::string units;
+		if (dictionaries(main_dictionary_name_).CheckOption("@TecplotTimeInterval") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadMeasure("@TecplotTimeInterval", tecplot_time_interval, units);
+			if (units == "s")				tecplot_time_interval = tecplot_time_interval;
+			else if (units == "ms")			tecplot_time_interval = tecplot_time_interval / 1.e3;
+			else if (units == "min")		tecplot_time_interval = tecplot_time_interval * 60.;
+			else if (units == "h")			tecplot_time_interval = tecplot_time_interval * 3600.;
+			else OpenSMOKE::FatalErrorMessage("Unknown @TecplotTimeInterval units");
 		}
 	}
 
@@ -600,7 +615,8 @@ int main(int argc, char** argv)
 		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega);
 		reactor2d->SetGasSide(inlet_T, inlet_P, Y_gas_side);
 		reactor2d->SetTimeTotal(time_total);
-		reactor2d->SetTimeInterval(time_interval);
+		reactor2d->SetDaeTimeInterval(dae_time_interval);
+		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);
 		if (steps_video>0)	reactor2d->SetStepsVideo(steps_video);
 		if (steps_file>0)	reactor2d->SetStepsFile(steps_file);
 

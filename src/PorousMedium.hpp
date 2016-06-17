@@ -312,32 +312,32 @@ namespace CVI
 
 	double PorousMedium::Sv()
 	{
-		if (epsilon_ < 1e-3)
-			return 1.;
+		const double small = 1.e-16;
+		const double epsilon = epsilon_ + small;
 
 		if (porous_substrate_type_ == POLYNOMIAL)
 		{
-			const double ratio = epsilon_ / epsilon0_;
+			const double ratio = epsilon / epsilon0_;
 			return 2. / rf_*((2. - epsilon0_)*ratio - std::pow(ratio, 2.));
 		}
 		else if (porous_substrate_type_ == RANDOM)
 		{
-			return -2. / rf_*epsilon_*std::log(epsilon_);
+			return -2. / rf_*epsilon*std::log(epsilon);
 		}
 		else if (porous_substrate_type_ == RANDOM_HARDCORE)
 		{
-			const double ratio = epsilon_ / epsilon0_;
-			return 2. / rf_*ratio*(1. - epsilon_)*(1. / epsilon0_*std::log(1. / ratio) + 1.);
+			const double ratio = epsilon / epsilon0_;
+			return 2. / rf_*ratio*(1. - epsilon)*(1. / epsilon0_*std::log(1. / ratio) + 1.);
 		}
 		else if (porous_substrate_type_ == POLINOMIAL_ONEHALF)
 		{
-			const double ratio = epsilon_ / epsilon0_;
-			return 2. / rf_*((2.-3./2.*epsilon_)*ratio-(1.-epsilon0_/2.)*ratio*ratio);
+			const double ratio = epsilon / epsilon0_;
+			return 2. / rf_*((2.-3./2.*epsilon)*ratio-(1.-epsilon0_/2.)*ratio*ratio);
 		}
 		else if (porous_substrate_type_ == FROM_SPHERES_TO_CYLINDERS)
 		{
 			const double c = 3. / 4. / PhysicalConstants::pi;
-			return 2. / rf_*(1. - epsilon_)*(std::pow(-c*std::log(1 - epsilon_), 2. / 3.) + epsilon_) / (std::pow(-c*std::log(1 - epsilon0_), 2. / 3.) + epsilon0_);
+			return 2. / rf_*(1. - epsilon)*(std::pow(-c*std::log(1 - epsilon), 2. / 3.) + epsilon) / (std::pow(-c*std::log(1 - epsilon0_), 2. / 3.) + epsilon0_);
 		}
 		else
 			return 0.;

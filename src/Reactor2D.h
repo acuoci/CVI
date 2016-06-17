@@ -106,10 +106,17 @@ namespace CVI
 		void SetTimeTotal(const double time_total);
 
 		/**
-		*@brief Sets the interval time
+		*@brief Sets the interval time for solving successive DAE systems
 		*@param time_interval interval time [s]
 		*/
-		void SetTimeInterval(const double time_interval);
+		void SetDaeTimeInterval(const double time_interval);
+
+
+		/**
+		*@brief Sets the interval time for writing Tecplot output
+		*@param time_interval interval time [s]
+		*/
+		void SetTecplotTimeInterval(const double time_interval);
 
 		/**
 		*@brief Sets steps video
@@ -386,8 +393,12 @@ namespace CVI
 
 		// Time
 		double time_total_;
-		double time_interval_;
+		double dae_time_interval_;
 		double time_smoothing_;
+
+		// Tecplot
+		int count_tecplot_;
+		double tecplot_time_interval_;
 
 		Eigen::VectorXi list_points_south_;
 		Eigen::VectorXi list_points_north_;

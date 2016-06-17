@@ -76,9 +76,11 @@ namespace CVI
 		count_video_ = n_steps_video_;
 		n_steps_file_ = 3;
 		count_file_ = n_steps_file_;
+		count_tecplot_ = 0;
 
 		time_total_ = 48.*3600.;
-		time_interval_ = 3600.;
+		dae_time_interval_ = 3600.;
+		tecplot_time_interval_ = 3600.;
 
 		ns_ = thermodynamicsMap_.NumberOfSpecies();
 		block_ = ns_ + 1;
@@ -394,9 +396,14 @@ namespace CVI
 		time_total_ = time_total;
 	}
 
-	void Reactor2D::SetTimeInterval(const double time_interval)
+	void Reactor2D::SetDaeTimeInterval(const double time_interval)
 	{
-		time_interval_ = time_interval;
+		dae_time_interval_ = time_interval;
+	}
+
+	void Reactor2D::SetTecplotTimeInterval(const double time_interval)
+	{
+		tecplot_time_interval_ = time_interval;
 	}
 
 	void Reactor2D::SetStepsVideo(const int steps_video)
@@ -746,11 +753,11 @@ namespace CVI
 		PrintTecplot(0., (output_folder_ / "Solution.tec.0").string().c_str());
 
 		// Loop
-		unsigned int number_intervals = time_total_/time_interval_;
+		unsigned int number_intervals = time_total_/dae_time_interval_;
 		for (unsigned int k = 1; k <= number_intervals; k++)
 		{
-			const double t0 = (k - 1)*time_interval_;
-			const double tf = t0 + time_interval_;
+			const double t0 = (k - 1)*dae_time_interval_;
+			const double tf = t0 + dae_time_interval_;
 
 			// Solve
 			int flag = Solve(dae_parameters, t0, tf);
@@ -761,7 +768,6 @@ namespace CVI
 			std::stringstream current_index; current_index << k;
 			std::stringstream hours; hours << tf / 3600.;
 			std::string solution_file = "Solution." + hours.str() + ".out";
-			std::string tecplot_file = "Solution.tec." + current_index.str();
 			std::string diffusion_coefficients_file = "DiffusionCoefficients." + hours.str() + ".out";
 			std::string heterogeneous_rates_file = "HeterogeneousRates." + hours.str() + ".out";
 			std::string homogeneous_rates_file = "HomogeneousRates." + hours.str() + ".out";
@@ -769,9 +775,6 @@ namespace CVI
 			PrintDiffusionCoefficients(tf, (output_folder_ / diffusion_coefficients_file).string().c_str());
 			PrintHeterogeneousRates(tf, (output_folder_ / heterogeneous_rates_file).string().c_str());
 			PrintHomogeneousRates(tf, (output_folder_ / homogeneous_rates_file).string().c_str());
-			//PrintXMLFile((output_folder_ / "Output.xml").string().c_str());
-
-			PrintTecplot(tf, (output_folder_ / tecplot_file).string().c_str());
 		}
 
 		return true;
@@ -817,6 +820,7 @@ namespace CVI
 			fOutput << "Variables=";
 			fOutput << "\"x[mm]\"" << ", ";
 			fOutput << "\"y[mm]\"" << ", ";
+			fOutput << "\"time[h]\"" << ", ";
 			fOutput << "\"T[K]\"" << ", ";
 			fOutput << "\"P[Pa]\"" << ", ";
 			fOutput << "\"eps[-]\"" << ", ";
@@ -914,6 +918,7 @@ namespace CVI
 				fOutput << std::setprecision(9) << std::setw(20) << grid_y_.x()(k);
 
 				// Write rlevant variables
+				fOutput << std::setprecision(9) << std::setw(20) << t/3600.;
 				fOutput << std::setprecision(9) << std::setw(20) << T_(point);
 				fOutput << std::setprecision(9) << std::setw(20) << P_(point);
 
@@ -1466,6 +1471,15 @@ namespace CVI
 				for (int k = 0; k < porousMedium_.r().size(); k++)
 					delta_rhobulk_due_to_single_reaction_over_rhobulk_[k](i) = delta_rhobulk_due_to_single_reaction_[k](i) / (delta_rhobulk_(i)+1.e-12);
 			}
+		}
+
+		if ( t>= (count_tecplot_+1)*tecplot_time_interval_)
+		{
+			std::stringstream current_index; current_index << count_tecplot_;
+			std::string tecplot_file = "Solution.tec." + current_index.str();
+			PrintTecplot(t, (output_folder_ / tecplot_file).string().c_str());
+
+			count_tecplot_++;
 		}
 
 		t_old_ = t;
