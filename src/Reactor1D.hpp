@@ -56,6 +56,18 @@ namespace CVI
 
 		output_folder_ = "Output";
 
+		output_matlab_folder_ = output_folder_ / "Matlab";
+		OpenSMOKE::CreateDirectory(output_matlab_folder_);
+
+		output_diffusion_folder_ = output_folder_ / "DiffusionCoefficients";
+		OpenSMOKE::CreateDirectory(output_diffusion_folder_);
+
+		output_heterogeneous_folder_ = output_folder_ / "HeterogeneousReactions";
+		OpenSMOKE::CreateDirectory(output_heterogeneous_folder_);
+
+		output_homogeneous_folder_ = output_folder_ / "HomogeneousReactions";
+		OpenSMOKE::CreateDirectory(output_homogeneous_folder_);
+
 		fMonitoring_.open((output_folder_ / "monitor.out").string().c_str(), std::ios::out);
 		fMonitoring_.setf(std::ios::scientific);
 		PrintLabelMonitoringFile();
@@ -533,7 +545,7 @@ namespace CVI
 	int Reactor1D::SolveFromScratch(DaeSMOKE::DaeSolver_Parameters& dae_parameters)
 	{
 		std::ofstream fMonitoring;
-		fMonitoring.open((output_folder_ / "monitoring.out").string().c_str(), std::ios::out);
+		fMonitoring.open((output_folder_ / "log.out").string().c_str(), std::ios::out);
 		fMonitoring.setf(std::ios::scientific);
 
 		// Loop
@@ -556,10 +568,9 @@ namespace CVI
 			std::string heterogeneous_rates_file = "HeterogeneousRates." + number.str() + ".out";
 			std::string homogeneous_rates_file = "HomogeneousRates." + number.str() + ".out";
 			PrintSolution(tf, (output_folder_ / solution_file).string().c_str());
-			PrintDiffusionCoefficients(tf, (output_folder_ / diffusion_coefficients_file).string().c_str());
-			PrintHeterogeneousRates(tf, (output_folder_ / heterogeneous_rates_file).string().c_str());
-			PrintHomogeneousRates(tf, (output_folder_ / homogeneous_rates_file).string().c_str());
-			//PrintXMLFile((output_folder_ / "Output.xml").string().c_str());
+			PrintDiffusionCoefficients(tf, (output_diffusion_folder_ / diffusion_coefficients_file).string().c_str());
+			PrintHeterogeneousRates(tf, (output_heterogeneous_folder_ / heterogeneous_rates_file).string().c_str());
+			PrintHomogeneousRates(tf, (output_homogeneous_folder_ / homogeneous_rates_file).string().c_str());
 		}
 
 		return true;
@@ -579,6 +590,7 @@ namespace CVI
 			unsigned int count = 1;
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "time[s]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "x[mm]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "y[mm]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "T[K]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "P[Pa]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "eps[-]", count);
@@ -618,6 +630,7 @@ namespace CVI
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
 			fOutput << std::setprecision(9) << std::setw(20) << grid_.x()[i] * 1000.;
+			fOutput << std::setprecision(9) << std::setw(20) << 0.;
 			fOutput << std::setprecision(9) << std::setw(20) << T_(i);
 			fOutput << std::setprecision(9) << std::setw(20) << P_(i);
 			

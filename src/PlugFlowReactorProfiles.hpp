@@ -48,10 +48,16 @@ void PlugFlowReactorProfiles::Interpolate(const double x_req, const std::vector<
 		OpenSMOKE::FatalErrorMessage("Interpolating fixed profile: the provided y vector is not consistent with the abscissas");
 
 	if (x_req < xstart_)
+	{
+		std::cout << "Xstart: " << xstart_ << " - Xreq: " << x_req << std::endl;
 		OpenSMOKE::FatalErrorMessage("Interpolating fixed profile: the requested coordinate is smaller than the minimum available coordinate");
+	}
 
 	if (x_req > xend_)
+	{
+		std::cout << "Xend: " << xend_ << " - Xreq: " << x_req << std::endl;
 		OpenSMOKE::FatalErrorMessage("Interpolating fixed profile: the requested coordinate is larger than the maximum available coordinate");
+	}
 
 	unsigned int nv = y[0].size();
 

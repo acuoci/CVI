@@ -68,7 +68,7 @@ Dictionary plug-flow-reactor
 	@InletLength			2.5 mm;
 	@HydraulicDiameter		3.5 mm;
 	@AsymptoticNusselt		4.00;
-	@InternalBoundaryLayer		false;
+	@InternalBoundaryLayer		true;
 	@GeometricPattern		OneSide;
 }
 

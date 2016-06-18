@@ -33,13 +33,17 @@ Dictionary CVI_Solver1D
 	@XStretchingFactor	0.98;
 	@YStretchingFactor	1.;
 	
-	@TimeTotal			120 h;
-	@TimeInterval		2.5 h;
+	@TimeTotal				120 h;
+	@DaeTimeInterval		2.5 h;
+	@TecplotTimeInterval	  1 h;
 	
 	@DaeParameters		dae-parameters;
 }
 Dictionary porous-medium
 {
+	@HomogeneousReactions		true;
+	@HeterogeneousReactions		true;
+	
 	@FiberRadius				4 micron;
 	@FiberDensity				1720 kg/m3;
 	@GraphiteDensity			2200 kg/m3;

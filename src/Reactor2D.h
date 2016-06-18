@@ -383,8 +383,15 @@ namespace CVI
 		unsigned int count_video_;					//!< counter of steps for updating info on the screen
 		unsigned int n_steps_file_;					//!< number of steps for updating info on the file
 		unsigned int count_file_;					//!< counter of steps for updating info on the file
-		boost::filesystem::path output_folder_;		//!< name of output folder
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
+
+		boost::filesystem::path output_folder_;					//!< name of output folder
+		boost::filesystem::path output_tecplot_folder_;			//!< name of output folder fot Tecplot files
+		boost::filesystem::path output_matlab_folder_;			//!< name of output folder fot Matlab files
+		boost::filesystem::path output_diffusion_folder_;		//!< name of output folder fot diffusion coefficient files
+		boost::filesystem::path output_heterogeneous_folder_;	//!< name of output folder fot heterogeneous reaction files
+		boost::filesystem::path output_homogeneous_folder_;		//!< name of output folder fot homogeneous reaction files
+
 
 		// Post-processing	
 		Eigen::VectorXd					delta_rhobulk_;											//!< total increment of bulk density [kg/m3]

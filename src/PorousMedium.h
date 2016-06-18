@@ -316,6 +316,12 @@ namespace CVI
 		*/
 		bool heterogeneous_reactions() const { return heterogeneous_reactions_; }
 
+		/**
+		*@brief Returns the tags for the single reactions
+		*@return the tags for the single reactions
+		*/
+		const std::vector<std::string>& tags() const { return tags_; }
+
 	private:
 
 		/**
@@ -391,6 +397,8 @@ namespace CVI
 		double I_C6H6_;										//!< inhibition coefficient for benzene
 		double I_C14H10_;									//!< inhibition coefficient for antracene
 		double I_C10H8_;									//!< inhibition coefficient for naphtalene
+
+		std::vector<std::string> tags_;						//!< tags for single reactions
 
 		HeterogeneousMechanism heterogeneous_mechanism_type_;				//!< type of heterogeneous mechanism
 		bool homogeneous_reactions_;										//!< homogeneous reactions on/off

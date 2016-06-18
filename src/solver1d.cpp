@@ -320,9 +320,9 @@ int main(int argc, char** argv)
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
 	}
 
+	boost::filesystem::path output_path;
 	if (dictionaries(main_dictionary_name_).CheckOption("@Output") == true)
 	{
-		boost::filesystem::path output_path;
 		dictionaries(main_dictionary_name_).ReadPath("@Output", output_path);
 		OpenSMOKE::CreateDirectory(output_path);
 	}
@@ -603,6 +603,63 @@ int main(int argc, char** argv)
 					const double coordinate = plug_flow_reactor->inert_length() + grid_x->L() + grid_y->L() + grid_x->x()(grid_x->Np() - 1 - i);
 					profiles->Interpolate(coordinate, plug_flow_reactor->history_Y(), Y_gas_side[point]);
 				}
+			}
+
+			// Write plug-flow reactor profile
+			{
+				// Open output file
+				const boost::filesystem::path plug_flow_file_path = output_path / "plugflow.out";
+				std::ofstream fPlugFlow(plug_flow_file_path.c_str(), std::ios::out);
+				fPlugFlow.setf(std::ios::scientific);
+
+				// Write headlines
+				unsigned int count = 1;
+				OpenSMOKE::PrintTagOnASCIILabel(20, fPlugFlow, "x[mm]", count);
+				for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
+					OpenSMOKE::PrintTagOnASCIILabel(20, fPlugFlow, thermodynamicsMapXML->NamesOfSpecies()[j] + "_x", count);
+				for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
+					OpenSMOKE::PrintTagOnASCIILabel(20, fPlugFlow, thermodynamicsMapXML->NamesOfSpecies()[j] + "_w", count);
+				fPlugFlow << std::endl;
+
+				// Reconstruct the pattern
+				unsigned int np = 100;
+				double total_length = 2.*plug_flow_reactor->inert_length() + grid_y->L();
+				double dx = total_length / double(np - 1);
+
+				if (plug_flow_reactor->geometric_pattern() == CVI::PlugFlowReactor::THREE_SIDES)
+				{
+					np = 300;
+					total_length = 2.*plug_flow_reactor->inert_length() + grid_y->L() + 2.*grid_x->L();
+					dx = total_length / double(np - 1);
+				}
+
+				// Perform calculations
+				Eigen::VectorXd Y_plug_flow_side(thermodynamicsMapXML->NumberOfSpecies());
+				Eigen::VectorXd X_plug_flow_side(thermodynamicsMapXML->NumberOfSpecies());
+				for (unsigned int i = 0; i < np; i++)
+				{
+					// Interpolation
+					const double coordinate = i*dx + profiles->x()(0);
+					std::cout << coordinate << std::endl;
+					profiles->Interpolate(coordinate, plug_flow_reactor->history_Y(), Y_plug_flow_side);
+
+					// Conversions to mole fractions
+					double mw = 0.;
+					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
+						mw += Y_plug_flow_side(j) / thermodynamicsMapXML->MW()[j + 1];
+					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
+						X_plug_flow_side(j) = Y_plug_flow_side(j) * mw / thermodynamicsMapXML->MW()[j + 1];
+
+					// Write on file
+					fPlugFlow << std::setprecision(9) << std::setw(20) << coordinate*1e3;
+					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
+						fPlugFlow << std::setprecision(9) << std::setw(20) << X_plug_flow_side(j);
+					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
+						fPlugFlow << std::setprecision(9) << std::setw(20) << Y_plug_flow_side(j);
+					fPlugFlow << std::endl;
+				}
+
+				fPlugFlow.close();
 			}
 		}
 

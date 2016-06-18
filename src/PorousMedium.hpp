@@ -192,6 +192,7 @@ namespace CVI
 		r_.resize(nr_);
 		r_deposition_per_unit_area_per_single_reaction_.resize(nr_);
 		r_deposition_per_unit_volume_per_single_reaction_.resize(nr_);
+		tags_.resize(nr_);
 
 		// Set initial porosity
 		SetPorosity(epsilon0_);
@@ -205,6 +206,8 @@ namespace CVI
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+
+			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C6H6";
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::ZIEGLER)
 		{
@@ -214,6 +217,8 @@ namespace CVI
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+
+			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C14H10";
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::VIGNOLES)
 		{
@@ -223,6 +228,8 @@ namespace CVI
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+
+			tags_[0] = "CH4";	tags_[1] = "C6H6";	tags_[2] = "C2H2";	tags_[3] = "C14H10";
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::HUTTINGER_EXTENDED)
 		{
@@ -232,6 +239,8 @@ namespace CVI
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+
+			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C6H6";	tags_[5] = "C10H8";
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::ZIEGLER_EXTENDED)
 		{
@@ -241,6 +250,8 @@ namespace CVI
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+
+			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C14H10";	tags_[5] = "C10H8";
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::VIGNOLES_EXTENDED)
 		{
@@ -250,6 +261,8 @@ namespace CVI
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+
+			tags_[0] = "CH4";	tags_[1] = "C6H6";	tags_[2] = "C2H2";	tags_[3] = "C14H10";	tags_[5] = "C10H8";
 		}
 
 		// Set default hydrogen inhibition coefficients

@@ -331,8 +331,14 @@ namespace CVI
 		unsigned int n_steps_file_;					//!< number of steps for updating info on files
 		unsigned int count_video_;					//!< counter of steps for updating info on the screen
 		unsigned int count_file_;					//!< counter of steps for updating info on file
-		boost::filesystem::path output_folder_;		//!< name of output folder
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
+
+		// Output folders
+		boost::filesystem::path output_folder_;					//!< name of output folder
+		boost::filesystem::path output_matlab_folder_;			//!< name of output folder fot Matlab files
+		boost::filesystem::path output_diffusion_folder_;		//!< name of output folder fot diffusion coefficient files
+		boost::filesystem::path output_heterogeneous_folder_;	//!< name of output folder fot heterogeneous reaction files
+		boost::filesystem::path output_homogeneous_folder_;		//!< name of output folder fot homogeneous reaction files
 
 		double AreaAveraged(const Eigen::VectorXd& v);
 		double AreaStandardDeviation(const double mean, const Eigen::VectorXd& v);

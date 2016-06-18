@@ -14,30 +14,38 @@
 
 Dictionary CVI_Solver1D
 {
-	@KineticsFolder		../../kinetics/kinetics-Polimi4Brembo;
+	@KineticsFolder		../../kinetics/kinetics-Polimi4BremboRevised;
 	@Output				Output;
 	
-	@Symmetry			Planar;
+	@Symmetry			Cylindrical;
 	@Type				2D;
 	@PlugFlowReactor	plug-flow-reactor;
 	@PorousMedium		porous-medium;
+	@PorosityDefect		porosity-defect;
 	@InletStream		inlet-stream;
 	@InitialConditions	initial-conditions;
 		
-	@XPoints		6;
-	@YPoints		6;
-	@XLength		21 mm;
+	@XPoints		9;
+	@YPoints		9;
+//	@XLength		21 mm;
+	@RadiusInternal	2 mm;
+	@RadiusExternal	21 mm;
+	
 	@YLength		40 mm;
 	@XStretchingFactor	0.98;
 	@YStretchingFactor	1.;
 	
-	@TimeTotal		120 h;
-	@TimeInterval		2.5 h;
+	@TimeTotal		      120 h;
+	@DaeTimeInterval	   10 h;
+	@TecplotTimeInterval	1 h;
 	
 	@DaeParameters		dae-parameters;
 }
 Dictionary porous-medium
 {
+	@HomogeneousReactions	true;
+	@HeterogeneousReactions	true;
+	
 	@FiberRadius			4 micron;
 	@FiberDensity			1720 kg/m3;
 	@GraphiteDensity		2200 kg/m3;
@@ -47,13 +55,22 @@ Dictionary porous-medium
 	@HydrogenInhibition		Becker;
 }
 
+Dictionary	porosity-defect
+{
+	@Type		circular;
+	@X			10 mm;
+	@Y			20 mm;
+	@Radius	 	7 mm;
+	@Porosity 	0.950;
+}
+
 Dictionary plug-flow-reactor
 {
 	@Velocity			45 cm/s;
 	@InletLength			2.5 mm;
 	@HydraulicDiameter		3.5 mm;
 	@AsymptoticNusselt		4.00;
-	@InternalBoundaryLayer		false;
+	@InternalBoundaryLayer		true;
 	@GeometricPattern		OneSide;
 }
 

@@ -94,6 +94,21 @@ namespace CVI
 
 		output_folder_ = "Output";
 
+		output_tecplot_folder_ = output_folder_ / "Tecplot";
+		OpenSMOKE::CreateDirectory(output_tecplot_folder_);
+
+		output_matlab_folder_ = output_folder_ / "Matlab";
+		OpenSMOKE::CreateDirectory(output_matlab_folder_);
+
+		output_diffusion_folder_ = output_folder_ / "DiffusionCoefficients";
+		OpenSMOKE::CreateDirectory(output_diffusion_folder_);
+
+		output_heterogeneous_folder_ = output_folder_ / "HeterogeneousReactions";
+		OpenSMOKE::CreateDirectory(output_heterogeneous_folder_);
+
+		output_homogeneous_folder_ = output_folder_ / "HomogeneousReactions";
+		OpenSMOKE::CreateDirectory(output_homogeneous_folder_);
+
 		fMonitoring_.open((output_folder_ / "monitor.out").string().c_str(), std::ios::out);
 		fMonitoring_.setf(std::ios::scientific);
 		PrintLabelMonitoringFile();
@@ -750,7 +765,7 @@ namespace CVI
 	{
 		// Print initial solution
 		Properties();
-		PrintTecplot(0., (output_folder_ / "Solution.tec.0").string().c_str());
+		PrintTecplot(0., (output_tecplot_folder_ / "Solution.tec.0").string().c_str());
 
 		// Loop
 		unsigned int number_intervals = time_total_/dae_time_interval_;
@@ -772,9 +787,9 @@ namespace CVI
 			std::string heterogeneous_rates_file = "HeterogeneousRates." + hours.str() + ".out";
 			std::string homogeneous_rates_file = "HomogeneousRates." + hours.str() + ".out";
 			PrintSolution(tf, (output_folder_ / solution_file).string().c_str());
-			PrintDiffusionCoefficients(tf, (output_folder_ / diffusion_coefficients_file).string().c_str());
-			PrintHeterogeneousRates(tf, (output_folder_ / heterogeneous_rates_file).string().c_str());
-			PrintHomogeneousRates(tf, (output_folder_ / homogeneous_rates_file).string().c_str());
+			PrintDiffusionCoefficients(tf, (output_diffusion_folder_ / diffusion_coefficients_file).string().c_str());
+			PrintHeterogeneousRates(tf, (output_heterogeneous_folder_ / heterogeneous_rates_file).string().c_str());
+			PrintHomogeneousRates(tf, (output_homogeneous_folder_ / homogeneous_rates_file).string().c_str());
 		}
 
 		return true;
@@ -845,9 +860,8 @@ namespace CVI
 				fOutput << "\"rDep[m/s]\"" << ", ";
 				for (int j = 0; j < porousMedium_.r().size(); j++)
 				{
-					std::stringstream number; number << j + 1;
-					fOutput << "\"" << ("rDep" + number.str() + "[kg/m2/s]") << "\", ";
-					fOutput << "\"" << ("rDep" + number.str() + "[m/s]") << "\", ";
+					fOutput << "\"" << ("rDep" + porousMedium_.tags()[j] + "[kg/m2/s]") << "\", ";
+					fOutput << "\"" << ("rDep" + porousMedium_.tags()[j] + "[m/s]") << "\", ";
 				}
 			}
 
@@ -873,9 +887,8 @@ namespace CVI
 				fOutput << "\"dRhoBulk[kg/m3]\"" << ", ";
 				for (int j = 0; j < porousMedium_.r().size(); j++)
 				{
-					std::stringstream number; number << j + 1;
-					fOutput << "\"" << ("dRhoBulk" + number.str() + "[kg/m3]") << "\", ";
-					fOutput << "\"" << ("dRhoBulk" + number.str()) << "\", ";
+					fOutput << "\"" << ("dRhoBulk" + porousMedium_.tags()[j] + "[kg/m3]") << "\", ";
+					fOutput << "\"" << ("dRhoBulk" + porousMedium_.tags()[j]) << "\", ";
 				}
 			}
 			
@@ -995,6 +1008,7 @@ namespace CVI
 			unsigned int count = 1;
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "time[s]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "x[mm]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "y[mm]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "T[K]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "P[Pa]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "eps[-]", count);
@@ -1033,7 +1047,8 @@ namespace CVI
 			thermodynamicsMap_.MoleFractions_From_MassFractions(xx, mw_(i), yy);
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
-			fOutput << std::setprecision(9) << std::setw(20) << i;//grid_.x()[i] * 1000.;
+			fOutput << std::setprecision(9) << std::setw(20) << grid_x_.x()[i] * 1000.;
+			fOutput << std::setprecision(9) << std::setw(20) << grid_y_.x()[i] * 1000.;
 			fOutput << std::setprecision(9) << std::setw(20) << T_(i);
 			fOutput << std::setprecision(9) << std::setw(20) << P_(i);
 			
@@ -1291,6 +1306,8 @@ namespace CVI
 	{
 		unsigned int count = 1;
 		const unsigned int width = 20;
+		const unsigned int width_increased = 26;
+
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "time[h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "time[s]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "T[K]", count);
@@ -1320,6 +1337,11 @@ namespace CVI
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[g/m3/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[g/m3/h]", count);
 
+		// Heterogeneous reaction rates: contributions to the bulk density
+		OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, "dRhoB[kg/m3]", count);
+		for (int j = 0; j < porousMedium_.r().size(); j++)
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, "dRhoB_" + porousMedium_.tags()[j] + "[kg/m3]", count);
+
 		fMonitoring_ << std::endl;
 	}
 
@@ -1347,6 +1369,7 @@ namespace CVI
 		if (count_file_ == n_steps_file_)
 		{
 			const int width = 20;
+			const int width_increased = 26;
 
 			const double T_mean = AreaAveraged(T_);
 			const double T_std = AreaStandardDeviation(T_mean, T_);
@@ -1383,6 +1406,11 @@ namespace CVI
 
 			const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);
 			const double r_deposition_per_unit_volume_std = AreaStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
+
+			const double delta_rhobulk_mean = AreaAveraged(delta_rhobulk_);
+			Eigen::VectorXd delta_rhobulk_due_to_single_reaction_mean(porousMedium_.r().size());
+			for (int j = 0; j < porousMedium_.r().size(); j++)
+				delta_rhobulk_due_to_single_reaction_mean(j) = AreaAveraged(delta_rhobulk_due_to_single_reaction_[j]);
 
 			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t / 3600.;	// [h]
 			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t;			// [s]
@@ -1425,6 +1453,11 @@ namespace CVI
 
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_mean *1000.*3600.;	// [g/m3/h]
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_std *1000.*3600.;	// [g/m3/h]
+
+			// Heterogeneous reaction rates: contributions to the bulk density
+			fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_mean;	// [kg/m3]
+			for (int j = 0; j < porousMedium_.r().size(); j++)
+				fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_due_to_single_reaction_mean(j);	// [kg/m3]
 
 			fMonitoring_ << std::endl;
 
@@ -1477,7 +1510,7 @@ namespace CVI
 		{
 			std::stringstream current_index; current_index << count_tecplot_;
 			std::string tecplot_file = "Solution.tec." + current_index.str();
-			PrintTecplot(t, (output_folder_ / tecplot_file).string().c_str());
+			PrintTecplot(t, (output_tecplot_folder_ / tecplot_file).string().c_str());
 
 			count_tecplot_++;
 		}
