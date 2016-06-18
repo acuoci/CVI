@@ -50,7 +50,7 @@ Dictionary porous-medium
 	@FiberDensity			1720 kg/m3;
 	@GraphiteDensity		2200 kg/m3;
 	@InitialPorosity		0.929;
-	@PorousSubstrate		random_hardcore;
+	@PorousSubstrate		deutschmann_correlation;
 	@HeterogeneousMechanism		Huttinger;
 	@HydrogenInhibition		Becker;
 }

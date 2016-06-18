@@ -125,7 +125,8 @@ namespace CVI
 				else if (value == "random_hardcore")			porous_substrate_type_ = CVI::RANDOM_HARDCORE;
 				else if (value == "polynomial_onehalf")			porous_substrate_type_ = CVI::POLINOMIAL_ONEHALF;
 				else if (value == "from_spheres_to_cylinders")	porous_substrate_type_ = CVI::FROM_SPHERES_TO_CYLINDERS;
-				else OpenSMOKE::FatalErrorMessage("@PorousSubstrate: Substrates available: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders");
+				else if (value == "deutschmann_correlation")	porous_substrate_type_ = CVI::DEUTSCHMANN_CORRELATION;
+				else OpenSMOKE::FatalErrorMessage("@PorousSubstrate: Substrates available: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation");
 			}
 		}
 
@@ -352,13 +353,35 @@ namespace CVI
 			const double c = 3. / 4. / PhysicalConstants::pi;
 			return 2. / rf_*(1. - epsilon)*(std::pow(-c*std::log(1 - epsilon), 2. / 3.) + epsilon) / (std::pow(-c*std::log(1 - epsilon0_), 2. / 3.) + epsilon0_);
 		}
+		else if (porous_substrate_type_ == DEUTSCHMANN_CORRELATION)
+		{
+			const double epsilon2 = epsilon*epsilon;
+			const double epsilon3 = epsilon2*epsilon;
+			const double epsilon4 = epsilon2*epsilon2;
+			const double epsilon5 = epsilon3*epsilon2;
+			return -3.855762523198E+05*epsilon5 + 8.558541857891E+05*epsilon4 - 6.109196594973E+05*epsilon3 - 4.351758023548E+04*epsilon2 + 2.196529832093E+05*epsilon;
+		}
 		else
 			return 0.;
 	}
 
 	double PorousMedium::rp()
 	{
-		return 2. / Sv()*epsilon_;
+		if (porous_substrate_type_ == DEUTSCHMANN_CORRELATION)
+		{
+			const double epsilon = epsilon_;
+			const double epsilon2 = epsilon*epsilon;
+			const double epsilon3 = epsilon2*epsilon;
+			const double epsilon4 = epsilon2*epsilon2;
+			const double epsilon5 = epsilon3*epsilon2;
+
+			return 1.765902994055E-06*epsilon5 - 6.507266939515E-06*epsilon4 + 1.394874313698E-05*epsilon3 - 2.219345484444E-05*epsilon2 + 2.741053445908E-05*epsilon;
+		}
+		else
+		{
+			return 2. / Sv()*epsilon_;
+		}
+		
 	}
 
 	double PorousMedium::eta_bulk()
