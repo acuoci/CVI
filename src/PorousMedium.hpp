@@ -114,6 +114,16 @@ namespace CVI
 		if (dictionary.CheckOption("@InitialPorosity") == true)
 			dictionary.ReadDouble("@InitialPorosity", epsilon0_);
 
+		// Read initial porosity
+		mass_diffusion_multiplier_ = 1.;
+		if (dictionary.CheckOption("@MassDiffusionMultiplier") == true)
+			dictionary.ReadDouble("@MassDiffusionMultiplier", mass_diffusion_multiplier_);
+
+		// Read initial porosity
+		heterogeneous_reaction_rates_multiplier_ = 1.;
+		if (dictionary.CheckOption("@HeterogeneousReactionRatesMultiplier") == true)
+			dictionary.ReadDouble("@HeterogeneousReactionRatesMultiplier", heterogeneous_reaction_rates_multiplier_);
+
 		// Read porous substrate type
 		{
 			std::string value;
@@ -241,7 +251,7 @@ namespace CVI
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
 
-			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C6H6";	tags_[5] = "C10H8";
+			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C6H6";	tags_[4] = "C10H8";
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::ZIEGLER_EXTENDED)
 		{
@@ -252,7 +262,7 @@ namespace CVI
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
 
-			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C14H10";	tags_[5] = "C10H8";
+			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C14H10";	tags_[4] = "C10H8";
 		}
 		else if (heterogeneous_mechanism_type_ == CVI::VIGNOLES_EXTENDED)
 		{
@@ -263,7 +273,7 @@ namespace CVI
 			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
 
-			tags_[0] = "CH4";	tags_[1] = "C6H6";	tags_[2] = "C2H2";	tags_[3] = "C14H10";	tags_[5] = "C10H8";
+			tags_[0] = "CH4";	tags_[1] = "C6H6";	tags_[2] = "C2H2";	tags_[3] = "C14H10";	tags_[4] = "C10H8";
 		}
 
 		// Set default hydrogen inhibition coefficients
@@ -458,6 +468,9 @@ namespace CVI
 		// Combination of diffusion coefficients
 		for (unsigned int i = 0; i < ns_; i++)
 			gamma_effective_(i) = 1. / (1. / gamma_fick_effective_(i) + 1. / gamma_knudsen_effective_(i));
+
+		for (unsigned int i = 0; i < ns_; i++)
+			gamma_effective_(i) *= mass_diffusion_multiplier_; 
 	}
 
 	void PorousMedium::HydrogenInhibitionCoefficients(const Eigen::VectorXd& C)
@@ -518,6 +531,9 @@ namespace CVI
 			r_(2) = rC2H2*I_C2H2_;
 			r_(3) = rC6H6*I_C6H6_;
 
+			// Correction (if any) 
+			r_ *= heterogeneous_reaction_rates_multiplier_;
+
 			// Consumption rate of homogeneous species [kmol/m3/s]
 			Rgas_.setZero();
 			Rgas_(index_CH4_)  = -Sv_*r_(0);
@@ -565,6 +581,9 @@ namespace CVI
 			r_(3) = rC6H6*I_C6H6_;
 			r_(4) = rC10H8*I_C10H8_;
 
+			// Correction (if any) 
+			r_ *= heterogeneous_reaction_rates_multiplier_;
+
 			// Consumption rate of homogeneous species [kmol/m3/s]
 			Rgas_.setZero();
 			Rgas_(index_CH4_) = -Sv_*r_(0);
@@ -610,6 +629,9 @@ namespace CVI
 			r_(1) = rC2H4*I_C2H4_;
 			r_(2) = rC2H2*I_C2H2_;
 			r_(3) = rC14H10*I_C14H10_;
+
+			// Correction (if any) 
+			r_ *= heterogeneous_reaction_rates_multiplier_;
 
 			// Consumption rate of homogeneous species [kmol/m3/s]
 			Rgas_.setZero();
@@ -659,6 +681,9 @@ namespace CVI
 			r_(3) = rC14H10*I_C14H10_;
 			r_(4) = rC10H8*I_C10H8_;
 
+			// Correction (if any) 
+			r_ *= heterogeneous_reaction_rates_multiplier_;
+
 			// Consumption rate of homogeneous species [kmol/m3/s]
 			Rgas_.setZero();
 			Rgas_(index_CH4_) = -Sv_*r_(0);
@@ -704,6 +729,9 @@ namespace CVI
 			r_(1) = rC2H2*I_C2H2_;
 			r_(2) = rC6H6*I_C6H6_;
 			r_(3) = rC14H10*I_C14H10_;
+
+			// Correction (if any) 
+			r_ *= heterogeneous_reaction_rates_multiplier_;
 
 			// Consumption rate of homogeneous species [kmol/m3/s]
 			Rgas_.setZero();
@@ -752,6 +780,9 @@ namespace CVI
 			r_(2) = rC6H6*I_C6H6_;
 			r_(3) = rC14H10*I_C14H10_;
 			r_(4) = rC10H8*I_C10H8_;
+
+			// Correction (if any) 
+			r_ *= heterogeneous_reaction_rates_multiplier_;
 
 			// Consumption rate of homogeneous species [kmol/m3/s]
 			Rgas_.setZero();

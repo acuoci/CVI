@@ -40,8 +40,10 @@
 #include "Grammar_CVI_Solver1D.h"
 #include "Grammar_CVI_PlugFlowReactor.h"
 #include "Grammar_CVI_PorousMedium.h"
+#include "Grammar_CVI_PorosityDefect.h"
 
 // Porous medium
+#include "PorosityDefect.h"
 #include "PorousMedium.h"
 
 // Plug Flow Reactor
@@ -230,10 +232,10 @@ int main(int argc, char** argv)
 	}
 
 	// Defines the grammar rules
-	CVI::Grammar_CVI_Solver1D			grammar_cvi_solver1d;
+	CVI::Grammar_CVI_Solver1D		grammar_cvi_solver1d;
 	CVI::Grammar_CVI_PlugFlowReactor	grammar_cvi_plug_flow_reactor;
 	CVI::Grammar_CVI_PorousMedium		grammar_cvi_porous_medium;
-	CVI::Grammar_Defect_PorousMedium	grammar_defect_porous_medium;
+	CVI::Grammar_CVI_PorosityDefect		grammar_defect_porous_medium;
 
 	// Define the dictionaries
 	OpenSMOKE::OpenSMOKE_DictionaryManager dictionaries;
@@ -436,7 +438,6 @@ int main(int argc, char** argv)
 
 	// Read the plug flow residence time 
 	double residence_time = 1.;
-	if (problem_2d == false)
 	{
 		std::string units;
 
@@ -647,6 +648,7 @@ int main(int argc, char** argv)
 					double mw = 0.;
 					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
 						mw += Y_plug_flow_side(j) / thermodynamicsMapXML->MW()[j + 1];
+					mw = 1./mw;
 					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
 						X_plug_flow_side(j) = Y_plug_flow_side(j) * mw / thermodynamicsMapXML->MW()[j + 1];
 

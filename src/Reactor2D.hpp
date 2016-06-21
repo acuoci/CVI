@@ -1036,6 +1036,9 @@ namespace CVI
 
 		for (int i = 0; i < np_; i++)
 		{
+			const unsigned int iy = int(i/nx_);
+			const unsigned int ix = i - iy*nx_;
+
 			OpenSMOKE::OpenSMOKEVectorDouble yy(ns_);
 			OpenSMOKE::OpenSMOKEVectorDouble xx(ns_);
 
@@ -1047,8 +1050,8 @@ namespace CVI
 			thermodynamicsMap_.MoleFractions_From_MassFractions(xx, mw_(i), yy);
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
-			fOutput << std::setprecision(9) << std::setw(20) << grid_x_.x()[i] * 1000.;
-			fOutput << std::setprecision(9) << std::setw(20) << grid_y_.x()[i] * 1000.;
+			fOutput << std::setprecision(9) << std::setw(20) << grid_x_.x()[ix] * 1000.;
+			fOutput << std::setprecision(9) << std::setw(20) << grid_y_.x()[iy] * 1000.;
 			fOutput << std::setprecision(9) << std::setw(20) << T_(i);
 			fOutput << std::setprecision(9) << std::setw(20) << P_(i);
 			
@@ -1508,11 +1511,10 @@ namespace CVI
 
 		if ( t>= (count_tecplot_+1)*tecplot_time_interval_)
 		{
+			count_tecplot_++;
 			std::stringstream current_index; current_index << count_tecplot_;
 			std::string tecplot_file = "Solution.tec." + current_index.str();
 			PrintTecplot(t, (output_tecplot_folder_ / tecplot_file).string().c_str());
-
-			count_tecplot_++;
 		}
 
 		t_old_ = t;

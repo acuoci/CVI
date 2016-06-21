@@ -24,8 +24,8 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#ifndef OpenSMOKE_Grammar_CVI_PorousMedium_H
-#define OpenSMOKE_Grammar_CVI_PorousMedium_H
+#ifndef OpenSMOKE_Grammar_CVI_PorosityDefect_H
+#define OpenSMOKE_Grammar_CVI_PorosityDefect_H
 
 #include "dictionary/OpenSMOKE_DictionaryManager.h"
 #include "dictionary/OpenSMOKE_DictionaryGrammar.h"
@@ -33,68 +33,38 @@
 
 namespace CVI
 {
-	class Grammar_CVI_PorousMedium : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
+	class Grammar_CVI_PorosityDefect : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
 	{
 	protected:
 
 		virtual void DefineRules()
 		{
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HomogeneousReactions",
-				OpenSMOKE::SINGLE_BOOL,
-				"Homogeneous reactions true/false",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousReactions",
-				OpenSMOKE::SINGLE_BOOL,
-				"Heterogeneous reactions true/false",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberRadius",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Radius of the fiber",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberDensity",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Fiber density",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@GraphiteDensity",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Graphite density",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@InitialPorosity",
-				OpenSMOKE::SINGLE_DOUBLE,
-				"Initial porosity",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@MassDiffusionMultiplier",
-				OpenSMOKE::SINGLE_DOUBLE,
-				"Mass diffusion multiplier",
-				false));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousReactionRatesMultiplier",
-				OpenSMOKE::SINGLE_DOUBLE,
-				"Heterogeneous reaction rates multiplier",
-				false));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousSubstrate",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Type",
 				OpenSMOKE::SINGLE_STRING,
-				"Porous substrate type: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation",
+				"Type of porosity defect: circular",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousMechanism",
-				OpenSMOKE::SINGLE_STRING,
-				"Heterogeneous mechanism: Huttinger | Ziegler | Vignoles |  Huttinger-extended | Ziegler-extended | Vignoles-extended",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@X",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Center of porosity defect",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HydrogenInhibition",
-				OpenSMOKE::SINGLE_STRING,
-				"Hydrogen inhibition type: none | Becker",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Y",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Center of porosity defect",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Radius",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Radius of porosity defect",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Porosity",
+				OpenSMOKE::SINGLE_DOUBLE,
+				"Porosity of defect",
 				true));
 		}
 	};
 }
 
-#endif /* OpenSMOKE_Grammar_CVI_PorousMedium_H */
+#endif /* OpenSMOKE_Grammar_CVI_PorosityDefect_H */

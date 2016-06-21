@@ -400,6 +400,9 @@ namespace CVI
 
 		std::vector<std::string> tags_;						//!< tags for single reactions
 
+		double mass_diffusion_multiplier_;					//!< mass diffusion multiplier to enhance the mass diffusion coefficients
+		double heterogeneous_reaction_rates_multiplier_;			//!< heterogeneous reaction rates multiplier
+
 		HeterogeneousMechanism heterogeneous_mechanism_type_;				//!< type of heterogeneous mechanism
 		bool homogeneous_reactions_;										//!< homogeneous reactions on/off
 		bool heterogeneous_reactions_;										//!< heterogeneous reactions on/off
@@ -410,139 +413,6 @@ namespace CVI
 		Eigen::VectorXd r_deposition_per_unit_area_per_single_reaction_;	//!< deposition rate per unit of surface for single reactions [kmol/m2/s]
 		Eigen::VectorXd r_deposition_per_unit_volume_per_single_reaction_;	//!< deposition rate per unit of volume for single reactions [kmol/m3/s]
 	};
-
-	class Grammar_Defect_PorousMedium : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
-	{
-	protected:
-
-		virtual void DefineRules()
-		{
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Type",
-				OpenSMOKE::SINGLE_STRING,
-				"Type of porosity defect: circular",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@X",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Center of porosity defect",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Y",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Center of porosity defect",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Radius",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Radius of porosity defect",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Porosity",
-				OpenSMOKE::SINGLE_DOUBLE,
-				"Porosity of defect",
-				true));
-		}
-	};
-
-	class PorosityDefect
-	{
-	public:
-
-		enum defect_type { CIRCULAR };
-
-		PorosityDefect();
-
-		void ReadFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
-
-		double set_porosity(const double x, const double y, const double epsilon);
-
-		bool is_active() const { return is_active_; }
-
-	private:
-
-		bool is_active_;
-		defect_type type_;
-		double x_;
-		double y_;
-		double r_;
-		double epsilon_;
-	};
-
-	PorosityDefect::PorosityDefect()
-	{
-		is_active_ = false;
-		type_ = CIRCULAR;
-		x_ = 0.;
-		y_ = 0.;
-		r_ = 0.;
-		epsilon_ = 0.;
-	}
-
-	void PorosityDefect::ReadFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary& dictionary)
-	{
-		if (dictionary.CheckOption("@X") == true)
-		{
-			std::string units;
-			dictionary.ReadMeasure("@X", x_, units);
-			if (units == "m")	x_ *= 1.;
-			else if (units == "cm")	x_ *= 1.e-2;
-			else if (units == "mm")	x_ *= 1.e-3;
-			else if (units == "micron")	x_ *= 1.e-6;
-			else OpenSMOKE::FatalErrorMessage("@X: Unknown units. Available units: m | cm | mm | micron");
-		}
-
-		if (dictionary.CheckOption("@Y") == true)
-		{
-			std::string units;
-			dictionary.ReadMeasure("@Y", y_, units);
-			if (units == "m")	y_ *= 1.;
-			else if (units == "cm")	y_ *= 1.e-2;
-			else if (units == "mm")	y_ *= 1.e-3;
-			else if (units == "micron")	y_ *= 1.e-6;
-			else OpenSMOKE::FatalErrorMessage("@Y: Unknown units. Available units: m | cm | mm | micron");
-		}
-
-		if (dictionary.CheckOption("@Radius") == true)
-		{
-			std::string units;
-			dictionary.ReadMeasure("@Radius", r_, units);
-			if (units == "m")	r_ *= 1.;
-			else if (units == "cm")	r_ *= 1.e-2;
-			else if (units == "mm")	r_ *= 1.e-3;
-			else if (units == "micron")	r_ *= 1.e-6;
-			else OpenSMOKE::FatalErrorMessage("@Radius: Unknown units. Available units: m | cm | mm | micron");
-		}
-
-		if (dictionary.CheckOption("@Porosity") == true)
-			dictionary.ReadDouble("@Porosity", epsilon_);
-
-		if (dictionary.CheckOption("@Type") == true)
-		{
-			std::string type;
-			dictionary.ReadString("@Type", type);
-			if (type == "circular") type_ = CIRCULAR;
-			else  OpenSMOKE::FatalErrorMessage("Unknown @Type. Available types: circular");
-		}
-
-		is_active_ = true;
-	}
-
-	double PorosityDefect::set_porosity(const double x, const double y, const double epsilon)
-	{
-		if (type_ == CIRCULAR)
-		{
-			const double radius = std::sqrt(boost::math::pow<2>(x_ - x) + boost::math::pow<2>(y_ - y));
-
-			if (radius <= r_)
-				return epsilon_;
-			else
-				return epsilon;
-		}
-		else
-		{
-			return epsilon;
-		}
-	}
 }
 
 #include "PorousMedium.hpp"
