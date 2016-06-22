@@ -579,11 +579,14 @@ int main(int argc, char** argv)
 			}
 		}
 
+		// Set heterogeneous mechanism
+		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+
 		// Set porous medium
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *porosity_defect, *grid_x, *grid_y, *plug_flow_reactor);
+		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *porosity_defect, *heterogeneous_mechanism, *grid_x, *grid_y, *plug_flow_reactor);
 
 		// Set options
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
@@ -622,11 +625,14 @@ int main(int argc, char** argv)
 			plug_flow_reactor->Solve(residence_time);
 		}
 
+		// Set heterogeneous mechanism
+		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+
 		// Set porous medium
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *grid_x);
+		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *heterogeneous_mechanism, *grid_x);
 
 		reactor1d->SetPlanarSymmetry(symmetry_planar);
 		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega);

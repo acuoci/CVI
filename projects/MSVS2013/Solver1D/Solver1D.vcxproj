@@ -92,9 +92,14 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_BzzDae.h" />
     <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_Daspk.h" />
+    <ClInclude Include="..\..\..\src\Capillary.h" />
+    <ClInclude Include="..\..\..\src\Capillary.hpp" />
+    <ClInclude Include="..\..\..\src\Grammar_CVI_HeterogeneousMechanism.h" />
     <ClInclude Include="..\..\..\src\Grammar_CVI_PlugFlowReactor.h" />
     <ClInclude Include="..\..\..\src\Grammar_CVI_PorousMedium.h" />
     <ClInclude Include="..\..\..\src\Grammar_CVI_Solver1D.h" />
+    <ClInclude Include="..\..\..\src\HeterogeneousMechanism.h" />
+    <ClInclude Include="..\..\..\src\HeterogeneousMechanism.hpp" />
     <ClInclude Include="..\..\..\src\Interface_OpenSMOKEppDae.h" />
     <ClInclude Include="..\..\..\src\Interface_PlugFlowReactor_ODE.h" />
     <ClInclude Include="..\..\..\src\Interface_Reactor2D_BzzDae.h" />

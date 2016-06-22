@@ -57,6 +57,7 @@ namespace CVI
 							OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
 							CVI::PorousMedium& porousMedium,
 							CVI::PorosityDefect& porosityDefect,
+							CVI::HeterogeneousMechanism& heterogeneousMechanism,
 							OpenSMOKE::Grid1D& grid_x, OpenSMOKE::Grid1D& grid_y,
 							CVI::PlugFlowReactor& plugFlowReactor) :
 
@@ -65,6 +66,7 @@ namespace CVI
 	transportMap_(transportMap),
 	porousMedium_(porousMedium),
 	porosityDefect_(porosityDefect),
+	heterogeneousMechanism_(heterogeneousMechanism),
 	grid_x_(grid_x),
 	grid_y_(grid_y),
 	plugFlowReactor_(plugFlowReactor)
@@ -222,9 +224,9 @@ namespace CVI
 
 		// Increment of bulk density due to the single reactions
 		delta_rhobulk_.resize(np_);
-		delta_rhobulk_due_to_single_reaction_.resize(porousMedium_.r().size());
-		delta_rhobulk_due_to_single_reaction_over_rhobulk_.resize(porousMedium_.r().size());
-		for (int i = 0; i < porousMedium_.r().size(); i++)
+		delta_rhobulk_due_to_single_reaction_.resize(heterogeneousMechanism_.r().size());
+		delta_rhobulk_due_to_single_reaction_over_rhobulk_.resize(heterogeneousMechanism_.r().size());
+		for (int i = 0; i < heterogeneousMechanism_.r().size(); i++)
 		{
 			delta_rhobulk_due_to_single_reaction_[i].resize(np_);
 			delta_rhobulk_due_to_single_reaction_over_rhobulk_[i].resize(np_);
@@ -481,7 +483,7 @@ namespace CVI
 			// Kinetics
 			{
 				// Homogeneous phase
-				if (porousMedium_.homogeneous_reactions() == true)
+				if (heterogeneousMechanism_.homogeneous_reactions() == true)
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
@@ -492,14 +494,17 @@ namespace CVI
 				}
 
 				// Heterogeneous phase
-				if (porousMedium_.heterogeneous_reactions() == true)
+				if (heterogeneousMechanism_.heterogeneous_reactions() == true)
 				{
+					heterogeneousMechanism_.SetTemperature(T_(i));
+					heterogeneousMechanism_.SetPressure(P_(i));
+
 					aux_C.CopyTo(aux_eigen.data());
-					porousMedium_.FormationRates(aux_eigen);
+					heterogeneousMechanism_.FormationRates(Sv_(i), aux_eigen);
 					for (unsigned int j = 0; j < ns_; j++)
-						omega_heterogeneous_[i](j) = porousMedium_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];								// [kg/m3/s]
-					omega_deposition_per_unit_area_(i) = porousMedium_.r_deposition_per_unit_area()*porousMedium_.mw_carbon();	// [kg/m2/s]
-					omega_deposition_per_unit_volume_(i) = porousMedium_.r_deposition_per_unit_volume()*porousMedium_.mw_carbon();		// [kg/m3/s]
+						omega_heterogeneous_[i](j) = heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];								// [kg/m3/s]
+					omega_deposition_per_unit_area_(i) = heterogeneousMechanism_.r_deposition_per_unit_area()*heterogeneousMechanism_.mw_carbon();	// [kg/m2/s]
+					omega_deposition_per_unit_volume_(i) = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
 			}
 			}
 		}
@@ -524,7 +529,7 @@ namespace CVI
 				const int point = list_points_east_(i);
 
 				const double kc = plugFlowReactor_.mass_transfer_coefficient(T_(point), P_(point), rho_gas_(point), grid_y_.x()(i)+plugFlowReactor_.inert_length());
-				const double gamma_over_dx = gamma_star_[point](porousMedium_.index_CH4()) / grid_x_.dxw()(nx_ - 1);
+				const double gamma_over_dx = gamma_star_[point](heterogeneousMechanism_.index_CH4()) / grid_x_.dxw()(nx_ - 1);
 
 				for (unsigned int j = 0; j < ns_; j++)
 					dY_over_dt_[point](j) = Y_[point](j) - (gamma_over_dx*Y_[point - 1](j) + kc*Y_gas_side_[nx_ + i](j)) / (gamma_over_dx + kc);
@@ -645,7 +650,7 @@ namespace CVI
 	void Reactor2D::SubEquations_Porosity()
 	{
 		for (int i = 0; i < np_; i++)
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / porousMedium_.rho_graphite();
+			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / heterogeneousMechanism_.rho_graphite();
 	}
 
 	void Reactor2D::Recover_Unknowns(const double* y)
@@ -858,10 +863,10 @@ namespace CVI
 				fOutput << "\"rDep[kg/m2/s]\"" << ", ";
 				fOutput << "\"rDep[kg/m3/s]\"" << ", ";
 				fOutput << "\"rDep[m/s]\"" << ", ";
-				for (int j = 0; j < porousMedium_.r().size(); j++)
+				for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
 				{
-					fOutput << "\"" << ("rDep" + porousMedium_.tags()[j] + "[kg/m2/s]") << "\", ";
-					fOutput << "\"" << ("rDep" + porousMedium_.tags()[j] + "[m/s]") << "\", ";
+					fOutput << "\"" << ("rDep" + heterogeneousMechanism_.tags()[j] + "[kg/m2/s]") << "\", ";
+					fOutput << "\"" << ("rDep" + heterogeneousMechanism_.tags()[j] + "[m/s]") << "\", ";
 				}
 			}
 
@@ -885,10 +890,10 @@ namespace CVI
 			// Heterogeneous reaction rates: contributions to the bulk density
 			{
 				fOutput << "\"dRhoBulk[kg/m3]\"" << ", ";
-				for (int j = 0; j < porousMedium_.r().size(); j++)
+				for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
 				{
-					fOutput << "\"" << ("dRhoBulk" + porousMedium_.tags()[j] + "[kg/m3]") << "\", ";
-					fOutput << "\"" << ("dRhoBulk" + porousMedium_.tags()[j]) << "\", ";
+					fOutput << "\"" << ("dRhoBulk" + heterogeneousMechanism_.tags()[j] + "[kg/m3]") << "\", ";
+					fOutput << "\"" << ("dRhoBulk" + heterogeneousMechanism_.tags()[j]) << "\", ";
 				}
 			}
 			
@@ -921,9 +926,11 @@ namespace CVI
 				Product(cTot, aux_X, &aux_C);
 
 				// Heterogeneous reactions
+				heterogeneousMechanism_.SetTemperature(T_(point));
+				heterogeneousMechanism_.SetPressure(P_(point));
 				for (unsigned int j = 0; j < ns_; j++)
 					aux_eigen(j) = aux_C[j + 1];
-				porousMedium_.FormationRates(aux_eigen);
+				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
 
 
 				// Write grid
@@ -955,38 +962,38 @@ namespace CVI
 
 				// Heterogeneous reaction rates
 				{
-					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.r_deposition_per_unit_area()*porousMedium_.mw_carbon();		// [kg/m2/s]
-					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.r_deposition_per_unit_volume()*porousMedium_.mw_carbon();		// [kg/m3/s]
-					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.r_deposition_per_unit_volume()*porousMedium_.mw_carbon() /
-						(porousMedium_.Sv() / porousMedium_.rho_graphite());																		// [m/s]
-					for (int j = 0; j < porousMedium_.r().size(); j++)
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.r_deposition_per_unit_area()*heterogeneousMechanism_.mw_carbon();		// [kg/m2/s]
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon() /
+						(porousMedium_.Sv() / heterogeneousMechanism_.rho_graphite());																		// [m/s]
+					for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
 					{
-						fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.r()(j)*porousMedium_.mw_carbon();									// [kg/m2/s]
-						fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.r()(j)*porousMedium_.mw_carbon() / porousMedium_.rho_graphite();	// [m/s]
+						fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.r()(j)*heterogeneousMechanism_.mw_carbon();									// [kg/m2/s]
+						fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.r()(j)*heterogeneousMechanism_.mw_carbon() / heterogeneousMechanism_.rho_graphite();	// [m/s]
 					}
 				}
 
 				// Heterogeneous formation rates
 				{
-					fOutput << std::setprecision(9) << std::setw(20) << -porousMedium_.Rgas()(porousMedium_.index_CH4());
-					fOutput << std::setprecision(9) << std::setw(20) << -porousMedium_.Rgas()(porousMedium_.index_C2H4());
-					fOutput << std::setprecision(9) << std::setw(20) << -porousMedium_.Rgas()(porousMedium_.index_C2H2());
-					fOutput << std::setprecision(9) << std::setw(20) << -porousMedium_.Rgas()(porousMedium_.index_C6H6());
-					fOutput << std::setprecision(9) << std::setw(20) << -porousMedium_.Rgas()(porousMedium_.index_H2());
+					fOutput << std::setprecision(9) << std::setw(20) << -heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_CH4());
+					fOutput << std::setprecision(9) << std::setw(20) << -heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C2H4());
+					fOutput << std::setprecision(9) << std::setw(20) << -heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C2H2());
+					fOutput << std::setprecision(9) << std::setw(20) << -heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C6H6());
+					fOutput << std::setprecision(9) << std::setw(20) << -heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_H2());
 				}
 
 				// Hydrogen inhibition factors
 				{
-					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.I_CH4();
-					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.I_C2H4();
-					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.I_C2H2();
-					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.I_C6H6();
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.I_CH4();
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.I_C2H4();
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.I_C2H2();
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousMechanism_.I_C6H6();
 				}
 
 				// Heterogeneous reaction rates: contributions to the bulk density
 				{
 					fOutput << std::setprecision(9) << std::setw(20) << delta_rhobulk_(point);	// [kg/m3]
-					for (int j = 0; j < porousMedium_.r().size(); j++)
+					for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
 					{
 						fOutput << std::setprecision(9) << std::setw(20) << delta_rhobulk_due_to_single_reaction_[j](point);				// [kg/m3]
 						fOutput << std::setprecision(9) << std::setw(20) << delta_rhobulk_due_to_single_reaction_over_rhobulk_[j](point);	// [-]
@@ -1222,7 +1229,7 @@ namespace CVI
 			OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "rDepo[kmol/m2/s]", count);
 
 			// Reaction rates 
-			for (int j = 0; j < porousMedium_.r().size(); j++)
+			for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
 			{
 				std::stringstream number; number << j + 1;
 				OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "r" + number.str() + "[kmol/m2/s]", count);
@@ -1264,9 +1271,11 @@ namespace CVI
 				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
 				Product(cTot, aux_X, &aux_C);
 
+				heterogeneousMechanism_.SetTemperature(T_(i));
+				heterogeneousMechanism_.SetPressure(P_(i));
 				for (unsigned int j = 0; j < ns_; j++)
 					aux_eigen(j) = aux_C[j + 1];
-				porousMedium_.FormationRates(aux_eigen);
+				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
 			}
 
 			fOutput << std::setprecision(9) << std::setw(width) << t;
@@ -1276,27 +1285,27 @@ namespace CVI
 
 			// Reaction rates
 			{
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.r_deposition_per_unit_area();
-				for (int j = 0; j < porousMedium_.r().size(); j++)
-					fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.r()(j);
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.r_deposition_per_unit_area();
+				for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
+					fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.r()(j);
 			}
 
 			// Hydrogen inhibition factors
 			{
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.I_CH4();
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.I_C2H4();
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.I_C2H2();
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.I_C6H6();
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.I_CH4();
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.I_C2H4();
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.I_C2H2();
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.I_C6H6();
 
 			}
 
 			// Heterogeneous formation rates
 			{
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_CH4());
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_C2H4());
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_C2H2());
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_C6H6());
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_H2());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_CH4());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C2H4());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C2H2());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C6H6());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_H2());
 			}
 
 			fOutput << std::endl;
@@ -1342,8 +1351,8 @@ namespace CVI
 
 		// Heterogeneous reaction rates: contributions to the bulk density
 		OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, "dRhoB[kg/m3]", count);
-		for (int j = 0; j < porousMedium_.r().size(); j++)
-			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, "dRhoB_" + porousMedium_.tags()[j] + "[kg/m3]", count);
+		for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, "dRhoB_" + heterogeneousMechanism_.tags()[j] + "[kg/m3]", count);
 
 		fMonitoring_ << std::endl;
 	}
@@ -1411,8 +1420,8 @@ namespace CVI
 			const double r_deposition_per_unit_volume_std = AreaStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
 
 			const double delta_rhobulk_mean = AreaAveraged(delta_rhobulk_);
-			Eigen::VectorXd delta_rhobulk_due_to_single_reaction_mean(porousMedium_.r().size());
-			for (int j = 0; j < porousMedium_.r().size(); j++)
+			Eigen::VectorXd delta_rhobulk_due_to_single_reaction_mean(heterogeneousMechanism_.r().size());
+			for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
 				delta_rhobulk_due_to_single_reaction_mean(j) = AreaAveraged(delta_rhobulk_due_to_single_reaction_[j]);
 
 			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t / 3600.;	// [h]
@@ -1448,8 +1457,8 @@ namespace CVI
 			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_mean;
 			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_std;
 
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean/porousMedium_.rho_graphite()*1000.;		// [mm/s]
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / porousMedium_.rho_graphite()*1000.;	// [mm/s]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean/heterogeneousMechanism_.rho_graphite()*1000.;		// [mm/s]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / heterogeneousMechanism_.rho_graphite()*1000.;	// [mm/s]
 
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean *1000.*3600.;	// [g/m2/h]
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std *1000.*3600.;		// [g/m2/h]
@@ -1459,7 +1468,7 @@ namespace CVI
 
 			// Heterogeneous reaction rates: contributions to the bulk density
 			fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_mean;	// [kg/m3]
-			for (int j = 0; j < porousMedium_.r().size(); j++)
+			for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
 				fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_due_to_single_reaction_mean(j);	// [kg/m3]
 
 			fMonitoring_ << std::endl;
@@ -1470,7 +1479,7 @@ namespace CVI
 		// Post-processing
 		{
 			const double delta_time = t - t_old_;
-			const double coefficient = porousMedium_.mw_carbon()*delta_time;
+			const double coefficient = heterogeneousMechanism_.mw_carbon()*delta_time;
 
 			for (unsigned int i = 0; i < np_; i++)
 			{
@@ -1491,20 +1500,22 @@ namespace CVI
 				Product(cTot, aux_X, &aux_C);
 
 				// Heterogeneous reactions
+				heterogeneousMechanism_.SetTemperature(T_(i));
+				heterogeneousMechanism_.SetPressure(P_(i));
 				for (unsigned int j = 0; j < ns_; j++)
 					aux_eigen(j) = aux_C[j + 1];
-				porousMedium_.FormationRates(aux_eigen);
+				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
 
 				// Single contributions
 				delta_rhobulk_(i) = 0.;
-				for (int k = 0; k < porousMedium_.r().size(); k++)
+				for (int k = 0; k < heterogeneousMechanism_.r().size(); k++)
 				{
-					delta_rhobulk_due_to_single_reaction_[k](i) += porousMedium_.r_deposition_per_unit_volume_per_single_reaction()(k)*coefficient;
+					delta_rhobulk_due_to_single_reaction_[k](i) += heterogeneousMechanism_.r_deposition_per_unit_volume_per_single_reaction()(k)*coefficient;
 					delta_rhobulk_(i) += delta_rhobulk_due_to_single_reaction_[k](i);
 				}
 
 				// Single contributions (normalized)
-				for (int k = 0; k < porousMedium_.r().size(); k++)
+				for (int k = 0; k < heterogeneousMechanism_.r().size(); k++)
 					delta_rhobulk_due_to_single_reaction_over_rhobulk_[k](i) = delta_rhobulk_due_to_single_reaction_[k](i) / (delta_rhobulk_(i)+1.e-12);
 			}
 		}

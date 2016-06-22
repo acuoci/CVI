@@ -33,12 +33,14 @@ namespace CVI
 							OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 							OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
 							CVI::PorousMedium& porousMedium,
+							CVI::HeterogeneousMechanism& heterogeneousMechanism,
 							OpenSMOKE::Grid1D& grid) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
 	transportMap_(transportMap),
 	porousMedium_(porousMedium),
+	heterogeneousMechanism_(heterogeneousMechanism),
 	grid_(grid)
 	{
 		n_steps_video_ = 10;
@@ -307,7 +309,7 @@ namespace CVI
 			// Kinetics
 			{
 				// Homogeneous phase
-				if (porousMedium_.homogeneous_reactions() == true)
+				if (heterogeneousMechanism_.homogeneous_reactions() == true)
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
@@ -318,15 +320,18 @@ namespace CVI
 				}
 
 				// Heterogeneous phase
-				if (porousMedium_.heterogeneous_reactions() == true)
+				if (heterogeneousMechanism_.heterogeneous_reactions() == true)
 				{
+					heterogeneousMechanism_.SetTemperature(T_(i));
+					heterogeneousMechanism_.SetPressure(P_(i));
+
 					for (unsigned int j = 0; j < ns_; j++)
 						aux_eigen(j) = aux_C[j + 1];
-					porousMedium_.FormationRates(aux_eigen);
+					heterogeneousMechanism_.FormationRates(Sv_(i), aux_eigen);
 					for (unsigned int j = 0; j < ns_; j++)
-						omega_heterogeneous_[i](j) = porousMedium_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];								// [kg/m3/s]
-					omega_deposition_per_unit_area_(i) = porousMedium_.r_deposition_per_unit_area()*porousMedium_.mw_carbon();			// [kg/m2/s]
-					omega_deposition_per_unit_volume_(i) = porousMedium_.r_deposition_per_unit_volume()*porousMedium_.mw_carbon();		// [kg/m3/s]
+						omega_heterogeneous_[i](j) = heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];								// [kg/m3/s]
+					omega_deposition_per_unit_area_(i) = heterogeneousMechanism_.r_deposition_per_unit_area()*heterogeneousMechanism_.mw_carbon();			// [kg/m2/s]
+					omega_deposition_per_unit_volume_(i) = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
 				}
 			}
 		}
@@ -422,7 +427,7 @@ namespace CVI
 	{
 		// Internal points
 		for (int i = 0; i < np_; i++)
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / porousMedium_.rho_graphite();
+			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / heterogeneousMechanism_.rho_graphite();
 	}
 
 	void Reactor1D::Recover_Unknowns(const double* y)
@@ -801,7 +806,7 @@ namespace CVI
 			OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "rDepo[kmol/m2/s]", count);
 
 			// Reaction rates 
-			for (int j = 0; j < porousMedium_.r().size(); j++)
+			for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
 			{
 				std::stringstream number; number << j + 1;
 				OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "r" + number.str() + "[kmol/m2/s]", count);
@@ -843,9 +848,11 @@ namespace CVI
 				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
 				Product(cTot, aux_X, &aux_C);
 
+				heterogeneousMechanism_.SetTemperature(T_(i));
+				heterogeneousMechanism_.SetPressure(P_(i));
 				for (unsigned int j = 0; j < ns_; j++)
 					aux_eigen(j) = aux_C[j + 1];
-				porousMedium_.FormationRates(aux_eigen);
+				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
 			}
 
 			fOutput << std::setprecision(9) << std::setw(width) << t;
@@ -855,27 +862,27 @@ namespace CVI
 
 			// Reaction rates
 			{
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.r_deposition_per_unit_area();
-				for (int j = 0; j < porousMedium_.r().size(); j++)
-					fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.r()(j);
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.r_deposition_per_unit_area();
+				for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
+					fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.r()(j);
 			}
 
 			// Hydrogen inhibition factors
 			{
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.I_CH4();
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.I_C2H4();
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.I_C2H2();
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.I_C6H6();
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.I_CH4();
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.I_C2H4();
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.I_C2H2();
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.I_C6H6();
 
 			}
 
 			// Heterogeneous formation rates
 			{
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_CH4());
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_C2H4());
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_C2H2());
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_C6H6());
-				fOutput << std::setprecision(9) << std::setw(width) << porousMedium_.Rgas()(porousMedium_.index_H2());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_CH4());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C2H4());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C2H2());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_C6H6());
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousMechanism_.Rgas()(heterogeneousMechanism_.index_H2());
 			}
 
 			fOutput << std::endl;
@@ -972,8 +979,8 @@ namespace CVI
 			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_mean;
 			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_std;
 
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean / porousMedium_.rho_graphite()*1000.;		// [mm/s]
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / porousMedium_.rho_graphite()*1000.;	// [mm/s]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean / heterogeneousMechanism_.rho_graphite()*1000.;		// [mm/s]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / heterogeneousMechanism_.rho_graphite()*1000.;	// [mm/s]
 
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean *1000.*3600.;	// [g/m2/h]
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std *1000.*3600.;		// [g/m2/h]

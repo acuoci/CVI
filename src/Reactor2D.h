@@ -65,6 +65,7 @@ namespace CVI
 		*@param transportMap		reference to the transport map
 		*@param porousMedium		reference to the porous medium
 		*@param porosityDefect		reference to the porosity defect class
+		*@param heterogeneousMechanism		reference to the heterogeneous mechanism
 		*@param grid_x				reference to 1D grid along the x direction
 		*@param grid_y				reference to 1D grid along the y direction
 		*@param plugFlowReactor		reference to the plug flow reactor
@@ -74,6 +75,7 @@ namespace CVI
 					OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
 					CVI::PorousMedium& porousMedium,
 					CVI::PorosityDefect& porosityDefect,
+					CVI::HeterogeneousMechanism& heterogeneousMechanism,
 					OpenSMOKE::Grid1D& grid_x, OpenSMOKE::Grid1D& grid_y,
 					CVI::PlugFlowReactor& plugFlowReactor);
 
@@ -310,14 +312,15 @@ namespace CVI
 	protected:
 
 		// References
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;	//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;		//!< reference to the kinetic map
-		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;		//!< reference to the trasport properties map
-		CVI::PorousMedium&										porousMedium_;		//!< reference to the porous mmedium
-		CVI::PorosityDefect&									porosityDefect_;	//!< reference to the porosity defect
-		OpenSMOKE::Grid1D&										grid_x_;			//!< reference to the 1D grid along the x direction
-		OpenSMOKE::Grid1D&										grid_y_;			//!< reference to the 1D grid along the y direction
-		CVI::PlugFlowReactor&									plugFlowReactor_;	//!< reference to the plug flow reactor
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;			//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;				//!< reference to the kinetic map
+		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;				//!< reference to the trasport properties map
+		CVI::PorousMedium&										porousMedium_;				//!< reference to the porous mmedium
+		CVI::PorosityDefect&									porosityDefect_;			//!< reference to the porosity defect
+		CVI::HeterogeneousMechanism&							heterogeneousMechanism_;	//!< reference to the heterogeneous mechanism
+		OpenSMOKE::Grid1D&										grid_x_;					//!< reference to the 1D grid along the x direction
+		OpenSMOKE::Grid1D&										grid_y_;					//!< reference to the 1D grid along the y direction
+		CVI::PlugFlowReactor&									plugFlowReactor_;			//!< reference to the plug flow reactor
 
 		// Dimensions
 		unsigned int ns_;						//!< total number of gaseous species

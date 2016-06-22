@@ -39,16 +39,6 @@ namespace CVI
 
 		virtual void DefineRules()
 		{
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HomogeneousReactions",
-				OpenSMOKE::SINGLE_BOOL,
-				"Homogeneous reactions true/false",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousReactions",
-				OpenSMOKE::SINGLE_BOOL,
-				"Heterogeneous reactions true/false",
-				true));
-
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@FiberRadius",
 				OpenSMOKE::SINGLE_MEASURE,
 				"Radius of the fiber",
@@ -69,30 +59,15 @@ namespace CVI
 				"Initial porosity",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@MassDiffusionMultiplier",
-				OpenSMOKE::SINGLE_DOUBLE,
-				"Mass diffusion multiplier",
-				false));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousReactionRatesMultiplier",
-				OpenSMOKE::SINGLE_DOUBLE,
-				"Heterogeneous reaction rates multiplier",
-				false));
-
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousSubstrate",
 				OpenSMOKE::SINGLE_STRING,
 				"Porous substrate type: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousMechanism",
-				OpenSMOKE::SINGLE_STRING,
-				"Heterogeneous mechanism: Huttinger | Ziegler | Vignoles |  Huttinger-extended | Ziegler-extended | Vignoles-extended",
-				true));
-
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HydrogenInhibition",
-				OpenSMOKE::SINGLE_STRING,
-				"Hydrogen inhibition type: none | Becker",
-				true));
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@MassDiffusionMultiplier",
+				OpenSMOKE::SINGLE_DOUBLE,
+				"Mass diffusion multiplier",
+				false));
 		}
 	};
 }

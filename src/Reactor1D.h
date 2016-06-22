@@ -59,12 +59,14 @@ namespace CVI
 		*@param kineticsMap			reference to the kinetic map
 		*@param transportMap		reference to the transport map
 		*@param porousMedium		reference to the porous medium
+		*@param heterogeneousMechanism		reference to the heterogeneous mechanism
 		*@param grid				reference to 1D grid
 		*/
 		Reactor1D(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
 					OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 					OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
 					CVI::PorousMedium& porousMedium,
+					CVI::HeterogeneousMechanism& heterogeneousMechanism,
 					OpenSMOKE::Grid1D& grid);
 
 		/**
@@ -255,11 +257,12 @@ namespace CVI
 	protected:
 
 		// References
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;	//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;		//!< reference to the kinetic map
-		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;		//!< reference to the trasport properties map
-		CVI::PorousMedium&										porousMedium_;		//!< reference to the porous mmedium
-		OpenSMOKE::Grid1D&										grid_;				//!< reference to the 1D grid
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;			//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;				//!< reference to the kinetic map
+		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;				//!< reference to the trasport properties map
+		CVI::PorousMedium&										porousMedium_;				//!< reference to the porous mmedium
+		CVI::HeterogeneousMechanism&							heterogeneousMechanism_;	//!< reference to the heterogeneous mechanism
+		OpenSMOKE::Grid1D&										grid_;						//!< reference to the 1D grid
 
 		// Dimensions
 		unsigned int ns_;						//!< total number of gaseous species
