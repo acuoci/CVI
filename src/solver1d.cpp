@@ -40,15 +40,22 @@
 #include "Grammar_CVI_Solver1D.h"
 #include "Grammar_CVI_PlugFlowReactor.h"
 #include "Grammar_CVI_PorousMedium.h"
+#include "Grammar_CVI_HeterogeneousMechanism.h"
 #include "Grammar_CVI_PorosityDefect.h"
 
+// Heterogeneous mechanism
+#include "HeterogeneousMechanism.h"
+
 // Porous medium
-#include "PorosityDefect.h"
 #include "PorousMedium.h"
+#include "PorosityDefect.h"
 
 // Plug Flow Reactor
 #include "PlugFlowReactor.h"
 #include "PlugFlowReactorProfiles.h"
+
+// Capillary 1D
+#include "Capillary.h"
 
 // Reactor 1D
 #include "Reactor1D.h"
@@ -62,130 +69,8 @@
 #include "math/nls-solvers/NonLinearSolver.h"
 #include "math/nls-solvers/KernelSparse.h"
 
-class BrandBrandNewProblem01tris
-{
-public:
-
-	BrandBrandNewProblem01tris() {};
-
-
-protected:
-
-	unsigned int ne_;
-
-	void MemoryAllocation()
-	{
-	}
-
-	virtual void Equations(const Eigen::VectorXd &x, Eigen::VectorXd &f)
-	{
-		f(0) = x(1) - x(0) - 1.;
-		f(1) = x(1)*x(2)*x(3) - 6.;
-		f(2) = x(2) + x(1)*x(3) + x(4) - 9.;
-		f(3) = x(8)*x(2) + x(3) - 19.;
-		f(4) = x(4)*x(1) + x(6) - 10.;
-		f(5) = x(5)*x(1)*x(9) - 45.;
-		f(6) = x(6)*x(3) - 18.;
-		f(7) = x(7) + x(2) - 9.;
-		f(8) = x(8)*x(1) + x(9)*x(2) - 26.;
-		f(9) = x(9)*x(4)*x(1) - 36.;
-	}
-
-	void Jacobian(const Eigen::VectorXd &x, Eigen::SparseMatrix<double> &J)
-	{
-	};
-
-	void Print(const int call, const double phiW, const Eigen::VectorXd &x, const Eigen::VectorXd &f)
-	{
-		std::cout << "Solution: " << call << " " << phiW << std::endl;
-	}
-};
-
 int main(int argc, char** argv)
 {
-	/*
-	{
-		// Brand New
-		{
-			// Problem size
-			int N = 10;
-
-			// Memory Allocation and first guess solution
-			//BzzVector y0(N, -0.5, 0.1, 1.2, -4.3, -2.4, -7.5, 5.6, -4.7, 10.8, -5.9);
-			BzzVector y0(N); y0 = 1.;
-			Eigen::VectorXd y0_eigen(N);
-
-			BzzVector y(N);
-			Eigen::VectorXd y_eigen(N);
-
-			BzzVector f(N);
-			Eigen::VectorXd f_eigen(N);
-
-			// Conversion
-			for (int i = 0; i < N; i++)
-			{
-				y0_eigen(i) = y0[i + 1];
-			}
-
-			std::cout << "Problem01tris (10x10): solved as sparse: OS++ new" << std::endl;
-			getchar();
-
-			std::vector<unsigned int> rows(29);
-			std::vector<unsigned int> cols(29);
-			unsigned int count = 0;
-			rows[count] = 1;	cols[count] = 1; count++;
-			rows[count] = 1;	cols[count] = 2; count++;
-			rows[count] = 2;	cols[count] = 2; count++;
-			rows[count] = 2;	cols[count] = 3; count++;
-			rows[count] = 2;	cols[count] = 4; count++;
-			rows[count] = 3;	cols[count] = 2; count++;
-			rows[count] = 3;	cols[count] = 3; count++;
-			rows[count] = 3;	cols[count] = 4; count++;
-			rows[count] = 3;	cols[count] = 5; count++;
-			rows[count] = 4;	cols[count] = 3; count++;
-			rows[count] = 4;	cols[count] = 4; count++;
-			rows[count] = 4;	cols[count] = 9; count++;
-			rows[count] = 5;	cols[count] = 2; count++;
-			rows[count] = 5;	cols[count] = 5; count++;
-			rows[count] = 5;	cols[count] = 7; count++;
-			rows[count] = 6;	cols[count] = 2; count++;
-			rows[count] = 6;	cols[count] = 6; count++;
-			rows[count] = 6;	cols[count] = 10; count++;
-			rows[count] = 7;	cols[count] = 4; count++;
-			rows[count] = 7;	cols[count] = 7; count++;
-			rows[count] = 8;	cols[count] = 3; count++;
-			rows[count] = 8;	cols[count] = 8; count++;
-			rows[count] = 9;	cols[count] = 2; count++;
-			rows[count] = 9;	cols[count] = 3; count++;
-			rows[count] = 9;	cols[count] = 9; count++;
-			rows[count] = 9;	cols[count] = 10; count++;
-			rows[count] = 10;	cols[count] = 2; count++;
-			rows[count] = 10;	cols[count] = 5; count++;
-			rows[count] = 10;	cols[count] = 10; count++;
-
-			typedef NlsSMOKE::KernelSparse< BrandBrandNewProblem01tris> kernel;
-			NlsSMOKE::NonLinearSolver<kernel> nls;
-			nls.SetFirstGuessSolution(y0_eigen);
-			//nls.SetFullPivoting(true);
-			nls.SetSparsityPattern(rows, cols, false);
-			nls.SetPreconditioner("ILUT");
-			nls.SetAbsoluteTolerances(1e-12);
-			nls.SetRelativeTolerances(1e-7);
-			nls.SetPrint(true);
-
-			const double start = BzzGetCpuTime();
-			nls();
-			const double end = BzzGetCpuTime();
-			nls.Solution(y_eigen, f_eigen);
-
-			std::cout << end - start << std::endl;
-
-			nls.NlsSummary(std::cout);
-		}
-	}
-	getchar();
-	*/
-	
 	boost::filesystem::path executable_file = OpenSMOKE::GetExecutableFileName(argv);
 	boost::filesystem::path executable_folder = executable_file.parent_path();
 
@@ -232,10 +117,11 @@ int main(int argc, char** argv)
 	}
 
 	// Defines the grammar rules
-	CVI::Grammar_CVI_Solver1D		grammar_cvi_solver1d;
-	CVI::Grammar_CVI_PlugFlowReactor	grammar_cvi_plug_flow_reactor;
-	CVI::Grammar_CVI_PorousMedium		grammar_cvi_porous_medium;
-	CVI::Grammar_CVI_PorosityDefect		grammar_defect_porous_medium;
+	CVI::Grammar_CVI_Solver1D			grammar_cvi_solver1d;
+	CVI::Grammar_CVI_PlugFlowReactor		grammar_cvi_plug_flow_reactor;
+	CVI::Grammar_CVI_PorousMedium			grammar_cvi_porous_medium;
+	CVI::Grammar_CVI_PorosityDefect			grammar_defect_porous_medium;
+	CVI::Grammar_CVI_HeterogeneousMechanism		grammar_cvi_heterogeneous_mechanism;
 
 	// Define the dictionaries
 	OpenSMOKE::OpenSMOKE_DictionaryManager dictionaries;
@@ -252,6 +138,11 @@ int main(int argc, char** argv)
 	if (dictionaries(main_dictionary_name_).CheckOption("@PorousMedium") == true)
 		dictionaries(main_dictionary_name_).ReadDictionary("@PorousMedium", dict_name_porous_medium);
 
+	// Porous medium
+	std::string dict_name_heterogeneous_mechanism;
+	if (dictionaries(main_dictionary_name_).CheckOption("@HeterogeneousMechanism") == true)
+		dictionaries(main_dictionary_name_).ReadDictionary("@HeterogeneousMechanism", dict_name_heterogeneous_mechanism);
+
 	// Porosity defect
 	CVI::PorosityDefect* porosity_defect = new CVI::PorosityDefect();
 	if (dictionaries(main_dictionary_name_).CheckOption("@PorosityDefect") == true)
@@ -265,6 +156,7 @@ int main(int argc, char** argv)
 	// Sets the grammars
 	dictionaries(dict_name_plug_flow).SetGrammar(grammar_cvi_plug_flow_reactor);
 	dictionaries(dict_name_porous_medium).SetGrammar(grammar_cvi_porous_medium);
+	dictionaries(dict_name_heterogeneous_mechanism).SetGrammar(grammar_cvi_heterogeneous_mechanism);
 
 	// Kinetic scheme
 	boost::filesystem::path path_kinetics_output;
@@ -330,14 +222,15 @@ int main(int argc, char** argv)
 	}
 
 	// Type of problem
-	bool problem_2d = true;
+	enum CVIProblemType { CVI_CAPILLARY, CVI_REACTOR1D, CVI_REACTOR2D } problem_type;
 	{
 		std::string value;
 		if (dictionaries(main_dictionary_name_).CheckOption("@Type") == true)
 			dictionaries(main_dictionary_name_).ReadString("@Type", value);
-		if (value == "1D")			problem_2d = false;
-		else if (value == "2D")		problem_2d = true;
-		else OpenSMOKE::FatalErrorMessage("Wrong @Type: 1D | 2D");
+		if (value == "1D")			problem_type = CVI_REACTOR1D;
+		else if (value == "2D")			problem_type = CVI_REACTOR2D;
+		else if (value == "Capillary")		problem_type = CVI_CAPILLARY;
+		else OpenSMOKE::FatalErrorMessage("Wrong @Type: Capillary | 1D | 2D");
 	}
 
 	// Type of problem
@@ -450,7 +343,31 @@ int main(int argc, char** argv)
 			else OpenSMOKE::FatalErrorMessage("Unknown @ResidenceTime units");
 		}
 		else
-			OpenSMOKE::FatalErrorMessage("@ResidenceTime must be specified");
+		{
+			if (problem_type == CVI_REACTOR1D || problem_type == CVI_CAPILLARY)
+				OpenSMOKE::FatalErrorMessage("@ResidenceTime must be specified");
+		}
+	}
+
+	// Read the plug flow residence time 
+	double capillary_diameter = 1.e-3;
+	{
+		std::string units;
+
+		if (dictionaries(main_dictionary_name_).CheckOption("@CapillaryDiameter") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadMeasure("@CapillaryDiameter", capillary_diameter, units);
+			if (units == "m")			capillary_diameter = capillary_diameter;
+			else if (units == "cm")			capillary_diameter = capillary_diameter / 1.e2;
+			else if (units == "mm")			capillary_diameter = capillary_diameter / 1.e3;
+			else if (units == "micron")		capillary_diameter = capillary_diameter / 1.e6;
+			else OpenSMOKE::FatalErrorMessage("Unknown @CapillaryDiameter units");
+		}
+		else
+		{
+			if (problem_type == CVI_CAPILLARY)
+				OpenSMOKE::FatalErrorMessage("@CapillaryDiameter must be specified");
+		}
 	}
 
 	// Read inlet conditions
@@ -542,11 +459,8 @@ int main(int argc, char** argv)
 			dictionaries(main_dictionary_name_).ReadInt("@StepsFile", steps_file);
 	}
 
-	// Set porous medium
-	CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
-
 	// Solve the 2D problem
-	if (problem_2d == true)
+	if (problem_type == CVI_REACTOR2D)
 	{
 		// Plug flow ractor simulation
 		std::vector<Eigen::VectorXd> Y_gas_side;
@@ -665,6 +579,8 @@ int main(int argc, char** argv)
 			}
 		}
 
+		// Set porous medium
+		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
 		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *porosity_defect, *grid_x, *grid_y, *plug_flow_reactor);
@@ -690,11 +606,10 @@ int main(int argc, char** argv)
 
 			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;
 		}
-	}
-	
+	}	
 
 	// Solve the 1D problem
-	if (problem_2d == false)
+	if (problem_type == CVI_REACTOR1D)
 	{
 		// Plug flow ractor simulation
 		Eigen::VectorXd Y_gas_side(thermodynamicsMapXML->NumberOfSpecies());
@@ -707,6 +622,10 @@ int main(int argc, char** argv)
 			plug_flow_reactor->Solve(residence_time);
 		}
 
+		// Set porous medium
+		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+
+		// Creates the reactor
 		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *grid_x);
 
 		reactor1d->SetPlanarSymmetry(symmetry_planar);
@@ -725,56 +644,48 @@ int main(int argc, char** argv)
 			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;
 		}
 	}
+
+	// Capillary
+	if (problem_type == CVI_CAPILLARY)
+	{
+		// Plug flow ractor simulation
+		Eigen::VectorXd Y_gas_side(thermodynamicsMapXML->NumberOfSpecies());
+		CVI::PlugFlowReactor* plug_flow_reactor = new CVI::PlugFlowReactor(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
+		{
+			// Set initial conditions
+			plug_flow_reactor->SetInitialConditions(inlet_T, inlet_P, inlet_omega);
+
+			// Solve the plug flow reactor
+			plug_flow_reactor->Solve(residence_time);
+		}
+
+		// Set heterogeneous mechanism
+		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+		
+		// Set capillary
+		CVI::Capillary* capillary = new CVI::Capillary(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *heterogeneous_mechanism, *grid_x);
+
+		capillary->SetInitialConditions(initial_T, initial_P, capillary_diameter, initial_omega);
+		capillary->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
+		capillary->SetTimeTotal(time_total);
+		capillary->SetDaeTimeInterval(dae_time_interval);
+		capillary->SetTecplotTimeInterval(tecplot_time_interval);
+		if (steps_video>0)	reactor2d->SetStepsVideo(steps_video);
+		if (steps_file>0)	reactor2d->SetStepsFile(steps_file);
+
+		// Solve
+		{
+			time_t timerStart;
+			time_t timerEnd;
+
+			time(&timerStart);
+			int flag = capillary->SolveFromScratch(*dae_parameters);
+			time(&timerEnd);
+
+			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;
+		}
+	}
+
 	
-	/*
-	OpenSMOKE::OpenSMOKEVectorDouble  y(thermodynamicsMapXML->NumberOfSpecies() + 1);
-	OpenSMOKE::OpenSMOKEVectorDouble dy(thermodynamicsMapXML->NumberOfSpecies() + 1);
-	for (unsigned int i = 0; i < thermodynamicsMapXML->NumberOfSpecies(); i++)
-		y[i + 1] = initial_omega[i + 1];
-	y[thermodynamicsMapXML->NumberOfSpecies() + 1] = epsilon0;
-	reactor1d->Equations(0., y.GetHandle(), dy.GetHandle());
-	*/
-
-
-	/*
-
-
-	porous_medium->SetTemperature(inlet_T);
-	porous_medium->SetPressure(inlet_P);
-	
-	OpenSMOKE::OpenSMOKEVectorDouble inlet_x;
-	double inlet_MW;
-	thermodynamicsMapXML->MoleFractions_From_MassFractions(inlet_x, inlet_MW, inlet_omega);
-
-	Eigen::VectorXd mole_fractions(thermodynamicsMapXML->NumberOfSpecies());
-	for (unsigned int i = 0; i < mole_fractions.size(); i++)
-		mole_fractions(i) = inlet_x[i + 1];
-
-	porous_medium->EffectiveDiffusionCoefficients(mole_fractions);
-
-	for (unsigned int i = 0; i < mole_fractions.size(); i++)
-		std::cout << i << " " << thermodynamicsMapXML->NamesOfSpecies()[i] << " " <<
-		porous_medium->gamma_effective()(i) << " " <<
-		porous_medium->gamma_fick_effective()(i) << " " <<
-		porous_medium->gamma_knudsen_effective()(i) << " " <<
-		porous_medium->gamma_fick()(i) << " " <<
-		porous_medium->gamma_knudsen()(i) << " " << std::endl;
-
-	const double cTot = inlet_P / PhysicalConstants::R_J_kmol / inlet_T;
-	Eigen::VectorXd c = mole_fractions; c *= cTot;
-
-	porous_medium->FormationRates(c);
-
-	for (unsigned int i = 0; i < 4; i++)
-		std::cout << porous_medium->r()(i) << std::endl;
-
-	std::cout << porous_medium->I_CH4() << std::endl;
-	std::cout << porous_medium->I_C2H4() << std::endl;
-	std::cout << porous_medium->I_C2H2() << std::endl;
-	std::cout << porous_medium->I_C6H6() << std::endl;
-
-	for (unsigned int i = 0; i < mole_fractions.size(); i++)
-		std::cout << i << " " << thermodynamicsMapXML->NamesOfSpecies()[i] << " " << c(i) << " " << porous_medium->R()(i) << std::endl;
-		*/
 	return 0;
 }

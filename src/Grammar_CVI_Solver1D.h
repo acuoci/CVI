@@ -41,7 +41,7 @@ namespace CVI
 		{
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Type",
 				OpenSMOKE::SINGLE_STRING,
-				"Type of problem to be solved: 1D | 2D",
+				"Type of problem to be solved: Capillary | 1D | 2D",
 				true));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Symmetry",
@@ -78,6 +78,11 @@ namespace CVI
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousMedium",
 				OpenSMOKE::SINGLE_DICTIONARY,
 				"Name of the dictionary/dictionaries defining the porous medium",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeterogeneousMechanism",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Name of the dictionary/dictionaries defining the heterogeneous mechanism",
 				true));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorosityDefect",
@@ -168,6 +173,11 @@ namespace CVI
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@ResidenceTime",
 				OpenSMOKE::SINGLE_MEASURE,
 				"Residence time to be simulated in the gaseous phase",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@CapillaryDiameter",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Initial diameter of capillary",
 				false));
 		}
 	};
