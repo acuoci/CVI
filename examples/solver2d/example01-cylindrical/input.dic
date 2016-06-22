@@ -22,6 +22,7 @@ Dictionary CVI_Solver1D
 	@PlugFlowReactor	plug-flow-reactor;
 	@PorousMedium		porous-medium;
 	@PorosityDefect		porosity-defect;
+	@HeterogeneousMechanism heterogeneous-mechanism;
 	@InletStream		inlet-stream;
 	@InitialConditions	initial-conditions;
 		
@@ -43,14 +44,19 @@ Dictionary CVI_Solver1D
 }
 Dictionary porous-medium
 {
-	@HomogeneousReactions	true;
-	@HeterogeneousReactions	true;
-	
 	@FiberRadius			4 micron;
 	@FiberDensity			1720 kg/m3;
 	@GraphiteDensity		2200 kg/m3;
 	@InitialPorosity		0.929;
 	@PorousSubstrate		deutschmann_correlation;
+}
+
+Dictionary heterogeneous-mechanism
+{
+	@HomogeneousReactions	true;
+	@HeterogeneousReactions	true;
+	
+	@GraphiteDensity		2200 kg/m3;
 	@HeterogeneousMechanism		Huttinger;
 	@HydrogenInhibition		Becker;
 }
