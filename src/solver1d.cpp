@@ -38,7 +38,7 @@
 
 // Grammars
 #include "Grammar_CVI_Solver1D.h"
-#include "Grammar_CVI_PlugFlowReactor.h"
+#include "Grammar_CVI_PlugFlowReactorCoupled.h"
 #include "Grammar_CVI_PorousMedium.h"
 #include "Grammar_CVI_HeterogeneousMechanism.h"
 #include "Grammar_CVI_PorosityDefect.h"
@@ -51,8 +51,8 @@
 #include "PorosityDefect.h"
 
 // Plug Flow Reactor
-#include "PlugFlowReactor.h"
-#include "PlugFlowReactorProfiles.h"
+#include "PlugFlowReactorCoupled.h"
+#include "PlugFlowReactorCoupledProfiles.h"
 
 // Capillary 1D
 #include "Capillary.h"
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 		description.add_options()
 			("help", "print help messages")
 			("input", po::value<std::string>(), "name of the file containing the main dictionary (default \"input.dic\")")
-			("dictionary", po::value<std::string>(), "name of the main dictionary to be used (default \"PlugFlowReactor\")");
+			("dictionary", po::value<std::string>(), "name of the main dictionary to be used (default \"CVI_Solver1D\")");
 
 		po::variables_map vm;
 		try
@@ -118,7 +118,7 @@ int main(int argc, char** argv)
 
 	// Defines the grammar rules
 	CVI::Grammar_CVI_Solver1D			grammar_cvi_solver1d;
-	CVI::Grammar_CVI_PlugFlowReactor		grammar_cvi_plug_flow_reactor;
+	CVI::Grammar_CVI_PlugFlowReactorCoupled		grammar_cvi_plug_flow_reactor_coupled;
 	CVI::Grammar_CVI_PorousMedium			grammar_cvi_porous_medium;
 	CVI::Grammar_CVI_PorosityDefect			grammar_defect_porous_medium;
 	CVI::Grammar_CVI_HeterogeneousMechanism		grammar_cvi_heterogeneous_mechanism;
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 	}
 
 	// Sets the grammars
-	dictionaries(dict_name_plug_flow).SetGrammar(grammar_cvi_plug_flow_reactor);
+	dictionaries(dict_name_plug_flow).SetGrammar(grammar_cvi_plug_flow_reactor_coupled);
 	dictionaries(dict_name_porous_medium).SetGrammar(grammar_cvi_porous_medium);
 	dictionaries(dict_name_heterogeneous_mechanism).SetGrammar(grammar_cvi_heterogeneous_mechanism);
 
@@ -459,15 +459,45 @@ int main(int argc, char** argv)
 			dictionaries(main_dictionary_name_).ReadInt("@StepsFile", steps_file);
 	}
 
+	// Steps update plug flow
+	int steps_update_plug_flow = 0;
+	{
+		if (dictionaries(main_dictionary_name_).CheckOption("@StepsPlugFlow") == true)
+			dictionaries(main_dictionary_name_).ReadInt("@StepsPlugFlow", steps_update_plug_flow);
+	}
+
 	// Solve the 2D problem
 	if (problem_type == CVI_REACTOR2D)
 	{
 		// Plug flow ractor simulation
 		std::vector<Eigen::VectorXd> Y_gas_side;
-		CVI::PlugFlowReactor* plug_flow_reactor = new CVI::PlugFlowReactor(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
+		CVI::PlugFlowReactorCoupled* plug_flow_reactor = new CVI::PlugFlowReactorCoupled(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
+		
+		// Initial plug flow reactor
 		{
 			// Set initial conditions
 			plug_flow_reactor->SetInitialConditions(inlet_T, inlet_P, inlet_omega);
+
+			if (plug_flow_reactor->coupling() == true)
+			{
+				if (plug_flow_reactor->geometric_pattern() != CVI::PlugFlowReactorCoupled::ONE_SIDE)
+					OpenSMOKE::FatalErrorMessage("The coupling is currently available only for one-side geometric configuration");
+
+				// The initial composition in the felt is assumed to be uniform
+				unsigned int np = 3;
+				Eigen::VectorXd csi_external(np);
+				csi_external(0)=0.;
+				csi_external(1)=1.e3;
+				csi_external(2)=2.e3;
+
+				Eigen::MatrixXd omega_external(np, thermodynamicsMapXML->NumberOfSpecies());
+				omega_external.setConstant(0.);
+				for(unsigned int i=0;i<np;i++)
+					for(unsigned int j=0;j<thermodynamicsMapXML->NumberOfSpecies();j++)
+						omega_external(i,j) = initial_omega(j);
+				
+				plug_flow_reactor->SetExternalMassFractionsProfile(csi_external, omega_external);
+			}
 
 			// Solve the plug flow reactor
 			plug_flow_reactor->Solve(residence_time);
@@ -478,7 +508,7 @@ int main(int argc, char** argv)
 				csi(i) = plug_flow_reactor->history_csi()[i];
 
 			// Assign the boundary conditions
-			PlugFlowReactorProfiles* profiles = new PlugFlowReactorProfiles(csi);
+			PlugFlowReactorCoupledProfiles* profiles = new PlugFlowReactorCoupledProfiles(csi);
 			Y_gas_side.resize(2 * grid_x->Np() + grid_y->Np());
 			for (int i = 0; i < Y_gas_side.size(); i++)
 			{
@@ -487,7 +517,7 @@ int main(int argc, char** argv)
 			}
 
 			// Case: only east side
-			if (plug_flow_reactor->geometric_pattern() == CVI::PlugFlowReactor::ONE_SIDE)
+			if (plug_flow_reactor->geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
 			{
 				for (int i = 0; i < grid_y->Np(); i++)
 				{
@@ -497,7 +527,7 @@ int main(int argc, char** argv)
 				}
 			}
 			// Case: south, east, and north sides
-			else if (plug_flow_reactor->geometric_pattern() == CVI::PlugFlowReactor::THREE_SIDES)
+			else if (plug_flow_reactor->geometric_pattern() == CVI::PlugFlowReactorCoupled::THREE_SIDES)
 			{
 				for (int i = 0; i < grid_x->Np(); i++)
 				{
@@ -522,60 +552,8 @@ int main(int argc, char** argv)
 
 			// Write plug-flow reactor profile
 			{
-				// Open output file
 				const boost::filesystem::path plug_flow_file_path = output_path / "plugflow.out";
-				std::ofstream fPlugFlow(plug_flow_file_path.c_str(), std::ios::out);
-				fPlugFlow.setf(std::ios::scientific);
-
-				// Write headlines
-				unsigned int count = 1;
-				OpenSMOKE::PrintTagOnASCIILabel(20, fPlugFlow, "x[mm]", count);
-				for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
-					OpenSMOKE::PrintTagOnASCIILabel(20, fPlugFlow, thermodynamicsMapXML->NamesOfSpecies()[j] + "_x", count);
-				for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
-					OpenSMOKE::PrintTagOnASCIILabel(20, fPlugFlow, thermodynamicsMapXML->NamesOfSpecies()[j] + "_w", count);
-				fPlugFlow << std::endl;
-
-				// Reconstruct the pattern
-				unsigned int np = 100;
-				double total_length = 2.*plug_flow_reactor->inert_length() + grid_y->L();
-				double dx = total_length / double(np - 1);
-
-				if (plug_flow_reactor->geometric_pattern() == CVI::PlugFlowReactor::THREE_SIDES)
-				{
-					np = 300;
-					total_length = 2.*plug_flow_reactor->inert_length() + grid_y->L() + 2.*grid_x->L();
-					dx = total_length / double(np - 1);
-				}
-
-				// Perform calculations
-				Eigen::VectorXd Y_plug_flow_side(thermodynamicsMapXML->NumberOfSpecies());
-				Eigen::VectorXd X_plug_flow_side(thermodynamicsMapXML->NumberOfSpecies());
-				for (unsigned int i = 0; i < np; i++)
-				{
-					// Interpolation
-					const double coordinate = i*dx + profiles->x()(0);
-					std::cout << coordinate << std::endl;
-					profiles->Interpolate(coordinate, plug_flow_reactor->history_Y(), Y_plug_flow_side);
-
-					// Conversions to mole fractions
-					double mw = 0.;
-					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
-						mw += Y_plug_flow_side(j) / thermodynamicsMapXML->MW()[j + 1];
-					mw = 1./mw;
-					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
-						X_plug_flow_side(j) = Y_plug_flow_side(j) * mw / thermodynamicsMapXML->MW()[j + 1];
-
-					// Write on file
-					fPlugFlow << std::setprecision(9) << std::setw(20) << coordinate*1e3;
-					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
-						fPlugFlow << std::setprecision(9) << std::setw(20) << X_plug_flow_side(j);
-					for (unsigned int j = 0; j < thermodynamicsMapXML->NumberOfSpecies(); j++)
-						fPlugFlow << std::setprecision(9) << std::setw(20) << Y_plug_flow_side(j);
-					fPlugFlow << std::endl;
-				}
-
-				fPlugFlow.close();
+				plug_flow_reactor->Print(0.,plug_flow_file_path);
 			}
 		}
 
@@ -595,8 +573,9 @@ int main(int argc, char** argv)
 		reactor2d->SetTimeTotal(time_total);
 		reactor2d->SetDaeTimeInterval(dae_time_interval);
 		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);
-		if (steps_video>0)	reactor2d->SetStepsVideo(steps_video);
-		if (steps_file>0)	reactor2d->SetStepsFile(steps_file);
+		if (steps_video>0)		reactor2d->SetStepsVideo(steps_video);
+		if (steps_file>0)		reactor2d->SetStepsFile(steps_file);
+		if (steps_update_plug_flow>0)	reactor2d->SetStepsUpdatePlugFlow(steps_update_plug_flow);
 
 		// Solve
 		{
@@ -616,7 +595,7 @@ int main(int argc, char** argv)
 	{
 		// Plug flow ractor simulation
 		Eigen::VectorXd Y_gas_side(thermodynamicsMapXML->NumberOfSpecies());
-		CVI::PlugFlowReactor* plug_flow_reactor = new CVI::PlugFlowReactor(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
+		CVI::PlugFlowReactorCoupled* plug_flow_reactor = new CVI::PlugFlowReactorCoupled(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
 		{
 			// Set initial conditions
 			plug_flow_reactor->SetInitialConditions(inlet_T, inlet_P, inlet_omega);
@@ -656,7 +635,7 @@ int main(int argc, char** argv)
 	{
 		// Plug flow ractor simulation
 		Eigen::VectorXd Y_gas_side(thermodynamicsMapXML->NumberOfSpecies());
-		CVI::PlugFlowReactor* plug_flow_reactor = new CVI::PlugFlowReactor(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
+		CVI::PlugFlowReactorCoupled* plug_flow_reactor = new CVI::PlugFlowReactorCoupled(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
 		{
 			// Set initial conditions
 			plug_flow_reactor->SetInitialConditions(inlet_T, inlet_P, inlet_omega);
@@ -676,8 +655,6 @@ int main(int argc, char** argv)
 		capillary->SetTimeTotal(time_total);
 		capillary->SetDaeTimeInterval(dae_time_interval);
 		capillary->SetTecplotTimeInterval(tecplot_time_interval);
-		if (steps_video>0)	reactor2d->SetStepsVideo(steps_video);
-		if (steps_file>0)	reactor2d->SetStepsFile(steps_file);
 
 		// Solve
 		{

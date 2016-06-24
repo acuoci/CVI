@@ -170,6 +170,11 @@ namespace CVI
 				"Number steps to update info on files",
 				false));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@StepsPlugFlow",
+				OpenSMOKE::SINGLE_INT,
+				"Number steps to update the plug flow reactor",
+				false));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@ResidenceTime",
 				OpenSMOKE::SINGLE_MEASURE,
 				"Residence time to be simulated in the gaseous phase",

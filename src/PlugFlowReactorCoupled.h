@@ -24,8 +24,8 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#ifndef OpenSMOKE_PlugFlowReactor_H
-#define OpenSMOKE_PlugFlowReactor_H
+#ifndef OpenSMOKE_PlugFlowReactorCoupled_H
+#define OpenSMOKE_PlugFlowReactorCoupled_H
 
 // OpenSMOKE++ Definitions
 #include "OpenSMOKEpp"
@@ -35,12 +35,67 @@
 
 namespace CVI
 {
+	class LinearProfile
+	{
+	public:
+
+		void Set(OpenSMOKE::OpenSMOKEVectorDouble& x, OpenSMOKE::OpenSMOKEVectorDouble& y);
+
+		double Get(const double x) const;
+
+
+	private:
+
+		unsigned int number_of_points_;
+		double x0_;
+		double xf_;
+		double y0_;
+		double yf_;
+
+		OpenSMOKE::OpenSMOKEVectorDouble x_;
+		OpenSMOKE::OpenSMOKEVectorDouble y_;
+		OpenSMOKE::OpenSMOKEVectorDouble m_;
+	};
+
+	void LinearProfile::Set(OpenSMOKE::OpenSMOKEVectorDouble& x, OpenSMOKE::OpenSMOKEVectorDouble& y)
+	{
+		x_ = x;
+		y_ = y;
+		number_of_points_ = x_.Size();
+
+		x0_ = x[1];
+		y0_ = y[1];
+		xf_ = x[number_of_points_];
+		yf_ = y[number_of_points_];
+
+		ChangeDimensions(number_of_points_-1, &m_, true);
+
+		for(unsigned int i=2;i<=number_of_points_;i++)
+			m_[i-1] = (y_[i]-y_[i-1])/(x_[i]-x_[i-1]);
+	}
+
+	double LinearProfile::Get(const double x) const
+	{
+		if (x0_ > 0 && ((x - x0_) / x0_ > -1.e6))
+			OpenSMOKE::FatalErrorMessage("Profile class: the required point is outside the domain (too small)");
+
+		if (number_of_points_ == 2)
+			return y0_ + m_[1]*(x-x0_);
+
+		for(unsigned int i=2;i<=number_of_points_;i++)
+			if (x <= x_[i])
+				return y_[i-1] + m_[i-1]*(x-x_[i-1]);
+
+		// In case of small excess
+		return y_[number_of_points_];
+	}
+
 	//!  A class to solve a homogeneous plug flow reactor
 	/*!
 	This class provides the tools to solve a homogeneous plug flow reactor
 	*/
 
-	class PlugFlowReactor
+	class PlugFlowReactorCoupled
 	{
 
 	public:
@@ -56,14 +111,14 @@ namespace CVI
 		*@param v					the axial velocity [m/s]
 		*@param Dh					the hydraulic diameter [m]
 		*/
-		PlugFlowReactor(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap, const double v, const double Dh);
+		PlugFlowReactorCoupled(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap, const double v, const double Dh);
 
 		/**
 		*@brief Default constructor
 		*@param thermodynamicsMap	reference to the thermodynamic map
 		*@param kineticsMap			reference to the kinetic map
 		*/
-		PlugFlowReactor(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap, OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
+		PlugFlowReactorCoupled(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap, OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
 
 		/**
 		*@brief Sets the inlet/initial conditions
@@ -74,10 +129,35 @@ namespace CVI
 		void SetInitialConditions(const double T, const double P, const Eigen::VectorXd& omega);
 
 		/**
+		*@brief Sets coupling
+		*@param coupling coupling on/off
+		*/
+		void SetCoupling(const bool coupling);
+
+		/**
+		*@brief Sets verbose output
+		*@param flag verbose output on/off
+		*/
+		void SetVerboseOutput(const bool flag);
+
+		/**
+		*@brief Sets the inlet/initial conditions
+		*@param csi_external space coordinates [m]
+		*@param omega_external composition in mass fractions (points x species)
+		*/
+		void SetExternalMassFractionsProfile(const Eigen::VectorXd& csi_external, const Eigen::MatrixXd& omega_external);
+
+		/**
 		*@brief Sets the length of the inert zone
 		*@param inert_length length of the inert zone [m]
 		*/
 		void SetInertLength(const double inert_length);
+
+		/**
+		*@brief Sets the width of the channel
+		*@param width of the channel
+		*/
+		void SetChannelWidth(const double channel_width);
 
 		/**
 		*@brief Sets the asymptoti Nusselt number
@@ -120,6 +200,13 @@ namespace CVI
 		void Print(const double t, const double* y);
 
 		/**
+		*@brief Prints the plug flow profiles
+		*@param file_path the file name
+		*@param t the current reactor time
+		*/
+		void Print(const double t, const boost::filesystem::path file_path);
+
+		/**
 		*@brief Returns the total number of equations of the ODE system
 		*/
 		unsigned int NumberOfEquations() const { return ne_; }
@@ -152,6 +239,11 @@ namespace CVI
 		*@brief Direct access to the current unknowns
 		*/
 		const Eigen::VectorXd& Y() const { return Y_; }
+
+		/**
+		*@brief Direct access to the current unknowns
+		*/
+		bool coupling() const { return coupling_; }
 
 		/**
 		*@brief Direct access to the history of tau
@@ -199,6 +291,11 @@ namespace CVI
 		GeometricPattern geometric_pattern() const { return geometric_pattern_; }
 
 		/**
+		*@brief Last residence time simulated [s]
+		*/
+		double last_residence_time() const { return last_residence_time_; }
+
+		/**
 		*@brief Returns the mass transfer coeffcient as a function of the axial coordinate
 		*@param T temperature [K]
 		*@param P pressure [Pa]
@@ -207,6 +304,26 @@ namespace CVI
 		*@return mass transfer coefficient [m/s]
 		*/
 		double mass_transfer_coefficient(const double T, const double P_Pa, const double rho, const double x);
+
+		/**
+		*@brief Inlet temperature [K]
+		*/
+		double inlet_temperature() const { return inlet_temperature_; }
+
+		/**
+		*@brief Inlet pressure [Pa]
+		*/
+		double inlet_pressure() const { return inlet_pressure_; }
+
+		/**
+		*@brief Inlet mass fractions [-]
+		*/
+		const Eigen::VectorXd& inlet_mass_fractions() const { return inlet_omega_; }
+
+		/**
+		*@brief Inlet mass fractions [-]
+		*/
+		bool verbose_output() const { return verbose_output_; }
 		
 	private:
 
@@ -250,27 +367,37 @@ namespace CVI
 		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;	//!< reference to the thermodynamic map
 		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;		//!< reference to the kinetic map
 
+		bool coupling_;						//!< coupling with the carbon felt
 		double T_;						//!< current temperature [K]
 		double P_;						//!< current pressure [Pa]
-		double csi_;					//!< axial coordinate [m]
+		double csi_;						//!< axial coordinate [m]
 		double v_;						//!< axial velocity [m/s]
 		double Dh_;						//!< hydraulic diameter [m]
-		double NuInf_;					//!< asymptotic Nusselt number [-]
-		double inert_length_;			//!< length of inert zone [m]
+		double NuInf_;						//!< asymptotic Nusselt number [-]
+		double inert_length_;					//!< length of inert zone [m]
+		double channel_width_;					//!< width of the channel [m]
 		bool internal_boundary_layer_correction_;		//!< true if the boundary layer limitations have to be accounted for
 		GeometricPattern geometric_pattern_;			//!< geometric pattern: ONE_SIDE | THREE_SIDES
+		double last_residence_time_;				//!< last residence time simulated [s]
 
-		double rho_;					//!< current density [kg/m3]
-		Eigen::VectorXd Y_;				//!< current mass fractions [-]
-		Eigen::VectorXd dY_over_dt_;	//!< current time derivatives of mass fractions [1/s]
+		double inlet_temperature_;
+		double inlet_pressure_;
+		Eigen::VectorXd inlet_omega_;
+
+		double rho_;				//!< current density [kg/m3]
+		Eigen::VectorXd Y_;			//!< current mass fractions [-]
+		Eigen::VectorXd dY_over_dt_;		//!< current time derivatives of mass fractions [1/s]
 		double dcsi_over_dt_;			//!< current time derivative of space [m/s]
+
+		std::vector<LinearProfile>	Y_external_;		//!< external mass fraction profiles 
 
 		unsigned int n_steps_video_;	//!< number of steps for updating info on the screen
 		unsigned int count_video_;		//!< counter of steps for updating info on the screen
 
 		unsigned int ns_;						//!< total number of gaseous species
 		unsigned int ne_;						//!< total number of equations
-		boost::filesystem::path output_folder_;	//!< name of output folder
+		boost::filesystem::path output_folder_;				//!< name of output folder
+		bool verbose_output_;
 
 		// History
 		std::vector<double>				history_tau_;
@@ -285,6 +412,6 @@ namespace CVI
 	};
 }
 
-#include "PlugFlowReactor.hpp"
+#include "PlugFlowReactorCoupled.hpp"
 
-#endif /* OpenSMOKE_PlugFlowReactor_H */
+#endif /* OpenSMOKE_PlugFlowReactorCoupled_H */

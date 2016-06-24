@@ -59,7 +59,7 @@ namespace CVI
 							CVI::PorosityDefect& porosityDefect,
 							CVI::HeterogeneousMechanism& heterogeneousMechanism,
 							OpenSMOKE::Grid1D& grid_x, OpenSMOKE::Grid1D& grid_y,
-							CVI::PlugFlowReactor& plugFlowReactor) :
+							CVI::PlugFlowReactorCoupled& plugFlowReactor) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -77,8 +77,10 @@ namespace CVI
 		n_steps_video_ = 10;
 		count_video_ = n_steps_video_;
 		n_steps_file_ = 3;
+		n_steps_update_plug_flow_ = 30;
 		count_file_ = n_steps_file_;
 		count_tecplot_ = 0;
+		count_update_plug_flow_ = 0;
 
 		time_total_ = 48.*3600.;
 		dae_time_interval_ = 3600.;
@@ -98,6 +100,9 @@ namespace CVI
 
 		output_tecplot_folder_ = output_folder_ / "Tecplot";
 		OpenSMOKE::CreateDirectory(output_tecplot_folder_);
+
+		output_plug_flow_folder_ = output_folder_ / "PlugFlow";
+		OpenSMOKE::CreateDirectory(output_plug_flow_folder_);
 
 		output_matlab_folder_ = output_folder_ / "Matlab";
 		OpenSMOKE::CreateDirectory(output_matlab_folder_);
@@ -343,7 +348,7 @@ namespace CVI
 		}
 
 		// Set initial fields consistent along the east side
-		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactor::GeometricPattern::ONE_SIDE)
+		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::GeometricPattern::ONE_SIDE)
 		{
 			for (unsigned int i = 0; i < ny_; i++)
 			{
@@ -355,7 +360,7 @@ namespace CVI
 			}
 		}
 		// Set initial fields consistent along the south, east, and north sides
-		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactor::GeometricPattern::THREE_SIDES)
+		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::GeometricPattern::THREE_SIDES)
 		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
@@ -434,6 +439,12 @@ namespace CVI
 	{
 		n_steps_file_ = steps_file;
 		count_file_ = n_steps_file_;
+	}
+
+	void Reactor2D::SetStepsUpdatePlugFlow(const int steps_update_plug_flow)
+	{
+		n_steps_update_plug_flow_ = steps_update_plug_flow;
+		count_update_plug_flow_ = n_steps_update_plug_flow_;
 	}
 
 	void Reactor2D::Properties()
@@ -548,7 +559,7 @@ namespace CVI
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_NorthSide(const double t)
 	{
-		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactor::ONE_SIDE)
+		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
 		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
@@ -557,7 +568,7 @@ namespace CVI
 					dY_over_dt_[point](j) = Y_[point](j) - Y_[point - nx_](j);
 			}
 		}
-		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactor::THREE_SIDES)
+		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::THREE_SIDES)
 		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
@@ -570,7 +581,7 @@ namespace CVI
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_SouthSide(const double t)
 	{
-		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactor::ONE_SIDE)
+		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
 		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
@@ -579,7 +590,7 @@ namespace CVI
 					dY_over_dt_[point](j) = Y_[point](j) - Y_[point + nx_](j);
 			}
 		}
-		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactor::THREE_SIDES)
+		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::THREE_SIDES)
 		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
@@ -1524,13 +1535,96 @@ namespace CVI
 		{
 			count_tecplot_++;
 			std::stringstream current_index; current_index << count_tecplot_;
+
 			std::string tecplot_file = "Solution.tec." + current_index.str();
 			PrintTecplot(t, (output_tecplot_folder_ / tecplot_file).string().c_str());
+
+			std::string plug_flow_file = "PlugFlow.out." + current_index.str();
+			plugFlowReactor_.Print(t, (output_plug_flow_folder_ / plug_flow_file).string().c_str());
+		}
+
+		if (plugFlowReactor_.coupling() == true && count_update_plug_flow_ == n_steps_update_plug_flow_)
+		{
+			const double inlet_T = plugFlowReactor_.inlet_temperature();
+			const double inlet_P = plugFlowReactor_.inlet_pressure();
+			const Eigen::VectorXd inlet_omega = plugFlowReactor_.inlet_mass_fractions();
+
+			// Plug flow ractor simulation
+			std::vector<Eigen::VectorXd> Y_gas_side;
+			{
+				// Set initial conditions
+				plugFlowReactor_.SetInitialConditions(inlet_T, inlet_P, inlet_omega);
+				plugFlowReactor_.SetVerboseOutput(false);
+
+				// Set external profile
+				{
+					Eigen::VectorXd csi_external(ny_+2); 
+					Eigen::MatrixXd omega_external(ny_+2, thermodynamicsMap_.NumberOfSpecies());
+
+					// Set csi external
+					csi_external(0)=0.; 
+					csi_external(ny_+1)=1000.;
+					for (unsigned int i = 0; i < ny_; i++)
+						csi_external(i+1) = plugFlowReactor_.inert_length() + grid_y_.x()[i];
+					
+					// Internal points
+					for (unsigned int i = 0; i < ny_; i++)
+					{
+						const int point = list_points_east_(i);
+						for (unsigned int j = 0; j < ns_; j++)
+							omega_external(i+1,j) =  Y_[point](j);
+					}
+
+					// First point
+					for (unsigned int j = 0; j < ns_; j++)
+						omega_external(0,j) = omega_external(1,j);
+
+					// Last point
+					for (unsigned int j = 0; j < ns_; j++)
+						omega_external(ny_+1,j) = omega_external(ny_,j);
+					
+					// Set external profile
+					plugFlowReactor_.SetExternalMassFractionsProfile(csi_external, omega_external);
+				}
+
+				// Solve the plug flow reactor
+				plugFlowReactor_.Solve(plugFlowReactor_.last_residence_time());
+
+				// Extract the plug flow history
+				Eigen::VectorXd csi(plugFlowReactor_.history_csi().size());
+				for (unsigned int i = 0; i < plugFlowReactor_.history_csi().size(); i++)
+					csi(i) = plugFlowReactor_.history_csi()[i];
+
+				// Assign the boundary conditions
+				PlugFlowReactorCoupledProfiles* profiles = new PlugFlowReactorCoupledProfiles(csi);
+				Y_gas_side.resize(2 * grid_x_.Np() + grid_y_.Np());
+				for (int i = 0; i < Y_gas_side.size(); i++)
+				{
+					Y_gas_side[i].resize(thermodynamicsMap_.NumberOfSpecies());
+					Y_gas_side[i].setZero();
+				}
+
+				// Case: only east side
+				if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
+				{
+					for (int i = 0; i < grid_y_.Np(); i++)
+					{
+						const int point = i + grid_x_.Np();
+						const double coordinate = grid_y_.x()(i)+plugFlowReactor_.inert_length();
+						profiles->Interpolate(coordinate, plugFlowReactor_.history_Y(), Y_gas_side[point]);
+					}
+				}
+
+				SetGasSide(inlet_T , inlet_P, Y_gas_side);
+			}
+
+			count_update_plug_flow_ = 0;
 		}
 
 		t_old_ = t;
 		count_video_++;
 		count_file_++;
+		count_update_plug_flow_++;
 	}
 
 	void Reactor2D::SparsityPattern(std::vector<unsigned int>& rows, std::vector<unsigned int>& cols)

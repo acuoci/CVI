@@ -26,17 +26,17 @@
 
 #include "math/multivalue-ode-solvers/MultiValueSolver"
 
-class OpenSMOKE_PlugFlowReactor_OdeSystem
+class OpenSMOKE_PlugFlowReactorCoupled_OdeSystem
 {
 public:
 
-	OpenSMOKE_PlugFlowReactor_OdeSystem() {};
+	OpenSMOKE_PlugFlowReactorCoupled_OdeSystem() {};
 
-	void assignReactor(CVI::PlugFlowReactor *reactor);
+	void assignReactor(CVI::PlugFlowReactorCoupled *reactor);
 
 private:
 
-	CVI::PlugFlowReactor *ptReactor;
+	CVI::PlugFlowReactorCoupled *ptReactor;
 
 protected:
 
@@ -61,15 +61,15 @@ protected:
 	}
 };
 
-void OpenSMOKE_PlugFlowReactor_OdeSystem::assignReactor(CVI::PlugFlowReactor *reactor)
+void OpenSMOKE_PlugFlowReactorCoupled_OdeSystem::assignReactor(CVI::PlugFlowReactorCoupled *reactor)
 {
 	ptReactor = reactor;
 }
 
 
-bool PlugFlowReactor_Ode(CVI::PlugFlowReactor* reactor, const double t0, const double tf)
+bool PlugFlowReactorCoupled_Ode(CVI::PlugFlowReactorCoupled* reactor, const double t0, const double tf)
 {
-	std::cout << "Plug flow reactor solution (OpenSMOKE++)..." << std::endl;
+	std::cout << "Plug-flow reactor solution (OpenSMOKE++)..." << std::endl;
 
 	const unsigned int neq = reactor->NumberOfEquations();
 
@@ -77,7 +77,7 @@ bool PlugFlowReactor_Ode(CVI::PlugFlowReactor* reactor, const double t0, const d
 	Eigen::VectorXd yInitial(neq);
 	reactor->UnknownsVector(yInitial.data());
 
-	typedef OdeSMOKE::KernelDense<OpenSMOKE_PlugFlowReactor_OdeSystem> denseOde;
+	typedef OdeSMOKE::KernelDense<OpenSMOKE_PlugFlowReactorCoupled_OdeSystem> denseOde;
 	typedef OdeSMOKE::MethodGear<denseOde> methodGear;
 	OdeSMOKE::MultiValueSolver<methodGear> ode_solver;
 
@@ -107,25 +107,28 @@ bool PlugFlowReactor_Ode(CVI::PlugFlowReactor* reactor, const double t0, const d
 	// Check the solution
 	if (status > 0)
 	{
-		std::string message("OpenSMOKE++ Ode System successfully solved: ");
+		if (reactor->verbose_output() == true)
+		{
+			std::string message("OpenSMOKE++ Ode System successfully solved: ");
 
-		if (status == 1)		message += "ODE_STATUS_TO_BE_INITIALIZED";
-		else if (status == 2)	message += "ODE_STATUS_CONTINUATION";
-		else if (status == 3)	message += "ODE_STATUS_STOP_INTEGRATION_FOR_SMALL_YPRIME_NORM1";
+			if (status == 1)	message += "ODE_STATUS_TO_BE_INITIALIZED";
+			else if (status == 2)	message += "ODE_STATUS_CONTINUATION";
+			else if (status == 3)	message += "ODE_STATUS_STOP_INTEGRATION_FOR_SMALL_YPRIME_NORM1";
 
-		std::cout << message << std::endl;
+			std::cout << message << std::endl;
 
-		std::cout << std::endl;
-		std::cout << " * CPU time (s):                   " << timeEnd - timeStart << std::endl;
-		std::cout << " * number of steps:                " << ode_solver.numberOfSteps() << std::endl;
-		std::cout << " * number of functions:            " << ode_solver.numberOfFunctionCalls() << std::endl;
-		std::cout << " * number of solutions:            " << ode_solver.numberOfLinearSystemSolutions() << std::endl;
-		std::cout << " * number of Jacobians:            " << ode_solver.numberOfJacobianEvaluations() << std::endl;
-		std::cout << " * number of factorizations:       " << ode_solver.numberOfMatrixFactorizations() << std::endl;
-		std::cout << " * number of functions (Jacobian): " << ode_solver.numberOfFunctionCallsForJacobian() << std::endl;
-		std::cout << " * last order:                     " << ode_solver.lastOrderUsed() << std::endl;
-		std::cout << " * last step size:                 " << std::scientific << ode_solver.lastStepUsed() << std::endl;
-		std::cout << std::endl;
+			std::cout << std::endl;
+			std::cout << " * CPU time (s):                   " << timeEnd - timeStart << std::endl;
+			std::cout << " * number of steps:                " << ode_solver.numberOfSteps() << std::endl;
+			std::cout << " * number of functions:            " << ode_solver.numberOfFunctionCalls() << std::endl;
+			std::cout << " * number of solutions:            " << ode_solver.numberOfLinearSystemSolutions() << std::endl;
+			std::cout << " * number of Jacobians:            " << ode_solver.numberOfJacobianEvaluations() << std::endl;
+			std::cout << " * number of factorizations:       " << ode_solver.numberOfMatrixFactorizations() << std::endl;
+			std::cout << " * number of functions (Jacobian): " << ode_solver.numberOfFunctionCallsForJacobian() << std::endl;
+			std::cout << " * last order:                     " << ode_solver.lastOrderUsed() << std::endl;
+			std::cout << " * last step size:                 " << std::scientific << ode_solver.lastStepUsed() << std::endl;
+			std::cout << std::endl;
+		}
 
 		Eigen::VectorXd ysol(neq);
 		ode_solver.Solution(ysol);

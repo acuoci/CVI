@@ -25,13 +25,13 @@
 \*-----------------------------------------------------------------------*/
 
 // OpenSMOKE++ Solvers
-#include "Interface_PlugFlowReactor_ODE.h"
+#include "Interface_PlugFlowReactorCoupled_ODE.h"
 
 namespace CVI
 {
-	PlugFlowReactor::PlugFlowReactor(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-										OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-										const double v, const double Dh) :
+	PlugFlowReactorCoupled::PlugFlowReactorCoupled(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
+							OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
+							const double v, const double Dh) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -42,7 +42,7 @@ namespace CVI
 		Initialize();
 	}
 
-	PlugFlowReactor::PlugFlowReactor(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
+	PlugFlowReactorCoupled::PlugFlowReactorCoupled(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
 										OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 										OpenSMOKE::OpenSMOKE_Dictionary& dictionary ) :
 
@@ -91,6 +91,19 @@ namespace CVI
 			}
 		}
 
+		// Read the channel width (optional)
+		{
+			std::string units;
+			if (dictionary.CheckOption("@ChannelWidth") == true)
+			{
+				dictionary.ReadMeasure("@ChannelWidth", channel_width_, units);
+				if (units == "m")			channel_width_ = channel_width_;
+				else if (units == "cm")			channel_width_ = channel_width_ / 1.e2;
+				else if (units == "mm")			channel_width_ = channel_width_ / 1.e3;
+				else OpenSMOKE::FatalErrorMessage("Unknown @ChannelWidth units");
+			}
+		}
+
 		// Read the asymptotic Nusselt number (optional)
 		{
 			if (dictionary.CheckOption("@AsymptoticNusselt") == true)
@@ -103,14 +116,20 @@ namespace CVI
 				dictionary.ReadBool("@InternalBoundaryLayer", internal_boundary_layer_correction_);
 		}
 
+		// Coupling on/off
+		{
+			if (dictionary.CheckOption("@Coupling") == true)
+				dictionary.ReadBool("@Coupling", coupling_);
+		}
+
 		// Read the geometric pattern (optional)
 		{
 			std::string value;
 			if (dictionary.CheckOption("@GeometricPattern") == true)
 			{
 				dictionary.ReadString("@GeometricPattern", value);
-				if (value == "OneSide")				geometric_pattern_ = CVI::PlugFlowReactor::ONE_SIDE;
-				else if (value == "ThreeSides")		geometric_pattern_ = CVI::PlugFlowReactor::THREE_SIDES;
+				if (value == "OneSide")				geometric_pattern_ = CVI::PlugFlowReactorCoupled::ONE_SIDE;
+				else if (value == "ThreeSides")		geometric_pattern_ = CVI::PlugFlowReactorCoupled::THREE_SIDES;
 				else OpenSMOKE::FatalErrorMessage("@GeometricPattern available: OneSide | ThreeSides");
 			}
 		}
@@ -119,15 +138,19 @@ namespace CVI
 		Initialize();
 	}
 
-	void PlugFlowReactor::DefaultValues()
+	void PlugFlowReactorCoupled::DefaultValues()
 	{
+		verbose_output_ = true;
+		last_residence_time_ = 0.;
 		inert_length_ = 0.;
+		channel_width_ = 1.e-3;
 		NuInf_ = 3.66;
 		internal_boundary_layer_correction_ = false;
 		geometric_pattern_ = ONE_SIDE;
+		coupling_ = false;
 	}
 	
-	void PlugFlowReactor::Initialize()
+	void PlugFlowReactorCoupled::Initialize()
 	{
 		n_steps_video_ = 10;
 		count_video_ = n_steps_video_;
@@ -140,7 +163,7 @@ namespace CVI
 		MemoryAllocation();
 	}
 
-	void PlugFlowReactor::MemoryAllocation()
+	void PlugFlowReactorCoupled::MemoryAllocation()
 	{
 		OpenSMOKE::ChangeDimensions(ns_, &aux_X, true);
 		OpenSMOKE::ChangeDimensions(ns_, &aux_Y, true);
@@ -151,38 +174,83 @@ namespace CVI
 		dY_over_dt_.resize(ns_);
 	}
 
-	void PlugFlowReactor::SetInitialConditions(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas)
+	void PlugFlowReactorCoupled::SetInitialConditions(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas)
 	{
-		for (unsigned int j = 0; j < ns_; j++)
-			Y_(j) = omega_gas(j);
-
+		Y_ = omega_gas;
 		P_ = P_gas;
 		T_ = T_gas;
-
 		csi_ = 0.;
+
+		inlet_temperature_ = T_gas;
+		inlet_pressure_ = P_gas;
+		inlet_omega_ = omega_gas;
+
+		history_tau_.resize(0);
+		history_csi_.resize(0);
+		history_Y_.resize(0);
 	}
 
-	void PlugFlowReactor::SetInertLength(const double inert_length)
+
+	void PlugFlowReactorCoupled::SetCoupling(const bool coupling)
+	{
+		coupling_ = coupling;
+	}
+
+	void PlugFlowReactorCoupled::SetExternalMassFractionsProfile(const Eigen::VectorXd& csi_external, const Eigen::MatrixXd& omega_external)
+	{
+		if (coupling_ == true)
+		{
+			Y_external_.resize(ns_);
+
+			const unsigned int np = csi_external.size();
+			OpenSMOKE::OpenSMOKEVectorDouble csi_os(np);
+			OpenSMOKE::OpenSMOKEVectorDouble omega_os(np);
+
+			for (unsigned int i = 0; i < np; i++)
+				csi_os[i+1] = csi_external(i);
+
+			for (unsigned int j = 0; j < ns_; j++)
+			{
+				for (unsigned int i = 0; i < np; i++)
+					omega_os[i+1] = omega_external(i,j);
+				Y_external_[j].Set(csi_os, omega_os);
+			}
+		}
+		else
+			OpenSMOKE::FatalErrorMessage("SetExternalMassFractionsProfile is available only if coupling is turned on");
+	}
+
+	void PlugFlowReactorCoupled::SetVerboseOutput(const bool flag)
+	{
+		verbose_output_ = flag;
+	}
+
+	void PlugFlowReactorCoupled::SetInertLength(const double inert_length)
 	{
 		inert_length_ = inert_length;
 	}
 
-	void PlugFlowReactor::SetAsymptoticNusseltNumber(const double NuInf)
+	void PlugFlowReactorCoupled::SetChannelWidth(const double channel_width)
+	{
+		channel_width_ = channel_width;
+	}
+
+	void PlugFlowReactorCoupled::SetAsymptoticNusseltNumber(const double NuInf)
 	{
 		NuInf_ = NuInf;
 	}
 
-	void PlugFlowReactor::SetInternalBoundaryLayerCorrection(const bool flag)
+	void PlugFlowReactorCoupled::SetInternalBoundaryLayerCorrection(const bool flag)
 	{
 		internal_boundary_layer_correction_ = flag;
 	}
 
-	void PlugFlowReactor::SetGeometricPattern(const GeometricPattern pattern)
+	void PlugFlowReactorCoupled::SetGeometricPattern(const GeometricPattern pattern)
 	{
 		geometric_pattern_ = pattern;
 	}
 
-	double PlugFlowReactor::mass_transfer_coefficient(const double T, const double P_Pa, const double rho, const double x)
+	double PlugFlowReactorCoupled::mass_transfer_coefficient(const double T, const double P_Pa, const double rho, const double x)
 	{
 		const double logT = std::log(T);
 		const double mu = std::exp(-2.179357e+001 + 3.339017e+000*logT - 3.532041e-001*logT*logT + 1.543465e-002*std::pow(logT, 3.));
@@ -199,7 +267,7 @@ namespace CVI
 		return kc;
 	}
 
-	void PlugFlowReactor::Properties()
+	void PlugFlowReactorCoupled::Properties()
 	{
 		// Termodynamics
 		thermodynamicsMap_.SetPressure(P_);
@@ -225,18 +293,30 @@ namespace CVI
 		ElementByElementProduct(aux_R, thermodynamicsMap_.MW(), &aux_R); // [kg/m3/s]
 	}
 
-	void PlugFlowReactor::SubEquations_MassFractions()
+	void PlugFlowReactorCoupled::SubEquations_MassFractions()
 	{
 		for (unsigned int j = 0; j < ns_; j++)
 			dY_over_dt_(j) = aux_R[j+1]/rho_;
+
+		if (coupling_ == true)
+		{
+			if (csi_ >= inert_length_)
+			{
+				const double km = mass_transfer_coefficient(T_, P_, rho_, csi_);
+				for (unsigned int j = 0; j < ns_; j++)
+				{
+					dY_over_dt_(j) += -km/channel_width_*(Y_(j) - Y_external_[j].Get(csi_));
+				}
+			}
+		}
 	}
 
-	void PlugFlowReactor::SubEquations_Space()
+	void PlugFlowReactorCoupled::SubEquations_Space()
 	{
 		dcsi_over_dt_ = v_;
 	}
 
-	void PlugFlowReactor::Recover_Unknowns(const double* y)
+	void PlugFlowReactorCoupled::Recover_Unknowns(const double* y)
 	{
 		unsigned int count = 0;
 
@@ -248,7 +328,7 @@ namespace CVI
 		csi_ = y[count++];
 	}
 
-	void PlugFlowReactor::Recover_Residuals(double* dy)
+	void PlugFlowReactorCoupled::Recover_Residuals(double* dy)
 	{
 		unsigned int count = 0;
 
@@ -260,7 +340,7 @@ namespace CVI
 		dy[count++] = dcsi_over_dt_;
 	}
 
-	void PlugFlowReactor::UnknownsVector(double* v)
+	void PlugFlowReactorCoupled::UnknownsVector(double* v)
 	{
 		unsigned int count = 0;
 
@@ -272,7 +352,7 @@ namespace CVI
 		v[count++] = csi_;
 	}
 
-	void PlugFlowReactor::CorrectedUnknownsVector(double* v)
+	void PlugFlowReactorCoupled::CorrectedUnknownsVector(double* v)
 	{
 		unsigned int count = 0;
 
@@ -289,7 +369,7 @@ namespace CVI
 			Y_(j) /= sum;
 	}
 
-	void PlugFlowReactor::Equations(const double t, const double* y, double* dy)
+	void PlugFlowReactorCoupled::Equations(const double t, const double* y, double* dy)
 	{
 		// Recover unknowns
 		Recover_Unknowns(y);
@@ -305,17 +385,18 @@ namespace CVI
 		Recover_Residuals(dy);
 	}
 
-	bool PlugFlowReactor::Solve(const double tau)
+	bool PlugFlowReactorCoupled::Solve(const double tau)
 	{
-		bool flag = PlugFlowReactor_Ode(this, 0., tau);
+		last_residence_time_ = tau;
+		bool flag = PlugFlowReactorCoupled_Ode(this, 0., tau);
 		return flag;
 	}
 
-	void PlugFlowReactor::PrintSolution(const std::string name_file)
+	void PlugFlowReactorCoupled::PrintSolution(const std::string name_file)
 	{	
 	}
 
-	void PlugFlowReactor::Print(const double t, const double* y)
+	void PlugFlowReactorCoupled::Print(const double t, const double* y)
 	{
 		// History
 		{
@@ -328,15 +409,58 @@ namespace CVI
 			history_Y_.push_back(y_eigen);
 		}
 
-		if (count_video_ == n_steps_video_)
+		if (verbose_output_ == true)
 		{
-			std::cout << std::left << std::setw(16) << std::scientific << t;
-			std::cout << std::left << std::setw(16) << std::scientific << csi_*1000.;
-			std::cout << std::endl;
+			if (count_video_ == n_steps_video_)
+			{
+				std::cout << std::left << std::setw(16) << std::scientific << t;
+				std::cout << std::left << std::setw(16) << std::scientific << csi_*1000.;
+				std::cout << std::endl;
 
-			count_video_ = 0;
+				count_video_ = 0;
+			}
+
+			count_video_++;
+		}
+	}
+
+	void PlugFlowReactorCoupled::Print(const double t, const boost::filesystem::path file_path)
+	{
+		std::ofstream fOutput(file_path.c_str(), std::ios::out);
+		fOutput.setf(std::ios::scientific);
+
+		// Write headlines
+		{
+			unsigned int count = 1;
+			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "x[mm]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "tau[s]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "t[h]", count);
+
+			for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
+				OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, thermodynamicsMap_.NamesOfSpecies()[j] + "_x", count);
+			for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
+				OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, thermodynamicsMap_.NamesOfSpecies()[j] + "_w", count);
+			fOutput << std::endl;
 		}
 
-		count_video_++;
+		for (unsigned int i = 0;i<history_tau_.size();i++)
+		{
+			// Mole fractions
+			double mw_;
+			aux_Y.CopyFrom(history_Y_[i].data());
+			thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_, aux_Y);
+		
+			// Write on file
+			fOutput << std::setprecision(9) << std::setw(20) << (history_csi_[i]-inert_length_)*1e3;
+			fOutput << std::setprecision(9) << std::setw(20) << history_tau_[i];
+			fOutput << std::setprecision(9) << std::setw(20) << t/3600.;
+			for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
+				fOutput << std::setprecision(9) << std::setw(20) << aux_X[j+1];
+			for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
+				fOutput << std::setprecision(9) << std::setw(20) << aux_Y[j+1];
+			fOutput << std::endl;
+		}
+
+		fOutput.close();
 	}
 }

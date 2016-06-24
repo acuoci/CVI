@@ -24,8 +24,8 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#ifndef OpenSMOKE_Grammar_CVI_PlugFlowReactor_H
-#define OpenSMOKE_Grammar_CVI_PlugFlowReactor_H
+#ifndef OpenSMOKE_Grammar_CVI_PlugFlowReactorCoupled_H
+#define OpenSMOKE_Grammar_CVI_PlugFlowReactorCoupled_H
 
 #include "dictionary/OpenSMOKE_DictionaryManager.h"
 #include "dictionary/OpenSMOKE_DictionaryGrammar.h"
@@ -33,7 +33,7 @@
 
 namespace CVI
 {
-	class Grammar_CVI_PlugFlowReactor : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
+	class Grammar_CVI_PlugFlowReactorCoupled : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
 	{
 	protected:
 
@@ -58,6 +58,11 @@ namespace CVI
 				"Length of the inlet section",
 				false));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@ChannelWidth",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Width of the channel",
+				false));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@AsymptoticNusselt",
 				OpenSMOKE::SINGLE_DOUBLE,
 				"Asymptotic Nusselt number",
@@ -72,8 +77,13 @@ namespace CVI
 				OpenSMOKE::SINGLE_STRING,
 				"Geometric pattern: OneSide | ThreeSides",
 				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Coupling",
+				OpenSMOKE::SINGLE_BOOL,
+				"Coupling with the carbon felt",
+				true));
 		}
 	};
 }
 
-#endif /* OpenSMOKE_Grammar_CVI_PlugFlowReactor_H */
+#endif /* OpenSMOKE_Grammar_CVI_PlugFlowReactorCoupled_H */

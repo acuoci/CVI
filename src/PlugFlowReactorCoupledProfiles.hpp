@@ -34,41 +34,43 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#ifndef OpenSMOKE_PlugFlowReactorProfiles_H
-#define OpenSMOKE_PlugFlowReactorProfiles_H
-
-class PlugFlowReactorProfiles
+PlugFlowReactorCoupledProfiles::PlugFlowReactorCoupledProfiles(const Eigen::VectorXd& x)
 {
-public:
+	n_ = x.size();
+	x_ = x;
+	xstart_ = x_(0);
+	xend_ = x_(n_ - 1);
+}
 
-	/**
-	*@brief Default constructor
-	*@param n number of grid points
-	*@param x vector of abscissas
-	*@param x vector of ordinates
-	*/
-	PlugFlowReactorProfiles(const Eigen::VectorXd& x);
+void PlugFlowReactorCoupledProfiles::Interpolate(const double x_req, const std::vector<Eigen::VectorXd>& y, Eigen::VectorXd& y_req)
+{
+	if (n_ != y.size())
+		OpenSMOKE::FatalErrorMessage("Interpolating fixed profile: the provided y vector is not consistent with the abscissas");
 
-	/**
-	*@brief Returns the abscissas
-	*/
-	const Eigen::VectorXd& x() const { return x_; }
+	if (x_req < xstart_)
+	{
+		std::cout << "Xstart: " << xstart_ << " - Xreq: " << x_req << std::endl;
+		OpenSMOKE::FatalErrorMessage("Interpolating fixed profile: the requested coordinate is smaller than the minimum available coordinate");
+	}
 
-	/**
-	*@brief Perform the interpolation based on the stored profile
-	*@param x vector of points where to perform the interpolation
-	*@param y interpolated ordinates
-	*/
-	void Interpolate(const double x_req, const std::vector<Eigen::VectorXd>& y, Eigen::VectorXd& y_req);
+	if (x_req > xend_)
+	{
+		std::cout << "Xend: " << xend_ << " - Xreq: " << x_req << std::endl;
+		OpenSMOKE::FatalErrorMessage("Interpolating fixed profile: the requested coordinate is larger than the maximum available coordinate");
+	}
 
-private:
+	unsigned int nv = y[0].size();
 
-	Eigen::VectorXd x_;		//!< vector of abscissas
-	double xstart_;			//!< first abscissa
-	double xend_;			//!< last abscissa
-	unsigned int n_;		//!< number of points
-};
+	y_req.resize(nv);
+	y_req.setZero();
+	for (unsigned int j = 1; j < n_; j++)
+	{
+		if (x_req <= x_(j))
+		{
+			for (unsigned int k = 0; k < nv; k++)
+				y_req(k) = y[j - 1](k) + (y[j](k) - y[j - 1](k)) / (x_(j) - x_(j - 1)) * (x_req - x_(j - 1));
 
-#include "PlugFlowReactorProfiles.hpp"
-
-#endif
+			return;
+		}
+	}
+}

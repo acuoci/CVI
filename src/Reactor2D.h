@@ -77,7 +77,7 @@ namespace CVI
 					CVI::PorosityDefect& porosityDefect,
 					CVI::HeterogeneousMechanism& heterogeneousMechanism,
 					OpenSMOKE::Grid1D& grid_x, OpenSMOKE::Grid1D& grid_y,
-					CVI::PlugFlowReactor& plugFlowReactor);
+					CVI::PlugFlowReactorCoupled& plugFlowReactor);
 
 		/**
 		*@brief Sets the planar symmetry
@@ -131,6 +131,12 @@ namespace CVI
 		*@param steps_file number of steps to update info on file
 		*/
 		void SetStepsFile(const int steps_file);
+
+		/**
+		*@brief Sets steps update plug flow
+		*@param steps_update_plug_flow number of steps to update the plug flow
+		*/
+		void SetStepsUpdatePlugFlow(const int steps_update_plug_flow);
 
 		/**
 		*@brief Returns the differential equations
@@ -320,7 +326,7 @@ namespace CVI
 		CVI::HeterogeneousMechanism&							heterogeneousMechanism_;	//!< reference to the heterogeneous mechanism
 		OpenSMOKE::Grid1D&										grid_x_;					//!< reference to the 1D grid along the x direction
 		OpenSMOKE::Grid1D&										grid_y_;					//!< reference to the 1D grid along the y direction
-		CVI::PlugFlowReactor&									plugFlowReactor_;			//!< reference to the plug flow reactor
+		CVI::PlugFlowReactorCoupled&									plugFlowReactor_;			//!< reference to the plug flow reactor
 
 		// Dimensions
 		unsigned int ns_;						//!< total number of gaseous species
@@ -381,18 +387,21 @@ namespace CVI
 		Eigen::VectorXd						aux_eigen;			//!< auxiliary eigen vector
 		
 		// Output
-		double t_old_;								//!< time at the end of the previous step [s]
-		unsigned int n_steps_video_;				//!< number of steps for updating info on the screen
+		double t_old_;							//!< time at the end of the previous step [s]
+		unsigned int n_steps_video_;					//!< number of steps for updating info on the screen
 		unsigned int count_video_;					//!< counter of steps for updating info on the screen
 		unsigned int n_steps_file_;					//!< number of steps for updating info on the file
 		unsigned int count_file_;					//!< counter of steps for updating info on the file
+		unsigned int n_steps_update_plug_flow_;				//!< number of steps for updating plug flow
+		unsigned int count_update_plug_flow_;				//!< counter of steps for updating plug flow
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 
-		boost::filesystem::path output_folder_;					//!< name of output folder
+		boost::filesystem::path output_folder_;				//!< name of output folder
 		boost::filesystem::path output_tecplot_folder_;			//!< name of output folder fot Tecplot files
+		boost::filesystem::path output_plug_flow_folder_;		//!< name of output folder fot Tecplot files
 		boost::filesystem::path output_matlab_folder_;			//!< name of output folder fot Matlab files
 		boost::filesystem::path output_diffusion_folder_;		//!< name of output folder fot diffusion coefficient files
-		boost::filesystem::path output_heterogeneous_folder_;	//!< name of output folder fot heterogeneous reaction files
+		boost::filesystem::path output_heterogeneous_folder_;		//!< name of output folder fot heterogeneous reaction files
 		boost::filesystem::path output_homogeneous_folder_;		//!< name of output folder fot homogeneous reaction files
 
 
