@@ -330,7 +330,7 @@ int main(int argc, char** argv)
 	dae_parameters->SetMinimumMeanThreshold(0.);
 
 	// Read the plug flow residence time 
-	double residence_time = 1.;
+	double residence_time = 2.;
 	{
 		std::string units;
 
