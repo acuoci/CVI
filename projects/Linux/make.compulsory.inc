@@ -3,7 +3,7 @@
 # 1. COMPILER_NAME: gnu | intel
 # --------------------------------------------------------------------------------------------------------------------
 # Choose the compiler: gnu | intel
-COMPILER_NAME  = intel
+COMPILER_NAME  = gnu
 MULTI_THREADED = off
 OPENMP         = off
 STATIC_LINKING = off

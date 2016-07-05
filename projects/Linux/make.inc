@@ -19,10 +19,10 @@ include make.optional.inc
 # COMPILER OPTIONS
 # ------------------------------------------------------------------------------------------------
 ifeq ($(STATIC_LINKING),on)
-OPTIONS_INTEL    =  -O3 -m64 -std=c++0x
+OPTIONS_INTEL    =  -O3 -m64 -std=c++11
 OPTIONS_GNU      =  -O3 -m64 -std=c++0x
 else
-OPTIONS_INTEL    =  -O3 -m64 -fPIC -std=c++0x
+OPTIONS_INTEL    =  -O3 -m64 -fPIC -std=c++11
 OPTIONS_GNU      =  -O3 -m64 -fPIC -std=c++0x
 endif
 
