@@ -12,22 +12,22 @@
 
 #Autotools
 ########################
-/Makefile
-/Makefile.in
-/aclocal.m4
-/autom4te.cache/
-/config.*
-/configure
-/depcomp
-/install-sh
-/libtool
-/ltmain.sh
-/m4/
-/missing
-/stamp-h?
-.deps/
+projects/Linux/Makefile
+projects/Linux/Makefile.in
+projects/Linux/aclocal.m4
+projects/Linux/autom4te.cache
+projects/Linux/config.*
+projects/Linux/configure
+projects/Linux/depcomp
+projects/Linux/install-sh
+projects/Linux/libtool
+projects/Linux/ltmain.sh
+projects/Linux/m4
+projects/Linux/missing
+projects/Linux/stamp-h?
+.deps
 .dirstamp
-.libs/
+.libs
 *.l[ao]
 *~
 
