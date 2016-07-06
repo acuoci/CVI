@@ -1,5 +1,5 @@
 
-AC_INIT([CVI], [0.1], [alberto.cuoci@polimi.it])
+AC_INIT([OpenSMOKEpp_CVI], [0.1], [alberto.cuoci@polimi.it])
 
 AM_INIT_AUTOMAKE
 
@@ -36,7 +36,7 @@ AC_ARG_WITH([opensmoke], [AS_HELP_STRING([--with-opensmoke=DIR],
 AC_CHECK_FILE([${with_opensmoke_include_path}/OpenSMOKEpp], [], 
               AC_MSG_ERROR([Include file OpenSMOKEpp not found. Ask alberto.cuoci@polimi.it for the most recent version of OpenSMOKE++]))
 
-OPENSMOKEPP_INCLUDE_DIR="-I$with_opensmoke_include_path"
+OPENSMOKEPP_INCLUDE_DIR="-I$with_opensmoke_include_path -I../../src"
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # Add Eigen library (compulsory)
@@ -144,7 +144,18 @@ AC_ARG_WITH([mkl], [AS_HELP_STRING([--with-mkl=DIR],
                              AC_MSG_ERROR([Include file mkl.h not found. Try downloading the Intel MKL libraries from https://software.intel.com/en-us/intel-mkl])) ])
 
 
+# ---------------------------------------------------------------------------------------------------------------------------------------
+# Add Intel compiler (optional)
+# ---------------------------------------------------------------------------------------------------------------------------------------
 
+INTEL_COMPILER_LIBS=""
+
+AC_ARG_WITH([intel-compiler], [AS_HELP_STRING([--with-intel-compiler=DIR], 
+            [installation prefix for Intel Compiler])], 
+            [ with_intel_compiler_path=$with_intel_compiler/lib/intel64;
+	      INTEL_COMPILER_LIBS=" -L$with_intel_compiler_path -Wl,--start-group -lifcore -lirc -limf -Wl,--end-group ";
+	      AC_CHECK_FILE( [${with_intel_compiler_path}/libifcore.so], [], 
+                             AC_MSG_ERROR([Library file ${with_intel_compiler_path}/libifcore.so not found. Try downloading the Intel Compiler from https://software.intel.com])) ])
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # Add BzzMath library (optional)
@@ -300,13 +311,50 @@ AC_ARG_WITH([mebdf], [AS_HELP_STRING([--with-mebdf=DIR],
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
+# Add LINPACK library (optional)
+# ---------------------------------------------------------------------------------------------------------------------------------------
+
+LINPACK_LIBS=""
+
+AC_ARG_WITH([linpack], [AS_HELP_STRING([--with-linpack=DIR], 
+            [installation prefix (include) for LINPACK library])], 
+            [ with_linpack_path=$with_linpack; LINPACK_LIBS=" $with_linpack_path ";
+
+		AC_CHECK_FILE([${with_linpack_path}], [], 
+              	AC_MSG_ERROR([Library file ${with_linpack_path} not found. Try downloading the LINPACK library from http://www.netlib.org/linpack/])) ])
+
+# ---------------------------------------------------------------------------------------------------------------------------------------
+# Add CEQ library (optional, only for thermodynamic equilibrium calculations)
+# ---------------------------------------------------------------------------------------------------------------------------------------
+
+CEQ_LIBS=""
+
+AC_ARG_WITH([ceq], [AS_HELP_STRING([--with-ceq=DIR], 
+            [installation prefix (include) for CEQ library])], 
+            [ with_ceq_path=$with_ceq; CEQ_LIBS=" $with_ceq_path ";
+
+		AC_CHECK_FILE([${with_ceq_path}], [], 
+              	AC_MSG_ERROR([Library file ${with_ceq_path} not found. Try downloading the CEQ library from http://eccentric.mae.cornell.edu/~pope/CEQ/])) ])
+
+# ---------------------------------------------------------------------------------------------------------------------------------------
 # Add OpenBLAS library (optional)
 # ---------------------------------------------------------------------------------------------------------------------------------------
+OPENBLAS_LIBS=""
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # Add LIS library (optional)
 # ---------------------------------------------------------------------------------------------------------------------------------------
+LIS_LIBS=""
 
+# ---------------------------------------------------------------------------------------------------------------------------------------
+# Add METIS library (optional)
+# ---------------------------------------------------------------------------------------------------------------------------------------
+METIS_LIBS=""
+
+# ---------------------------------------------------------------------------------------------------------------------------------------
+# Add PLASMA library (optional)
+# ---------------------------------------------------------------------------------------------------------------------------------------
+PLASMA_LIBS=""
 
 
 #Compulsory libraries
@@ -320,6 +368,12 @@ AC_SUBST(BOOST_LIBS)
 AC_SUBST(MKL_INCLUDE_DIR)
 AC_SUBST(MKL_LIBS)
 AC_SUBST(USE_MKL)
+
+#Intel compiler
+AC_SUBST(INTEL_COMPILER_LIBS)
+
+#Linpack
+AC_SUBST(LINPACK_LIBS)
 
 #BzzMath libraries
 AC_SUBST(BZZMATH_INCLUDE_DIR)
@@ -353,9 +407,38 @@ AC_SUBST(USE_RADAU)
 AC_SUBST(MEBDF_LIBS)
 AC_SUBST(USE_MEBDF)
 
-#MEBDF
+#ODEPACK
 AC_SUBST(ODEPACK_LIBS)
 AC_SUBST(USE_ODEPACK)
+
+#CEQ
+AC_SUBST(CEQ_LIBS)
+
+#OpenBLAS
+AC_SUBST(OPENBLAS_LIBS)
+
+#LIS
+AC_SUBST(LIS_LIBS)
+
+#Metis
+AC_SUBST(METIS_LIBS)
+
+#PLASMA
+AC_SUBST(PLASMA_LIBS)
+
+
+USE_EXTERNAL_LIBRARIES="$USE_BZZMATH $USE_DASPK $USE_RADAU $USE_MEBDF $USE_ODEPACK $USE_UMFPACK $USE_SUPERLU $USE_SUNDIALS"
+AC_SUBST(USE_EXTERNAL_LIBRARIES)
+
+COMPULSORY_INCLUDE_DIRS="$OPENSMOKEPP_INCLUDE_DIR $EIGEN_INCLUDE_DIR $RAPIDXML_INCLUDE_DIR $BOOST_INCLUDE_DIR"
+AC_SUBST(COMPULSORY_INCLUDE_DIRS)
+
+EXTERNAL_INCLUDE_DIRS="$BZZMATH_INCLUDE_DIR $UMFPACK_INCLUDE_DIR $SUPERLU_INCLUDE_DIR $SUNDIALS_INCLUDE_DIR"
+AC_SUBST(EXTERNAL_INCLUDE_DIRS)
+
+EXTERNAL_LIBS="$CEQ_LIBS $BZZMATH_LIBS $DASPK_LIBS $MEBDF_LIBS $ODEPACK_LIBS $LINPACK_LIBS $RADAU_LIBS $SUNDIALS_LIBS $UMFPACK_LIBS $METIS_LIBS $SUPERLU_LIBS $LIS_LIBS $PLASMA_LIBS $INTEL_COMPILER_LIBS"
+AC_SUBST(EXTERNAL_LIBS)
+
 
 #
 AM_INIT_AUTOMAKE([subdir-objects])
