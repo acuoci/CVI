@@ -98,8 +98,8 @@ LIS_LIBS_GNU    =
 # -----------------------------------------------------------------------------------------------------------
 # BzzMath Libraries
 # -----------------------------------------------------------------------------------------------------------
-BZZMATH_INCLUDE        = -I/software/chimica2/libraries/bzzmath/bzzmath-6.0/hpp
-BZZMATH_INCLUDE_LIB    = -L/software/chimica2/libraries/bzzmath/bzzmath-6.0/lib/release
+BZZMATH_INCLUDE        = -I/home/alberto/Development/ExternalNumericalLibraries/BzzMath/BzzMath6-dev/hpp
+BZZMATH_INCLUDE_LIB    = -L/home/alberto/Development/ExternalNumericalLibraries/BzzMath/BzzMath6-dev/lib/linux
 BZZMATH_LIBS_INTEL     = -lBzzMath6_INTEL
 BZZMATH_LIBS_GNU       = -lBzzMath6_GNU
 

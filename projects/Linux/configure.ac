@@ -65,49 +65,65 @@ AC_CHECK_FILE([${with_rapidxml_include_path}/rapidxml.hpp], [],
 RAPIDXML_INCLUDE_DIR="-I$with_rapidxml_include_path"
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
-# Add Boost C++ library (compulsory)
+# Add Boost C++ library (compulsory, but system implementation can be used)
 # ---------------------------------------------------------------------------------------------------------------------------------------
+
+SYSTEM_BOOST="yes"
+
 AC_ARG_WITH([boost-include], [AS_HELP_STRING([--with-boost-include=DIR], 
             [installation prefix (include) for Boost C++ libraries])], 
-            [with_boost_include_path=$with_boost_include])
+            [with_boost_include_path=$with_boost_include; SYSTEM_BOOST="no"])
 
 AC_ARG_WITH([boost-lib], [AS_HELP_STRING([--with-boost-lib=DIR], 
             [installation prefix (lib) for Boost C++ libraries])], 
-            [with_boost_lib_path=$with_boost_lib])
+            [with_boost_lib_path=$with_boost_lib; SYSTEM_BOOST="no"])
 
-AC_CHECK_FILE([${with_boost_include_path}/boost/regex.h], [], 
-              AC_MSG_ERROR([Include file regex.h not found. Try downloading the Boost C++ libraries from http://www.boost.org]))
 
-AC_CHECK_FILE([${with_boost_lib_path}/libboost_date_time.a], [], 
-              AC_CHECK_FILE([${with_boost_lib_path}/libboost_date_time.so], [], 
-              AC_MSG_ERROR([Library file libboost_date_time.a or libboost_date_time.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+AS_IF([test "$SYSTEM_BOOST" = "yes"], [ 
 
-AC_CHECK_FILE([${with_boost_lib_path}/libboost_filesystem.a], [], 
-              AC_CHECK_FILE([${with_boost_lib_path}/libboost_filesystem.so], [], 
-              AC_MSG_ERROR([Library file libboost_filesystem.a or libboost_filesystem.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+	AC_CHECK_HEADERS([regex.h], [], [Include file regex.h not found. Try downloading the Boost C++ libraries from http://www.boost.org], [])
 
-AC_CHECK_FILE([${with_boost_lib_path}/libboost_program_options.a], [], 
-              AC_CHECK_FILE([${with_boost_lib_path}/libboost_program_options.so], [], 
-              AC_MSG_ERROR([Library file libboost_program_options.a or libboost_program_options.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+	BOOST_INCLUDE_DIR=""
+	BOOST_LIBS="-lboost_date_time -lboost_filesystem -lboost_program_options -lboost_system -lboost_regex -lboost_timer -lboost_chrono";
+])
 
-AC_CHECK_FILE([${with_boost_lib_path}/libboost_system.a], [], 
-              AC_CHECK_FILE([${with_boost_lib_path}/libboost_system.so], [], 
-              AC_MSG_ERROR([Library file libboost_system.a or libboost_system.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
 
-AC_CHECK_FILE([${with_boost_lib_path}/libboost_regex.a], [], 
-              AC_CHECK_FILE([${with_boost_lib_path}/libboost_regex.so], [], 
-              AC_MSG_ERROR([Library file libboost_regex.a or libboost_regex.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+AS_IF([test "$SYSTEM_BOOST" = "no"], [
 
-AC_CHECK_FILE([${with_boost_lib_path}/libboost_timer.a], [], 
-              AC_CHECK_FILE([${with_boost_lib_path}/libboost_timer.so], [], 
-              AC_MSG_ERROR([Library file libboost_timer.a or libboost_timer.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+	AC_CHECK_FILE([${with_boost_include_path}/boost/regex.h], [], 
+	              AC_MSG_ERROR([Include file regex.h not found. Try downloading the Boost C++ libraries from http://www.boost.org]))
 
-AC_CHECK_FILE([${with_boost_lib_path}/libboost_chrono.a], [], 
-              AC_CHECK_FILE([${with_boost_lib_path}/libboost_chrono.so], [], 
-              AC_MSG_ERROR([Library file libboost_chrono.a or libboost_chrono.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+	AC_CHECK_FILE([${with_boost_lib_path}/libboost_date_time.a], [], 
+		      AC_CHECK_FILE([${with_boost_lib_path}/libboost_date_time.so], [], 
+		      AC_MSG_ERROR([Library file libboost_date_time.a or libboost_date_time.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
 
-BOOST_INCLUDE_DIR="-I$with_boost_include_path"
-BOOST_LIBS="-L$with_boost_lib_path -lboost_date_time -lboost_filesystem -lboost_program_options -lboost_system -lboost_regex -lboost_timer -lboost_chrono"
+	AC_CHECK_FILE([${with_boost_lib_path}/libboost_filesystem.a], [], 
+		      AC_CHECK_FILE([${with_boost_lib_path}/libboost_filesystem.so], [], 
+		      AC_MSG_ERROR([Library file libboost_filesystem.a or libboost_filesystem.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+
+	AC_CHECK_FILE([${with_boost_lib_path}/libboost_program_options.a], [], 
+		      AC_CHECK_FILE([${with_boost_lib_path}/libboost_program_options.so], [], 
+		      AC_MSG_ERROR([Library file libboost_program_options.a or libboost_program_options.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+
+	AC_CHECK_FILE([${with_boost_lib_path}/libboost_system.a], [], 
+		      AC_CHECK_FILE([${with_boost_lib_path}/libboost_system.so], [], 
+		      AC_MSG_ERROR([Library file libboost_system.a or libboost_system.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+
+	AC_CHECK_FILE([${with_boost_lib_path}/libboost_regex.a], [], 
+		      AC_CHECK_FILE([${with_boost_lib_path}/libboost_regex.so], [], 
+		      AC_MSG_ERROR([Library file libboost_regex.a or libboost_regex.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+
+	AC_CHECK_FILE([${with_boost_lib_path}/libboost_timer.a], [], 
+		      AC_CHECK_FILE([${with_boost_lib_path}/libboost_timer.so], [], 
+		      AC_MSG_ERROR([Library file libboost_timer.a or libboost_timer.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+
+	AC_CHECK_FILE([${with_boost_lib_path}/libboost_chrono.a], [], 
+		      AC_CHECK_FILE([${with_boost_lib_path}/libboost_chrono.so], [], 
+		      AC_MSG_ERROR([Library file libboost_chrono.a or libboost_chrono.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
+
+	BOOST_INCLUDE_DIR="-I$with_boost_include_path"
+	BOOST_LIBS="-L$with_boost_lib_path -lboost_date_time -lboost_filesystem -lboost_program_options -lboost_system -lboost_regex -lboost_timer -lboost_chrono"
+])
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # Add Intel MKL library (optional)

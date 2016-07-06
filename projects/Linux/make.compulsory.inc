@@ -13,8 +13,8 @@ PATH_EXE       = ../../exe/linux/$(COMPILER_NAME)64-serial-mkl
 # COMPULSORY INCLUDE PATHS (please change according to the paths on your machine)
 # --------------------------------------------------------------------------------------------------------------------
 OPENSMOKE_PATH         =  $(HOME)/Development/MyCodes/OpenSMOKEpp/source
-EIGEN_PATH 	       =  /software/chimica2/libraries/eigen/eigen-3.3-dev
-RAPIDXML_PATH 	       =  /software/chimica2/libraries/rapidxml/rapidxml-1.13
+EIGEN_PATH 	       =  $(HOME)/Development/ExternalNumericalLibraries/Eigen/eigen-3.3-dev
+RAPIDXML_PATH 	       =  $(HOME)/Development/ExternalNumericalLibraries/RapidXML/rapidxml-1.13
 # --------------------------------------------------------------------------------------------------------------------
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -35,8 +35,8 @@ BOOST_LIBS          = -lboost_date_time -lboost_filesystem -lboost_program_optio
 OPENSMOKE_USE_MKL             =    on
 OPENSMOKE_USE_OPENBLAS        =    off
 OPENSMOKE_USE_SUNDIALS        =    off
-OPENSMOKE_USE_UMFPACK         =    on
-OPENSMOKE_USE_SUPERLU_SERIAL  =    on
+OPENSMOKE_USE_UMFPACK         =    off
+OPENSMOKE_USE_SUPERLU_SERIAL  =    off
 OPENSMOKE_USE_LIS             =    off
 OPENSMOKE_USE_ODEPACK         =    off
 OPENSMOKE_USE_DASPK           =    off
