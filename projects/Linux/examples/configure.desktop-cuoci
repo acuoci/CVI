@@ -1,0 +1,23 @@
+./configure \
+CXX=g++ \
+--enable-openmp=no \
+--prefix=/home/alberto/Development/Brembo/CVI/exe/linux/gnu64-serial-mkl \
+--with-opensmoke=$HOME/Development/MyCodes/OpenSMOKEpp \
+--with-eigen=$HOME/Development/ExternalNumericalLibraries/Eigen/eigen-3.3-dev \
+--with-rapidxml=$HOME/Development/ExternalNumericalLibraries/RapidXML/rapidxml-1.13 \
+--with-boost-include=$HOME/Development/ExternalNumericalLibraries/Boost/boost_1_61_0/include/ \
+--with-boost-lib=$HOME/Development/ExternalNumericalLibraries/Boost/boost_1_61_0/lib/ \
+--with-mkl=/opt/intel/mkl/
+
+./configure \
+CXX=icpc \
+--enable-openmp=no \
+--prefix=/home/alberto/Development/Brembo/CVI/exe/linux/intel64-serial-mkl \
+--with-intel-compiler=/opt/intel/ \
+--with-opensmoke=$HOME/Development/MyCodes/OpenSMOKEpp \
+--with-eigen=$HOME/Development/ExternalNumericalLibraries/Eigen/eigen-3.3-dev \
+--with-rapidxml=$HOME/Development/ExternalNumericalLibraries/RapidXML/rapidxml-1.13 \
+--with-boost-include=$HOME/Development/ExternalNumericalLibraries/Boost/boost_1_61_0/include/ \
+--with-boost-lib=$HOME/Development/ExternalNumericalLibraries/Boost/boost_1_61_0/lib/ \
+--with-mkl=/opt/intel/mkl/
+
