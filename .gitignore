@@ -10,6 +10,9 @@
 *.ipdb
 *.sh
 
+#Doxygen
+doc/html/
+
 #Autotools
 ########################
 projects/Linux/Makefile
