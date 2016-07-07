@@ -145,6 +145,25 @@ AC_ARG_WITH([mkl], [AS_HELP_STRING([--with-mkl=DIR],
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
+# Add OpenBLAS (optional, as alternative to MKL)
+# ---------------------------------------------------------------------------------------------------------------------------------------
+
+USE_OPENBLAS=" -DOPENSMOKE_USE_OPENBLAS=0 "
+OPENBLAS_INCLUDE_DIR=""
+OPENBLAS_LIBS=""
+
+AC_ARG_WITH([openblas], [AS_HELP_STRING([--with-openblas=DIR], 
+            [installation prefix for OpenBLAS libraries])], 
+            [ with_openblas_include_path=$with_openblas/include; 
+	      with_openblas_lib_path=$with_openblas/lib; 
+	      USE_OPENBLAS=" -DOPENSMOKE_USE_OPENBLAS=1 "; 
+	      OPENBLAS_INCLUDE_DIR=" -I$with_openblas_include_path "; 
+	      OPENBLAS_LIBS=" -Wl,--no-as-needed -L$with_openblas_lib_path -lopenblas ";
+	      AC_CHECK_FILE( [${with_openblas_include_path}/lapacke.h], [], 
+                             AC_MSG_ERROR([Include file lapacke.h not found. Try downloading the OpenBLAS libraries from http://www.openblas.net/])) ])
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------------
 # Add Intel compiler (optional)
 # ---------------------------------------------------------------------------------------------------------------------------------------
 
@@ -337,11 +356,6 @@ AC_ARG_WITH([ceq], [AS_HELP_STRING([--with-ceq=DIR],
               	AC_MSG_ERROR([Library file ${with_ceq_path} not found. Try downloading the CEQ library from http://eccentric.mae.cornell.edu/~pope/CEQ/])) ])
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
-# Add OpenBLAS library (optional)
-# ---------------------------------------------------------------------------------------------------------------------------------------
-OPENBLAS_LIBS=""
-
-# ---------------------------------------------------------------------------------------------------------------------------------------
 # Add LIS library (optional)
 # ---------------------------------------------------------------------------------------------------------------------------------------
 LIS_LIBS=""
@@ -371,6 +385,11 @@ AC_SUBST(USE_MKL)
 
 #Intel compiler
 AC_SUBST(INTEL_COMPILER_LIBS)
+
+#OpenBLAS
+AC_SUBST(OPENBLAS_INCLUDE_DIR)
+AC_SUBST(OPENBLAS_LIBS)
+AC_SUBST(USE_OPENBLAS)
 
 #Linpack
 AC_SUBST(LINPACK_LIBS)
@@ -427,16 +446,16 @@ AC_SUBST(METIS_LIBS)
 AC_SUBST(PLASMA_LIBS)
 
 
-USE_EXTERNAL_LIBRARIES="$USE_BZZMATH $USE_DASPK $USE_RADAU $USE_MEBDF $USE_ODEPACK $USE_UMFPACK $USE_SUPERLU $USE_SUNDIALS"
+USE_EXTERNAL_LIBRARIES="$USE_BZZMATH $USE_DASPK $USE_RADAU $USE_MEBDF $USE_ODEPACK $USE_UMFPACK $USE_SUPERLU $USE_SUNDIALS $USE_OPENBLAS"
 AC_SUBST(USE_EXTERNAL_LIBRARIES)
 
 COMPULSORY_INCLUDE_DIRS="$OPENSMOKEPP_INCLUDE_DIR $EIGEN_INCLUDE_DIR $RAPIDXML_INCLUDE_DIR $BOOST_INCLUDE_DIR"
 AC_SUBST(COMPULSORY_INCLUDE_DIRS)
 
-EXTERNAL_INCLUDE_DIRS="$BZZMATH_INCLUDE_DIR $UMFPACK_INCLUDE_DIR $SUPERLU_INCLUDE_DIR $SUNDIALS_INCLUDE_DIR"
+EXTERNAL_INCLUDE_DIRS="$BZZMATH_INCLUDE_DIR $UMFPACK_INCLUDE_DIR $SUPERLU_INCLUDE_DIR $SUNDIALS_INCLUDE_DIR $OPENBLAS_INCLUDE_DIR"
 AC_SUBST(EXTERNAL_INCLUDE_DIRS)
 
-EXTERNAL_LIBS="$CEQ_LIBS $BZZMATH_LIBS $DASPK_LIBS $MEBDF_LIBS $ODEPACK_LIBS $LINPACK_LIBS $RADAU_LIBS $SUNDIALS_LIBS $UMFPACK_LIBS $METIS_LIBS $SUPERLU_LIBS $LIS_LIBS $PLASMA_LIBS $INTEL_COMPILER_LIBS"
+EXTERNAL_LIBS="$CEQ_LIBS $BZZMATH_LIBS $DASPK_LIBS $MEBDF_LIBS $ODEPACK_LIBS $LINPACK_LIBS $RADAU_LIBS $SUNDIALS_LIBS $UMFPACK_LIBS $METIS_LIBS $SUPERLU_LIBS $LIS_LIBS $PLASMA_LIBS $OPENBLAS_LIBS $INTEL_COMPILER_LIBS"
 AC_SUBST(EXTERNAL_LIBS)
 
 

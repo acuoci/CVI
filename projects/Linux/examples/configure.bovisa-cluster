@@ -16,6 +16,17 @@ CXX=g++ \
 --with-superlu-lib=/software/chimica2/libraries/superlu/superlu/superlu-5.2-gcc-4.8.2/lib/libSuperLU52_gcc_64bit.a
 
 ./configure \
+CXX=g++ \
+--enable-openmp=no \
+--prefix=/home/chimica2/cuoci/Development/MyCodes/CVI/exe/linux/gnu64-serial-openblas \
+--with-opensmoke=/home/chimica2/cuoci/Development/MyCodes/OpenSMOKEpp \
+--with-eigen=/software/chimica2/libraries/eigen/eigen-3.3-dev/ \
+--with-rapidxml=/software/chimica2/libraries/rapidxml/rapidxml-1.13/ \
+--with-boost-include=/software/chimica2/libraries/boost/boost-1.60.0-gcc-4.8.2/include/ \
+--with-boost-lib=/software/chimica2/libraries/boost/boost-1.60.0-gcc-4.8.2/lib/ \
+--with-openblas=/software/chimica2/libraries/openblas/openblas-0.2.18/
+
+./configure \
 CXX=icpc \
 --enable-openmp=no \
 --prefix=/home/chimica2/cuoci/Development/MyCodes/CVI/exe/linux/intel64-serial-mkl \
