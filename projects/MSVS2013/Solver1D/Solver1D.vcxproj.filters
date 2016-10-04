@@ -101,7 +101,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\solver1d.cpp">
+    <ClCompile Include="..\..\..\src\solver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
