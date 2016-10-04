@@ -1,1 +1,1 @@
-..\..\..\exe\Win32\CVISMOKE++.exe
+..\..\..\exe\Win32-Release\CVISMOKE++.exe

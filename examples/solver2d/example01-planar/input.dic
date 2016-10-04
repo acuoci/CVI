@@ -21,36 +21,43 @@ Dictionary CVI_Solver1D
 	@Type				2D;
 	@PlugFlowReactor	plug-flow-reactor;
 	@PorousMedium		porous-medium;
-	@PorosityDefect		porosity-defect;
+	@HeterogeneousMechanism heterogeneous-mechanism;
 	@InletStream		inlet-stream;
 	@InitialConditions	initial-conditions;
 		
-	@XPoints		9;
-	@YPoints		9;
-	@XLength		21 mm;
-	@YLength		40 mm;
+	@XPoints			9;
+	@YPoints			9;
+	@XLength			21 mm;
+	@YLength			40 mm;
 	@XStretchingFactor	0.98;
 	@YStretchingFactor	1.;
 	
-	@TimeTotal		120 h;
-	@TimeInterval		2.5 h;
+	@TimeTotal				120 h;
+	@DaeTimeInterval		2.5 h;
+	@TecplotTimeInterval	1 h;
 	
 	@DaeParameters		dae-parameters;
+	
+//	@PorosityDefect		porosity-defect;
 }
+
 Dictionary porous-medium
 {
-	@HomogeneousReactions	true;
-	@HeterogeneousReactions	true;
-	
-	
-	
 	@FiberRadius			4 micron;
 	@FiberDensity			1720 kg/m3;
 	@GraphiteDensity		2200 kg/m3;
 	@InitialPorosity		0.929;
 	@PorousSubstrate		random_hardcore;
+}
+
+Dictionary heterogeneous-mechanism
+{
+	@HomogeneousReactions	true;
+	@HeterogeneousReactions	true;
+	
+	@GraphiteDensity			2200 kg/m3;
 	@HeterogeneousMechanism		Huttinger;
-	@HydrogenInhibition		Becker;
+	@HydrogenInhibition			Becker;
 }
 
 Dictionary	porosity-defect
@@ -64,12 +71,13 @@ Dictionary	porosity-defect
 
 Dictionary plug-flow-reactor
 {
-	@Velocity			45 cm/s;
+	@Velocity				45 cm/s;
 	@InletLength			2.5 mm;
 	@HydraulicDiameter		3.5 mm;
 	@AsymptoticNusselt		4.00;
-	@InternalBoundaryLayer		true;
+	@InternalBoundaryLayer	true;
 	@GeometricPattern		OneSide;
+	@Coupling				false;
 }
 
 Dictionary inlet-stream

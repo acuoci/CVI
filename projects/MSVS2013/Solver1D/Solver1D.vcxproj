@@ -21,14 +21,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <UseIntelMKL>Sequential</UseIntelMKL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <UseIntelMKL>Sequential</UseIntelMKL>
     <InterproceduralOptimization>false</InterproceduralOptimization>
@@ -45,12 +45,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\MyCodes\OpenSMOKEpp\source;C:\Development\MyCodes\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <OutDir>..\..\..\exe\Win32-Debug\</OutDir>
+    <TargetName>CVISMOKE++</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\MyCodes\OpenSMOKEpp\source;C:\Development\MyCodes\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
-    <OutDir>..\..\..\exe\Win32\</OutDir>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <OutDir>..\..\..\exe\Win32-Release\</OutDir>
     <TargetName>CVISMOKE++</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -59,12 +61,13 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions);OPENSMOKE_USE_MKL=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions);OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-Win32-Debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-Win32-Release\lib;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2016\windows\compiler\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libboost_system-vc140-mt-gd-1_60.lib;libboost_chrono-vc140-mt-gd-1_60.lib;libboost_timer-vc140-mt-gd-1_60.lib;libBzzMath60dev_XE2016_Win32_Debug.lib;libDASPK20_LINPACK_XE2016_Win32_Debug.lib;libLINPACK_XE2016_Win32_Debug.lib;libODEPACK_LINPACK_XE2016_Win32_Debug.lib;libmmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -76,7 +79,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>-D__is_assignable=__is_trivially_assignable %(AdditionalOptions)</AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InterproceduralOptimization>NoIPO</InterproceduralOptimization>
     </ClCompile>
@@ -85,8 +87,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-Win32-Release\lib;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;C:\Program Files %28x86%29\IntelSWTools\compilers_and_libraries_2016.2.180\windows\compiler\lib\ia32_win;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libboost_system-vc140-mt-1_60.lib;libboost_chrono-vc140-mt-1_60.lib;libboost_timer-vc140-mt-1_60.lib;libBzzMath60dev_XE2016_Win32_Release.lib;libDASPK20_LINPACK_XE2016_Win32_Release.lib;libLINPACK_XE2016_Win32_Release.lib;libODEPACK_LINPACK_XE2016_Win32_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-Win32-Release\lib;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2016\windows\compiler\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libboost_system-vc140-mt-1_60.lib;libboost_chrono-vc140-mt-1_60.lib;libboost_timer-vc140-mt-1_60.lib;libBzzMath60dev_XE2016_Win32_Release.lib;libDASPK20_LINPACK_XE2016_Win32_Release.lib;libLINPACK_XE2016_Win32_Release.lib;libODEPACK_LINPACK_XE2016_Win32_Release.lib;libmmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -17,7 +17,7 @@ Dictionary CVI_Solver1D
 	@KineticsFolder		../../kinetics/kinetics-Polimi4BremboRevised;
 	@Output				Output;
 
-	@Type				1D;
+	@Type				Capillary;
 	@Symmetry			Planar;
 	@PlugFlowReactor	plug-flow-reactor;
 	
@@ -27,45 +27,55 @@ Dictionary CVI_Solver1D
 	@InletStream		inlet-stream;
 	@InitialConditions	initial-conditions;
 
-	@ResidenceTime		0.01 s;
-		
-	@XPoints			36;
-	@YPoints			36;
-	@XLength			21 mm;
-	@YLength			40 mm;
-	@XStretchingFactor	0.98;
-	@YStretchingFactor	1.;
+	@CapillaryDiameter	1 mm;
+	@XPoints	        100;	
+	@XLength			17.5 mm;
+	@XStretchingFactor	1.00;
 	
-	@TimeTotal				120 h;
-	@DaeTimeInterval		2.5 h;
+	@ResidenceTime			0.5 s;
+	@TimeTotal				180 h;
+	@DaeTimeInterval		45 h;
+	
 	@TecplotTimeInterval	  1 h;
 	
 	@DaeParameters		dae-parameters;
+	
+	// Unused variables
+	@YPoints			10;
+	@YLength			1 mm;
+	@YStretchingFactor	1.;	
 }
 
 Dictionary porous-medium
 {
-	@FiberRadius				4 micron;
-	@FiberDensity				1720 kg/m3;
-	@GraphiteDensity			2200 kg/m3;
-	@InitialPorosity			0.929;
-	@PorousSubstrate			random_hardcore;
+	@FiberRadius			4 micron;
+	@FiberDensity			1720 kg/m3;
+	@GraphiteDensity		2200 kg/m3;
+	@InitialPorosity		0.775;
+	@PorousSubstrate		random_hardcore;
+	
+	// @PorousSubstrate
+	// polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation
 }
 
 Dictionary heterogeneous-mechanism
 {
-	@HomogeneousReactions		true;
-	@HeterogeneousReactions		true;
+	@HomogeneousReactions           true;
+	@HeterogeneousReactions         true;
+
+	@GraphiteDensity                2200 kg/m3;
+	@HeterogeneousMechanism         Huttinger;
+	@HydrogenInhibition             Becker;
 	
-	@GraphiteDensity			2200 kg/m3;
-	@HeterogeneousMechanism		Huttinger;
-	@HydrogenInhibition			Becker;
+	// @HeterogeneousMechanism 
+	// Huttinger | Ziegler | Vignoles |  Huttinger-extended | Ziegler-extended | Vignoles-extended
 }
 
 Dictionary plug-flow-reactor
 {
-	@Velocity					45 cm/s;
-	@InletLength				2.5 mm;
+	@Velocity					40 cm/s;
+	
+	@InletLength				10 mm;
 	@HydraulicDiameter			3.5 mm;
 	@AsymptoticNusselt			4.00;
 	@InternalBoundaryLayer		false;
@@ -75,7 +85,7 @@ Dictionary plug-flow-reactor
 
 Dictionary inlet-stream
 {	
-	@Temperature	1438 K;
+	@Temperature	1100  C;
 	@Pressure		20e3 Pa;
 	@Masses			CH4 1;
 }
@@ -91,9 +101,8 @@ Dictionary dae-parameters
 {
 	@DaeSolver			OpenSMOKE++;
 	@Jacobian			Band;
-
-//	@SparseSolver		Pardiso;
-//	@Preconditioner		ILUT;
+	@SparseSolver		Pardiso;
+	@Preconditioner		ILUT;
 	
 	//Sparse solvers: EigenSparseLU | EigenBiCGSTAB | EigenGMRES | EigenDGMRES
 	//                Pardiso       | SuperLUSerial | UMFPack
