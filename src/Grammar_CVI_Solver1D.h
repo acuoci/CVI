@@ -73,7 +73,18 @@ namespace CVI
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PlugFlowReactor",
 				OpenSMOKE::SINGLE_DICTIONARY,
 				"Name of the dictionary/dictionaries defining the plug flow reactor",
-				true));
+				true,
+				"@DiskFromCFD",
+				"none",
+				"none" ));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DiskFromCFD",
+				OpenSMOKE::SINGLE_PATH,
+				"Name of file containing the result of the CFD simulation",
+				true,
+				"@PlugFlowReactor",
+				"none",
+				"none"));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousMedium",
 				OpenSMOKE::SINGLE_DICTIONARY,

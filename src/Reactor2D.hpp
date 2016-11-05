@@ -74,6 +74,8 @@ namespace CVI
 		t_old_ = 0.;
 		time_smoothing_ = 10.;
 
+		gaseous_phase_ = GASEOUS_PHASE_FROM_PLUG_FLOW;
+
 		n_steps_video_ = 10;
 		count_video_ = n_steps_video_;
 		n_steps_file_ = 3;
@@ -219,13 +221,31 @@ namespace CVI
 
 
 		// Gas side Mass fractions [-]
-		Y_gas_side_.resize(2*nx_+ny_);
-		for (int i = 0; i < 2 * nx_ + ny_; i++)
-			Y_gas_side_[i].resize(ns_);
+		Y_gas_north_side_.resize(nx_);
+		Y_gas_south_side_.resize(nx_);
+		for (int i = 0; i < nx_; i++)
+		{
+			Y_gas_north_side_[i].resize(ns_);
+			Y_gas_south_side_[i].resize(ns_);
+		}
+
+		Y_gas_east_side_.resize(ny_);
+		Y_gas_west_side_.resize(ny_);
+		for (int i = 0; i < ny_; i++)
+		{
+			Y_gas_east_side_[i].resize(ns_);
+			Y_gas_west_side_[i].resize(ns_);
+		}
 
 		// Gas side temperature and pressure
-		T_gas_side_.resize(2 * nx_ + ny_);
-		P_gas_side_.resize(2 * nx_ + ny_);
+		T_gas_north_side_.resize(nx_);
+		P_gas_north_side_.resize(nx_);
+		T_gas_south_side_.resize(nx_);
+		P_gas_south_side_.resize(nx_);
+		T_gas_east_side_.resize(ny_);
+		P_gas_east_side_.resize(ny_);
+		T_gas_west_side_.resize(ny_);
+		P_gas_west_side_.resize(ny_);
 
 		// Increment of bulk density due to the single reactions
 		delta_rhobulk_.resize(np_);
@@ -337,56 +357,153 @@ namespace CVI
 
 	void Reactor2D::SetGasSide(const double T_gas, const double P_gas, const std::vector<Eigen::VectorXd>& omega_gas)
 	{
-		// Set gas side variables
-		for (unsigned int i = 0; i < 2 * nx_ + ny_; i++)
-		{
-			for (unsigned int j = 0; j < ns_; j++)
-				Y_gas_side_[i](j) = omega_gas[i](j);
+		gaseous_phase_ = GASEOUS_PHASE_FROM_PLUG_FLOW;
 
-			P_gas_side_(i) = P_gas;
-			T_gas_side_(i) = T_gas;
+		// Sides
+		{
+			// South side
+			for (unsigned int i = 0; i < nx_; i++)
+			{
+				for (unsigned int j = 0; j < ns_; j++)
+					Y_gas_south_side_[i](j) = omega_gas[i](j);
+
+				P_gas_south_side_(i) = P_gas;
+				T_gas_south_side_(i) = T_gas;
+			}
+
+			// East side
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				for (unsigned int j = 0; j < ns_; j++)
+					Y_gas_east_side_[i](j) = omega_gas[nx_ + i](j);
+
+				P_gas_east_side_(i) = P_gas;
+				T_gas_east_side_(i) = T_gas;
+			}
+
+			// North side
+			for (unsigned int i = 0; i < nx_; i++)
+			{
+				for (unsigned int j = 0; j < ns_; j++)
+					Y_gas_north_side_[i](j) = omega_gas[2 * nx_ + ny_ - 1 - i](j);
+
+				P_gas_north_side_(i) = P_gas;
+				T_gas_north_side_(i) = T_gas;
+			}
+		}
+
+		// Force consistency
+		{
+			// Set initial fields consistent along the east side
+			if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::GeometricPattern::ONE_SIDE)
+			{
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					for (unsigned int j = 0; j < ns_; j++)
+						Y_[list_points_east_(i)](j) = omega_gas[nx_ + i](j);
+
+					P_(list_points_east_(i)) = P_gas;
+					T_(list_points_east_(i)) = T_gas;
+				}
+			}
+			// Set initial fields consistent along the south, east, and north sides
+			else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::GeometricPattern::THREE_SIDES)
+			{
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					for (unsigned int j = 0; j < ns_; j++)
+						Y_[list_points_south_(i)](j) = omega_gas[i](j);
+
+					P_(list_points_south_(i)) = P_gas;
+					T_(list_points_south_(i)) = T_gas;
+				}
+
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					for (unsigned int j = 0; j < ns_; j++)
+						Y_[list_points_east_(i)](j) = omega_gas[nx_ + i](j);
+
+					P_(list_points_east_(i)) = P_gas;
+					T_(list_points_east_(i)) = T_gas;
+				}
+
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					for (unsigned int j = 0; j < ns_; j++)
+						Y_[list_points_north_(i)](j) = omega_gas[2 * nx_ + ny_ - 1 - i](j);
+
+					P_(list_points_north_(i)) = P_gas;
+					T_(list_points_north_(i)) = T_gas;
+				}
+			}
+		}
+	}
+
+	void Reactor2D::SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd)
+	{
+		gaseous_phase_ = GASEOUS_PHASE_FROM_CFD;
+
+		// Set initial fields consistent along the west side
+		{
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				for (unsigned int j = 0; j < ns_; j++)
+					Y_[list_points_west_(i)](j) = disk_from_cfd.west_mass_fractions()[i][j];
+				P_(list_points_west_(i)) = P_gas;
+				T_(list_points_west_(i)) = disk_from_cfd.west_temperature()[i];
+
+				for (unsigned int j = 0; j < ns_; j++)
+					Y_gas_west_side_[i](j) = disk_from_cfd.west_mass_fractions()[i][j];
+				P_gas_west_side_(i) = P_gas;
+				T_gas_west_side_(i) = T_gas;
+			}
 		}
 
 		// Set initial fields consistent along the east side
-		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::GeometricPattern::ONE_SIDE)
 		{
 			for (unsigned int i = 0; i < ny_; i++)
 			{
 				for (unsigned int j = 0; j < ns_; j++)
-					Y_[list_points_east_(i)](j) = omega_gas[nx_+i](j);
-
+					Y_[list_points_east_(i)](j) = disk_from_cfd.east_mass_fractions()[i][j];
 				P_(list_points_east_(i)) = P_gas;
-				T_(list_points_east_(i)) = T_gas;
+				T_(list_points_east_(i)) = disk_from_cfd.east_temperature()[i];
+
+				for (unsigned int j = 0; j < ns_; j++)
+					Y_gas_east_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
+				P_gas_east_side_(i) = P_gas;
+				T_gas_east_side_(i) = T_gas;
 			}
 		}
-		// Set initial fields consistent along the south, east, and north sides
-		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::GeometricPattern::THREE_SIDES)
+
+		// Set initial fields consistent along the south side
 		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
 				for (unsigned int j = 0; j < ns_; j++)
-					Y_[list_points_south_(i)](j) = omega_gas[i](j);
-
+					Y_[list_points_south_(i)](j) = disk_from_cfd.south_mass_fractions()[i][j];
 				P_(list_points_south_(i)) = P_gas;
-				T_(list_points_south_(i)) = T_gas;
-			}
+				T_(list_points_south_(i)) = disk_from_cfd.south_temperature()[i];
 
-			for (unsigned int i = 0; i < ny_; i++)
-			{
 				for (unsigned int j = 0; j < ns_; j++)
-					Y_[list_points_east_(i)](j) = omega_gas[nx_ + i](j);
-
-				P_(list_points_east_(i)) = P_gas;
-				T_(list_points_east_(i)) = T_gas;
+					Y_gas_south_side_[i](j) = disk_from_cfd.south_mass_fractions()[i][j];
+				P_gas_south_side_(i) = P_gas;
+				T_gas_south_side_(i) = T_gas;
 			}
+		}
 
+		// Set initial fields consistent along the north side
+		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
 				for (unsigned int j = 0; j < ns_; j++)
-					Y_[list_points_north_(i)](j) = omega_gas[2*nx_+ny_-1-i](j);
-
+					Y_[list_points_north_(i)](j) = disk_from_cfd.north_mass_fractions()[i][j];
 				P_(list_points_north_(i)) = P_gas;
-				T_(list_points_north_(i)) = T_gas;
+				T_(list_points_north_(i)) = disk_from_cfd.north_temperature()[i];
+
+				for (unsigned int j = 0; j < ns_; j++)
+					Y_gas_north_side_[i](j) = disk_from_cfd.north_mass_fractions()[i][j];
+				P_gas_north_side_(i) = P_gas;
+				T_gas_north_side_(i) = T_gas;
 			}
 		}
 	}
@@ -523,80 +640,128 @@ namespace CVI
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_WestSide(const double t)
 	{
-		for (unsigned int i = 0; i < ny_; i++)
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
-			const int point = list_points_west_(i);
-			for (unsigned int j = 0; j < ns_; j++)
-				dY_over_dt_[point](j) = Y_[point](j) - Y_[point + 1](j);
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				const int point = list_points_west_(i);
+				for (unsigned int j = 0; j < ns_; j++)
+					dY_over_dt_[point](j) = Y_[point](j) - Y_[point + 1](j);
+			}
+		}
+		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
+		{
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				const int point = list_points_west_(i);
+				for (unsigned int j = 0; j < ns_; j++)
+					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_west_side_[i](j);
+			}
 		}
 	}
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_EastSide(const double t)
 	{
-		if (plugFlowReactor_.internal_boundary_layer_correction() == true && t > time_smoothing_)
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
-			for (unsigned int i = 0; i < ny_; i++)
+			if (plugFlowReactor_.internal_boundary_layer_correction() == true && t > time_smoothing_)
 			{
-				const int point = list_points_east_(i);
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					const int point = list_points_east_(i);
 
-				const double kc = plugFlowReactor_.mass_transfer_coefficient(T_(point), P_(point), rho_gas_(point), grid_y_.x()(i)+plugFlowReactor_.inert_length());
-				const double gamma_over_dx = gamma_star_[point](heterogeneousMechanism_.index_CH4()) / grid_x_.dxw()(nx_ - 1);
+					const double kc = plugFlowReactor_.mass_transfer_coefficient(T_(point), P_(point), rho_gas_(point), grid_y_.x()(i) + plugFlowReactor_.inert_length());
+					const double gamma_over_dx = gamma_star_[point](heterogeneousMechanism_.index_CH4()) / grid_x_.dxw()(nx_ - 1);
 
-				for (unsigned int j = 0; j < ns_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - (gamma_over_dx*Y_[point - 1](j) + kc*Y_gas_side_[nx_ + i](j)) / (gamma_over_dx + kc);
+					for (unsigned int j = 0; j < ns_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - (gamma_over_dx*Y_[point - 1](j) + kc*Y_gas_east_side_[i](j)) / (gamma_over_dx + kc);
+				}
+			}
+			else
+			{
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					const int point = list_points_east_(i);
+					for (unsigned int j = 0; j < ns_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_gas_east_side_[i](j);
+				}
 			}
 		}
-		else
+		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
 			for (unsigned int i = 0; i < ny_; i++)
 			{
 				const int point = list_points_east_(i);
 				for (unsigned int j = 0; j < ns_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_side_[nx_ + i](j);
+					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_east_side_[i](j);
 			}
 		}
 	}
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_NorthSide(const double t)
 	{
-		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
-			for (unsigned int i = 0; i < nx_; i++)
+			if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
 			{
-				const int point = list_points_north_(i);
-				for (unsigned int j = 0; j < ns_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_[point - nx_](j);
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = list_points_north_(i);
+					for (unsigned int j = 0; j < ns_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_[point - nx_](j);
+				}
+			}
+			else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::THREE_SIDES)
+			{
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = list_points_north_(i);
+					for (unsigned int j = 0; j < ns_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_gas_north_side_[i](j);
+				}
 			}
 		}
-		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::THREE_SIDES)
+		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
 				const int point = list_points_north_(i);
 				for (unsigned int j = 0; j < ns_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_side_[2 * nx_ + ny_ - 1 - i](j);
+					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_north_side_[i](j);
 			}
 		}
 	}
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_SouthSide(const double t)
 	{
-		if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
-			for (unsigned int i = 0; i < nx_; i++)
+			if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
 			{
-				const int point = list_points_south_(i);
-				for (unsigned int j = 0; j < ns_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_[point + nx_](j);
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = list_points_south_(i);
+					for (unsigned int j = 0; j < ns_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_[point + nx_](j);
+				}
+			}
+			else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::THREE_SIDES)
+			{
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = list_points_south_(i);
+					for (unsigned int j = 0; j < ns_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_gas_south_side_[i](j);
+				}
 			}
 		}
-		else if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::THREE_SIDES)
+		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
 			for (unsigned int i = 0; i < nx_; i++)
 			{
 				const int point = list_points_south_(i);
 				for (unsigned int j = 0; j < ns_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_side_[i](j);
+					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_south_side_[i](j);
 			}
 		}
 	}
@@ -1539,86 +1704,92 @@ namespace CVI
 			std::string tecplot_file = "Solution.tec." + current_index.str();
 			PrintTecplot(t, (output_tecplot_folder_ / tecplot_file).string().c_str());
 
-			std::string plug_flow_file = "PlugFlow.out." + current_index.str();
-			plugFlowReactor_.Print(t, (output_plug_flow_folder_ / plug_flow_file).string().c_str());
+			if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
+			{
+				std::string plug_flow_file = "PlugFlow.out." + current_index.str();
+				plugFlowReactor_.Print(t, (output_plug_flow_folder_ / plug_flow_file).string().c_str());
+			}
 		}
 
-		if (plugFlowReactor_.coupling() == true && count_update_plug_flow_ == n_steps_update_plug_flow_)
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
-			const double inlet_T = plugFlowReactor_.inlet_temperature();
-			const double inlet_P = plugFlowReactor_.inlet_pressure();
-			const Eigen::VectorXd inlet_omega = plugFlowReactor_.inlet_mass_fractions();
-
-			// Plug flow ractor simulation
-			std::vector<Eigen::VectorXd> Y_gas_side;
+			if (plugFlowReactor_.coupling() == true && count_update_plug_flow_ == n_steps_update_plug_flow_)
 			{
-				// Set initial conditions
-				plugFlowReactor_.SetInitialConditions(inlet_T, inlet_P, inlet_omega);
-				plugFlowReactor_.SetVerboseOutput(false);
+				const double inlet_T = plugFlowReactor_.inlet_temperature();
+				const double inlet_P = plugFlowReactor_.inlet_pressure();
+				const Eigen::VectorXd inlet_omega = plugFlowReactor_.inlet_mass_fractions();
 
-				// Set external profile
+				// Plug flow ractor simulation
+				std::vector<Eigen::VectorXd> Y_gas_side;
 				{
-					Eigen::VectorXd csi_external(ny_+2); 
-					Eigen::MatrixXd omega_external(ny_+2, thermodynamicsMap_.NumberOfSpecies());
+					// Set initial conditions
+					plugFlowReactor_.SetInitialConditions(inlet_T, inlet_P, inlet_omega);
+					plugFlowReactor_.SetVerboseOutput(false);
 
-					// Set csi external
-					csi_external(0)=0.; 
-					csi_external(ny_+1)=1000.;
-					for (unsigned int i = 0; i < ny_; i++)
-						csi_external(i+1) = plugFlowReactor_.inert_length() + grid_y_.x()[i];
-					
-					// Internal points
-					for (unsigned int i = 0; i < ny_; i++)
-					{
-						const int point = list_points_east_(i);
-						for (unsigned int j = 0; j < ns_; j++)
-							omega_external(i+1,j) =  Y_[point](j);
-					}
-
-					// First point
-					for (unsigned int j = 0; j < ns_; j++)
-						omega_external(0,j) = omega_external(1,j);
-
-					// Last point
-					for (unsigned int j = 0; j < ns_; j++)
-						omega_external(ny_+1,j) = omega_external(ny_,j);
-					
 					// Set external profile
-					plugFlowReactor_.SetExternalMassFractionsProfile(csi_external, omega_external);
-				}
-
-				// Solve the plug flow reactor
-				plugFlowReactor_.Solve(plugFlowReactor_.last_residence_time());
-
-				// Extract the plug flow history
-				Eigen::VectorXd csi(plugFlowReactor_.history_csi().size());
-				for (unsigned int i = 0; i < plugFlowReactor_.history_csi().size(); i++)
-					csi(i) = plugFlowReactor_.history_csi()[i];
-
-				// Assign the boundary conditions
-				PlugFlowReactorCoupledProfiles* profiles = new PlugFlowReactorCoupledProfiles(csi);
-				Y_gas_side.resize(2 * grid_x_.Np() + grid_y_.Np());
-				for (int i = 0; i < Y_gas_side.size(); i++)
-				{
-					Y_gas_side[i].resize(thermodynamicsMap_.NumberOfSpecies());
-					Y_gas_side[i].setZero();
-				}
-
-				// Case: only east side
-				if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
-				{
-					for (int i = 0; i < grid_y_.Np(); i++)
 					{
-						const int point = i + grid_x_.Np();
-						const double coordinate = grid_y_.x()(i)+plugFlowReactor_.inert_length();
-						profiles->Interpolate(coordinate, plugFlowReactor_.history_Y(), Y_gas_side[point]);
+						Eigen::VectorXd csi_external(ny_ + 2);
+						Eigen::MatrixXd omega_external(ny_ + 2, thermodynamicsMap_.NumberOfSpecies());
+
+						// Set csi external
+						csi_external(0) = 0.;
+						csi_external(ny_ + 1) = 1000.;
+						for (unsigned int i = 0; i < ny_; i++)
+							csi_external(i + 1) = plugFlowReactor_.inert_length() + grid_y_.x()[i];
+
+						// Internal points
+						for (unsigned int i = 0; i < ny_; i++)
+						{
+							const int point = list_points_east_(i);
+							for (unsigned int j = 0; j < ns_; j++)
+								omega_external(i + 1, j) = Y_[point](j);
+						}
+
+						// First point
+						for (unsigned int j = 0; j < ns_; j++)
+							omega_external(0, j) = omega_external(1, j);
+
+						// Last point
+						for (unsigned int j = 0; j < ns_; j++)
+							omega_external(ny_ + 1, j) = omega_external(ny_, j);
+
+						// Set external profile
+						plugFlowReactor_.SetExternalMassFractionsProfile(csi_external, omega_external);
 					}
+
+					// Solve the plug flow reactor
+					plugFlowReactor_.Solve(plugFlowReactor_.last_residence_time());
+
+					// Extract the plug flow history
+					Eigen::VectorXd csi(plugFlowReactor_.history_csi().size());
+					for (unsigned int i = 0; i < plugFlowReactor_.history_csi().size(); i++)
+						csi(i) = plugFlowReactor_.history_csi()[i];
+
+					// Assign the boundary conditions
+					PlugFlowReactorCoupledProfiles* profiles = new PlugFlowReactorCoupledProfiles(csi);
+					Y_gas_side.resize(2 * grid_x_.Np() + grid_y_.Np());
+					for (int i = 0; i < Y_gas_side.size(); i++)
+					{
+						Y_gas_side[i].resize(thermodynamicsMap_.NumberOfSpecies());
+						Y_gas_side[i].setZero();
+					}
+
+					// Case: only east side
+					if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
+					{
+						for (int i = 0; i < grid_y_.Np(); i++)
+						{
+							const int point = i + grid_x_.Np();
+							const double coordinate = grid_y_.x()(i) + plugFlowReactor_.inert_length();
+							profiles->Interpolate(coordinate, plugFlowReactor_.history_Y(), Y_gas_side[point]);
+						}
+					}
+
+					SetGasSide(inlet_T, inlet_P, Y_gas_side);
 				}
 
-				SetGasSide(inlet_T , inlet_P, Y_gas_side);
+				count_update_plug_flow_ = 0;
 			}
-
-			count_update_plug_flow_ = 0;
 		}
 
 		t_old_ = t;

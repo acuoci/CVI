@@ -49,6 +49,8 @@
 
 namespace CVI
 {
+	enum GaseousPhase { GASEOUS_PHASE_FROM_PLUG_FLOW, GASEOUS_PHASE_FROM_CFD };
+
 	//!  A class to solve the reaction-diffusion equations in 1D 
 	/*!
 	This class provides the tools to solve the reaction-diffusion equations in 1D 
@@ -92,6 +94,14 @@ namespace CVI
 		*@param omega_gas	gass side mass fractions
 		*/
 		void SetGasSide(const double T_gas, const double P_gas, const std::vector<Eigen::VectorXd>& omega_gas);
+
+		/**
+		*@brief Sets the conditions along the gas side
+		*@param T_gas			gas side temperature [K]
+		*@param P_gas			gas side pressure [Pa]
+		*@param disk_from_cfd	gass side mass fractions
+		*/
+		void Reactor2D::SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
 
 		/**
 		*@brief Sets the initial conditions in the porous medium
@@ -368,10 +378,25 @@ namespace CVI
 		std::vector<Eigen::VectorXd>	dY_over_dt_;			//!< time derivatives of mass fractions	[1/s]
 		Eigen::VectorXd					depsilon_over_dt_;		//!< time derivative of porosity [1/s]
 
-		// Gas side data
-		std::vector<Eigen::VectorXd>	Y_gas_side_;			//!< mass fractions along the gas side
-		Eigen::VectorXd					T_gas_side_;			//!< temperature along the gas side [K]
-		Eigen::VectorXd					P_gas_side_;			//!< pressure along the gas side [Pa]
+		// North gas side data
+		std::vector<Eigen::VectorXd>	Y_gas_north_side_;			//!< mass fractions along the north gas side
+		Eigen::VectorXd					T_gas_north_side_;			//!< temperature along the north gas side [K]
+		Eigen::VectorXd					P_gas_north_side_;			//!< pressure along the north gas side [Pa]
+
+		// South gas side data
+		std::vector<Eigen::VectorXd>	Y_gas_south_side_;			//!< mass fractions along the south gas side
+		Eigen::VectorXd					T_gas_south_side_;			//!< temperature along the south gas side [K]
+		Eigen::VectorXd					P_gas_south_side_;			//!< pressure along the south gas side [Pa]
+
+		// East gas side data
+		std::vector<Eigen::VectorXd>	Y_gas_east_side_;			//!< mass fractions along the east gas side
+		Eigen::VectorXd					T_gas_east_side_;			//!< temperature along the east gas side [K]
+		Eigen::VectorXd					P_gas_east_side_;			//!< pressure along the east gas side [Pa]
+
+		// West gas side data
+		std::vector<Eigen::VectorXd>	Y_gas_west_side_;			//!< mass fractions along the west gas side
+		Eigen::VectorXd					T_gas_west_side_;			//!< temperature along the west gas side [K]
+		Eigen::VectorXd					P_gas_west_side_;			//!< pressure along the west gas side [Pa]
 
 		// Algebraic/Differential equations
 		std::vector<bool>	id_equations_;				//!< algebraic/differential equations
@@ -423,6 +448,8 @@ namespace CVI
 		Eigen::VectorXi list_points_north_;
 		Eigen::VectorXi list_points_east_;
 		Eigen::VectorXi list_points_west_;
+
+		GaseousPhase gaseous_phase_;
 
 		// Additional options
 		bool planar_symmetry_;

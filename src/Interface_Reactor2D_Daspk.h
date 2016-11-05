@@ -38,6 +38,12 @@ void DaspkInitialDerivatives(double t, double *y, double *yp)
 	reactor2d->CorrectAlgebraicEquations(yp);
 }
 
+static void DaspkAlgebraicDifferentialVector(double* v)
+{
+	// Returns 1. if differential, 0. if algebraic
+	reactor2d->AlgebraicDifferentialVector(v);
+}
+
 static void DaspkAnalyticalJacobian(double *x, double *y, double *dy, double *pd, double *cj, double *rpar, int *ipar)
 {
 }

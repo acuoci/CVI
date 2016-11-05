@@ -54,6 +54,9 @@
 #include "PlugFlowReactorCoupled.h"
 #include "PlugFlowReactorCoupledProfiles.h"
 
+// Disk from CFD simulation
+#include "DiskFromCFD.h"
+
 // Capillary 1D
 #include "Capillary.h"
 
@@ -116,11 +119,14 @@ int main(int argc, char** argv)
 		}
 	}
 
+	// Gaseous phase
+	CVI::GaseousPhase gaseous_phase = CVI::GASEOUS_PHASE_FROM_PLUG_FLOW;
+
 	// Defines the grammar rules
-	CVI::Grammar_CVI_Solver1D			grammar_cvi_solver1d;
+	CVI::Grammar_CVI_Solver1D					grammar_cvi_solver1d;
 	CVI::Grammar_CVI_PlugFlowReactorCoupled		grammar_cvi_plug_flow_reactor_coupled;
-	CVI::Grammar_CVI_PorousMedium			grammar_cvi_porous_medium;
-	CVI::Grammar_CVI_PorosityDefect			grammar_defect_porous_medium;
+	CVI::Grammar_CVI_PorousMedium				grammar_cvi_porous_medium;
+	CVI::Grammar_CVI_PorosityDefect				grammar_defect_porous_medium;
 	CVI::Grammar_CVI_HeterogeneousMechanism		grammar_cvi_heterogeneous_mechanism;
 
 	// Define the dictionaries
@@ -128,10 +134,50 @@ int main(int argc, char** argv)
 	dictionaries.ReadDictionariesFromFile(input_file_name_);
 	dictionaries(main_dictionary_name_).SetGrammar(grammar_cvi_solver1d);
 
+	// Type of problem
+	enum CVIProblemType { CVI_CAPILLARY, CVI_REACTOR1D, CVI_REACTOR2D } problem_type;
+	{
+		std::string value;
+		if (dictionaries(main_dictionary_name_).CheckOption("@Type") == true)
+			dictionaries(main_dictionary_name_).ReadString("@Type", value);
+		if (value == "1D")			problem_type = CVI_REACTOR1D;
+		else if (value == "2D")			problem_type = CVI_REACTOR2D;
+		else if (value == "Capillary")		problem_type = CVI_CAPILLARY;
+		else OpenSMOKE::FatalErrorMessage("Wrong @Type: Capillary | 1D | 2D");
+	}
+
+	// Type of problem
+	bool symmetry_planar = true;
+	{
+		std::string value;
+		if (dictionaries(main_dictionary_name_).CheckOption("@Symmetry") == true)
+			dictionaries(main_dictionary_name_).ReadString("@Symmetry", value);
+		if (value == "Planar")				symmetry_planar = true;
+		else if (value == "Cylindrical")	symmetry_planar = false;
+		else OpenSMOKE::FatalErrorMessage("Wrong @Symmetry: Planar | Cylindrical");
+	}
+
 	// Plug flow reactor
 	std::string dict_name_plug_flow;
 	if (dictionaries(main_dictionary_name_).CheckOption("@PlugFlowReactor") == true)
+	{
 		dictionaries(main_dictionary_name_).ReadDictionary("@PlugFlowReactor", dict_name_plug_flow);
+		dictionaries(dict_name_plug_flow).SetGrammar(grammar_cvi_plug_flow_reactor_coupled);
+		gaseous_phase = CVI::GASEOUS_PHASE_FROM_PLUG_FLOW;
+	}
+	else
+	{
+		if (problem_type == CVI_REACTOR1D || problem_type == CVI_CAPILLARY)
+			OpenSMOKE::FatalErrorMessage("@PlugFlowReactor is compulsory for 1D and Capillary problems");
+	}
+
+	// Read from Disk file
+	boost::filesystem::path disk_file_name;
+	if (dictionaries(main_dictionary_name_).CheckOption("@DiskFromCFD") == true)
+	{
+		dictionaries(main_dictionary_name_).ReadPath("@DiskFromCFD", disk_file_name);
+		gaseous_phase = CVI::GASEOUS_PHASE_FROM_CFD;
+	}
 
 	// Porous medium
 	std::string dict_name_porous_medium;
@@ -154,7 +200,6 @@ int main(int argc, char** argv)
 	}
 
 	// Sets the grammars
-	dictionaries(dict_name_plug_flow).SetGrammar(grammar_cvi_plug_flow_reactor_coupled);
 	dictionaries(dict_name_porous_medium).SetGrammar(grammar_cvi_porous_medium);
 	dictionaries(dict_name_heterogeneous_mechanism).SetGrammar(grammar_cvi_heterogeneous_mechanism);
 
@@ -186,17 +231,33 @@ int main(int argc, char** argv)
 		if (dictionaries(name_of_rapid_kinetics_subdictionary).CheckOption("@Transport") == true)
 			dictionaries(name_of_rapid_kinetics_subdictionary).ReadPath("@Transport", path_input_transport);
 
+//		boost::filesystem::path path_input_surface_kinetics;
+//		if (dictionaries(name_of_rapid_kinetics_subdictionary).CheckOption("@Surface") == true)
+//			dictionaries(name_of_rapid_kinetics_subdictionary).ReadPath("@Surface", path_input_surface_kinetics);
+//		else OpenSMOKE::FatalErrorMessage("The @Surface option is strictly required by the @KineticsPreProcessor");
+
 		if (dictionaries(name_of_rapid_kinetics_subdictionary).CheckOption("@Output") == true)
 			dictionaries(name_of_rapid_kinetics_subdictionary).ReadPath("@Output", path_kinetics_output);
 
-		OpenSMOKE::RapidKineticMechanismWithTransport(path_kinetics_output, path_input_transport.c_str(), path_input_thermodynamics.c_str(), path_input_kinetics.c_str());
+//		OpenSMOKE::RapidKineticMechanismWithoutTransport(	path_kinetics_output, 
+//															path_input_thermodynamics.c_str(),
+//															path_input_kinetics.c_str(), 
+//															path_input_surface_kinetics.c_str()	);
+
+		OpenSMOKE::RapidKineticMechanismWithoutTransport(	path_kinetics_output, 
+															path_input_thermodynamics.c_str(),
+															path_input_kinetics.c_str()	);
+
 	}
 
 	// Read thermodynamics and kinetics maps
-	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>*		thermodynamicsMapXML;
-	OpenSMOKE::KineticsMap_CHEMKIN<double>*				kineticsMapXML;
-	OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>*	transportMapXML;
+	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>*			thermodynamicsMapXML;
+	OpenSMOKE::KineticsMap_CHEMKIN<double>*					kineticsMapXML;
+	OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>*		transportMapXML;
+//	OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>*	thermodynamicsSurfaceMapXML;
+//	OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>*			kineticsSurfaceMapXML;
 
+	// Read the homogeneous kinetic scheme in XML format
 	{
 		rapidxml::xml_document<> doc;
 		std::vector<char> xml_string;
@@ -213,35 +274,26 @@ int main(int argc, char** argv)
 		double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
 	}
+/*
+	// Read the surface kinetic scheme in XML format
+	{
+		rapidxml::xml_document<> doc;
+		std::vector<char> xml_string;
+		OpenSMOKE::OpenInputFileXML(doc, xml_string, path_kinetics_output / "kinetics.surface.xml");
+
+		double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
+		thermodynamicsSurfaceMapXML = new OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>(doc);
+		kineticsSurfaceMapXML = new OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>(*thermodynamicsSurfaceMapXML, doc);
+		double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
+		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
+	}
+*/
 
 	boost::filesystem::path output_path;
 	if (dictionaries(main_dictionary_name_).CheckOption("@Output") == true)
 	{
 		dictionaries(main_dictionary_name_).ReadPath("@Output", output_path);
 		OpenSMOKE::CreateDirectory(output_path);
-	}
-
-	// Type of problem
-	enum CVIProblemType { CVI_CAPILLARY, CVI_REACTOR1D, CVI_REACTOR2D } problem_type;
-	{
-		std::string value;
-		if (dictionaries(main_dictionary_name_).CheckOption("@Type") == true)
-			dictionaries(main_dictionary_name_).ReadString("@Type", value);
-		if (value == "1D")			problem_type = CVI_REACTOR1D;
-		else if (value == "2D")			problem_type = CVI_REACTOR2D;
-		else if (value == "Capillary")		problem_type = CVI_CAPILLARY;
-		else OpenSMOKE::FatalErrorMessage("Wrong @Type: Capillary | 1D | 2D");
-	}
-
-	// Type of problem
-	bool symmetry_planar = true;
-	{
-		std::string value;
-		if (dictionaries(main_dictionary_name_).CheckOption("@Symmetry") == true)
-			dictionaries(main_dictionary_name_).ReadString("@Symmetry", value);
-		if (value == "Planar")				symmetry_planar = true;
-		else if (value == "Cylindrical")	symmetry_planar = false;
-		else OpenSMOKE::FatalErrorMessage("Wrong @Symmetry: Planar | Cylindrical");
 	}
 
 	// Monodimensional grid along the x axis
@@ -349,7 +401,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	// Read the plug flow residence time 
+	// Read the capillary diameter
 	double capillary_diameter = 1.e-3;
 	{
 		std::string units;
@@ -467,7 +519,7 @@ int main(int argc, char** argv)
 	}
 
 	// Solve the 2D problem
-	if (problem_type == CVI_REACTOR2D)
+	if (problem_type == CVI_REACTOR2D && gaseous_phase == CVI::GASEOUS_PHASE_FROM_PLUG_FLOW)
 	{
 		// Plug flow ractor simulation
 		std::vector<Eigen::VectorXd> Y_gas_side;
@@ -589,7 +641,46 @@ int main(int argc, char** argv)
 			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;
 		}
 	}	
+	
+	if (problem_type == CVI_REACTOR2D && gaseous_phase == CVI::GASEOUS_PHASE_FROM_CFD)
+	{
+		CVI::DiskFromCFD disk(*thermodynamicsMapXML, *kineticsMapXML, *grid_x, *grid_y);
+		disk.ReadFromFile(disk_file_name);
+		disk.WriteOnFile(output_path);
 
+		// Set heterogeneous mechanism
+		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_heterogeneous_mechanism));
+
+		// Set porous medium
+		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+
+		// Creates the reactor
+		CVI::PlugFlowReactorCoupled* plug_flow_reactor; // dummy
+		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *porosity_defect, *heterogeneous_mechanism, *grid_x, *grid_y, *plug_flow_reactor);
+
+		// Set options
+		reactor2d->SetPlanarSymmetry(symmetry_planar);
+		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega);
+		reactor2d->SetGasSide(inlet_T, inlet_P, disk);
+		reactor2d->SetTimeTotal(time_total);
+		reactor2d->SetDaeTimeInterval(dae_time_interval);
+		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);
+		if (steps_video>0)		reactor2d->SetStepsVideo(steps_video);
+		if (steps_file>0)		reactor2d->SetStepsFile(steps_file);
+
+		// Solve
+		{
+			time_t timerStart;
+			time_t timerEnd;
+
+			time(&timerStart);
+			int flag = reactor2d->SolveFromScratch(*dae_parameters);
+			time(&timerEnd);
+
+			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;
+		}
+	}
+	
 	// Solve the 1D problem
 	if (problem_type == CVI_REACTOR1D)
 	{

@@ -48,9 +48,6 @@
     <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_BzzDae.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\Grammar_CVI_PlugFlowReactor.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\Grammar_CVI_PorousMedium.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -72,18 +69,6 @@
     <ClInclude Include="..\..\..\src\Interface_Reactor2D_OpenSMOKEppDae.h">
       <Filter>Source Files\interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\PlugFlowReactorProfiles.hpp">
-      <Filter>Source Files\plugflow</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\PlugFlowReactor.h">
-      <Filter>Source Files\plugflow</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\PlugFlowReactor.hpp">
-      <Filter>Source Files\plugflow</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\PlugFlowReactorProfiles.h">
-      <Filter>Source Files\plugflow</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\Capillary.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -98,6 +83,33 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\HeterogeneousMechanism.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\HeterogeneousDetailedMechanism.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\HeterogeneousDetailedMechanism.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PlugFlowReactorCoupled.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\DiskFromCFD.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\DiskFromCFD.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupled.h">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupled.hpp">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupledProfiles.h">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupledProfiles.hpp">
+      <Filter>Source Files\plugflow</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
