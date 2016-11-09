@@ -401,6 +401,31 @@ int main(int argc, char** argv)
 		}
 	}
 
+	// Uniform velocity inside the preform
+	double vx = 0.;
+	double vy = 0.;
+	{
+		std::string units;
+
+		if (dictionaries(main_dictionary_name_).CheckOption("@XVelocity") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadMeasure("@XVelocity", vx, units);
+			if (units == "m/s")				vx = vx;
+			else if (units == "cm/s")		vx /= 1.e2;
+			else if (units == "mm/s")		vx /= 1.e3;
+			else OpenSMOKE::FatalErrorMessage("Unknown @XVelocity units");
+		}
+
+		if (dictionaries(main_dictionary_name_).CheckOption("@YVelocity") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadMeasure("@YVelocity", vy, units);
+			if (units == "m/s")				vy = vy;
+			else if (units == "cm/s")		vy /= 1.e2;
+			else if (units == "mm/s")		vy /= 1.e3;
+			else OpenSMOKE::FatalErrorMessage("Unknown @YVelocity units");
+		}
+	}
+
 	// Read the capillary diameter
 	double capillary_diameter = 1.e-3;
 	{
@@ -622,6 +647,7 @@ int main(int argc, char** argv)
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
 		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega);
 		reactor2d->SetGasSide(inlet_T, inlet_P, Y_gas_side);
+		reactor2d->SetUniformVelocity(vx, vy);
 		reactor2d->SetTimeTotal(time_total);
 		reactor2d->SetDaeTimeInterval(dae_time_interval);
 		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);
@@ -662,6 +688,7 @@ int main(int argc, char** argv)
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
 		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega);
 		reactor2d->SetGasSide(inlet_T, inlet_P, disk);
+		reactor2d->SetUniformVelocity(vx, vy);
 		reactor2d->SetTimeTotal(time_total);
 		reactor2d->SetDaeTimeInterval(dae_time_interval);
 		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);

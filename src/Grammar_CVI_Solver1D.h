@@ -195,6 +195,16 @@ namespace CVI
 				OpenSMOKE::SINGLE_MEASURE,
 				"Initial diameter of capillary",
 				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@XVelocity",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Uniform velocity along the x axis",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@YVelocity",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Uniform velocity along the y axis",
+				false));
 		}
 	};
 }

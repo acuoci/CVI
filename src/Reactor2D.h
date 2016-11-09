@@ -101,7 +101,7 @@ namespace CVI
 		*@param P_gas			gas side pressure [Pa]
 		*@param disk_from_cfd	gass side mass fractions
 		*/
-		void Reactor2D::SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
+		void SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
 
 		/**
 		*@brief Sets the initial conditions in the porous medium
@@ -147,6 +147,13 @@ namespace CVI
 		*@param steps_update_plug_flow number of steps to update the plug flow
 		*/
 		void SetStepsUpdatePlugFlow(const int steps_update_plug_flow);
+
+		/**
+		*@brief Sets a uniform velocity field
+		*@param vx x-component component of velocity [m/s]
+		*@param vy y-component component of velocity [m/s]
+		*/
+		void SetUniformVelocity(const double vx, const double vy);
 
 		/**
 		*@brief Returns the differential equations
@@ -452,7 +459,9 @@ namespace CVI
 		GaseousPhase gaseous_phase_;
 
 		// Additional options
-		bool planar_symmetry_;
+		bool planar_symmetry_;	// planar vs cylindrical symmetry
+		double vx_;				// x-component component of velocity [m/s]
+		double vy_;				// y-component component of velocity [m/s]
 
 		// Provisional
 		void PrintOnTheScreen(const std::string, const int k, double* v);

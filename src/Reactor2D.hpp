@@ -98,6 +98,9 @@ namespace CVI
 
 		planar_symmetry_ = true;
 
+		vx_ = 0.;
+		vy_ = 0.;
+
 		output_folder_ = "Output";
 
 		output_tecplot_folder_ = output_folder_ / "Tecplot";
@@ -564,6 +567,12 @@ namespace CVI
 		count_update_plug_flow_ = n_steps_update_plug_flow_;
 	}
 
+	void Reactor2D::SetUniformVelocity(const double vx, const double vy)
+	{
+		vx_ = vx;
+		vy_ = vy;
+	}
+
 	void Reactor2D::Properties()
 	{
 		for (int i = 0; i < np_; i++)
@@ -805,8 +814,10 @@ namespace CVI
 
 					      double diffusion_x = (c_east*(Y_[east](j) - Y_[center](j)) / grid_x_.dxe()(i)-c_west*(Y_[center](j) - Y_[west](j)) / grid_x_.dxw()(i)) / grid_x_.dxc_over_2()(i);
 					const double diffusion_y = (c_north*(Y_[north](j) - Y_[center](j)) / grid_y_.dxe()(k)-c_south*(Y_[center](j) - Y_[south](j)) / grid_y_.dxw()(k)) / grid_y_.dxc_over_2()(k);
-					const double diffusion = diffusion_x + diffusion_y;
-
+					
+					      double convection_x = rho_gas_[center] * vx_ * (Y_[center](j) - Y_[west](j)) / grid_x_.dxw()(i);
+					const double convection_y = rho_gas_[center] * vy_ * (Y_[center](j) - Y_[south](j)) / grid_y_.dxw()(i);
+					
 					const double homogeneous_reactions = epsilon_(center)*omega_homogeneous_[center](j);
 					const double heterogeneous_reactions = omega_heterogeneous_[center](j) + Y_[center](j)*omega_deposition_per_unit_volume_(center);
 
@@ -815,9 +826,16 @@ namespace CVI
 						const double dY_over_dr = (Y_[east](j) - Y_[west](j)) / (grid_x_.x()[i + 1] - grid_x_.x()[i - 1]);
 						const double diffusion_radial = gamma_star_[center](j)*rho_gas_[center] * dY_over_dr / grid_x_.x()[i];
 						diffusion_x += diffusion_radial;
+
+						// Correction because of the cylindrical symmetry
+						const double vr = vx_*grid_x_.x()[0]/ grid_x_.x()[i];
+						convection_x = rho_gas_[center] * vr * (Y_[center](j) - Y_[west](j)) / grid_x_.dxw()(i);
 					}
 
-					dY_over_dt_[center](j) = diffusion + homogeneous_reactions + heterogeneous_reactions;
+					const double diffusion = diffusion_x + diffusion_y;
+					const double convection = convection_x + convection_y;
+
+					dY_over_dt_[center](j) = diffusion + homogeneous_reactions + heterogeneous_reactions - convection;
 					dY_over_dt_[center](j) /= (rho_gas_(center)*epsilon_(center));
 				}
 			}
