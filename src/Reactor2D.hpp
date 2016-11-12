@@ -816,7 +816,7 @@ namespace CVI
 					const double diffusion_y = (c_north*(Y_[north](j) - Y_[center](j)) / grid_y_.dxe()(k)-c_south*(Y_[center](j) - Y_[south](j)) / grid_y_.dxw()(k)) / grid_y_.dxc_over_2()(k);
 					
 					      double convection_x = rho_gas_[center] * vx_ * (Y_[center](j) - Y_[west](j)) / grid_x_.dxw()(i);
-					const double convection_y = rho_gas_[center] * vy_ * (Y_[center](j) - Y_[south](j)) / grid_y_.dxw()(i);
+					const double convection_y = rho_gas_[center] * vy_ * (Y_[center](j) - Y_[south](j)) / grid_y_.dxw()(k);
 					
 					const double homogeneous_reactions = epsilon_(center)*omega_homogeneous_[center](j);
 					const double heterogeneous_reactions = omega_heterogeneous_[center](j) + Y_[center](j)*omega_deposition_per_unit_volume_(center);
@@ -828,7 +828,7 @@ namespace CVI
 						diffusion_x += diffusion_radial;
 
 						// Correction because of the cylindrical symmetry
-						const double vr = vx_*grid_x_.x()[0]/ grid_x_.x()[i];
+						const double vr = vx_*grid_x_.x()[0]/grid_x_.x()[i];
 						convection_x = rho_gas_[center] * vr * (Y_[center](j) - Y_[west](j)) / grid_x_.dxw()(i);
 					}
 
