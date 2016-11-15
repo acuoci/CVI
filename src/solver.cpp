@@ -45,6 +45,7 @@
 
 // Heterogeneous mechanism
 #include "HeterogeneousMechanism.h"
+#include "HeterogeneousDetailedMechanism.h"
 
 // Porous medium
 #include "PorousMedium.h"
@@ -231,31 +232,27 @@ int main(int argc, char** argv)
 		if (dictionaries(name_of_rapid_kinetics_subdictionary).CheckOption("@Transport") == true)
 			dictionaries(name_of_rapid_kinetics_subdictionary).ReadPath("@Transport", path_input_transport);
 
-//		boost::filesystem::path path_input_surface_kinetics;
-//		if (dictionaries(name_of_rapid_kinetics_subdictionary).CheckOption("@Surface") == true)
-//			dictionaries(name_of_rapid_kinetics_subdictionary).ReadPath("@Surface", path_input_surface_kinetics);
-//		else OpenSMOKE::FatalErrorMessage("The @Surface option is strictly required by the @KineticsPreProcessor");
+		boost::filesystem::path path_input_surface_kinetics;
+		if (dictionaries(name_of_rapid_kinetics_subdictionary).CheckOption("@Surface") == true)
+			dictionaries(name_of_rapid_kinetics_subdictionary).ReadPath("@Surface", path_input_surface_kinetics);
+		else OpenSMOKE::FatalErrorMessage("The @Surface option is strictly required by the @KineticsPreProcessor");
 
 		if (dictionaries(name_of_rapid_kinetics_subdictionary).CheckOption("@Output") == true)
 			dictionaries(name_of_rapid_kinetics_subdictionary).ReadPath("@Output", path_kinetics_output);
 
-//		OpenSMOKE::RapidKineticMechanismWithoutTransport(	path_kinetics_output, 
-//															path_input_thermodynamics.c_str(),
-//															path_input_kinetics.c_str(), 
-//															path_input_surface_kinetics.c_str()	);
-
-		OpenSMOKE::RapidKineticMechanismWithoutTransport(	path_kinetics_output, 
-															path_input_thermodynamics.c_str(),
-															path_input_kinetics.c_str()	);
-
+		OpenSMOKE::RapidKineticMechanismWithTransport(	path_kinetics_output, 
+														path_input_transport.c_str(),
+														path_input_thermodynamics.c_str(),
+														path_input_kinetics.c_str(),
+														path_input_surface_kinetics.c_str()	);
 	}
 
 	// Read thermodynamics and kinetics maps
 	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>*			thermodynamicsMapXML;
 	OpenSMOKE::KineticsMap_CHEMKIN<double>*					kineticsMapXML;
 	OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>*		transportMapXML;
-//	OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>*	thermodynamicsSurfaceMapXML;
-//	OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>*			kineticsSurfaceMapXML;
+	OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>*	thermodynamicsSurfaceMapXML;
+	OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>*			kineticsSurfaceMapXML;
 
 	// Read the homogeneous kinetic scheme in XML format
 	{
@@ -274,7 +271,7 @@ int main(int argc, char** argv)
 		double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
 	}
-/*
+
 	// Read the surface kinetic scheme in XML format
 	{
 		rapidxml::xml_document<> doc;
@@ -287,7 +284,7 @@ int main(int argc, char** argv)
 		double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
 	}
-*/
+
 
 	boost::filesystem::path output_path;
 	if (dictionaries(main_dictionary_name_).CheckOption("@Output") == true)
@@ -636,6 +633,9 @@ int main(int argc, char** argv)
 
 		// Set heterogeneous mechanism
 		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_heterogeneous_mechanism));
+
+		// Set detailed heterogeneous mechanism
+		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
 
 		// Set porous medium
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
