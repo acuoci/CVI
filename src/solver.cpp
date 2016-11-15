@@ -725,14 +725,22 @@ int main(int argc, char** argv)
 		// Set heterogeneous mechanism
 		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_heterogeneous_mechanism));
 
+		// Set heterogeneous mechanism
+		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
+
 		// Set porous medium
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *heterogeneous_mechanism, *grid_x);
+		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, *porous_medium, *heterogeneous_mechanism, *heterogeneous_detailed_mechanism, *grid_x);
+
+		// TODO
+		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
+		initial_Z.setZero();
+		initial_Z(0) = 1.;
 
 		reactor1d->SetPlanarSymmetry(symmetry_planar);
-		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega);
+		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega, initial_Z);
 		reactor1d->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
 
 		// Solve

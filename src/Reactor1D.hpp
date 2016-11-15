@@ -32,24 +32,70 @@ namespace CVI
 	Reactor1D::Reactor1D(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
 							OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 							OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+							OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>& thermodynamicsSurfaceMap,
+							OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&	kineticsSurfaceMap,
 							CVI::PorousMedium& porousMedium,
 							CVI::HeterogeneousMechanism& heterogeneousMechanism,
+							CVI::HeterogeneousDetailedMechanism& heterogeneousDetailedMechanism,
 							OpenSMOKE::Grid1D& grid) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
 	transportMap_(transportMap),
 	porousMedium_(porousMedium),
+	thermodynamicsSurfaceMap_(thermodynamicsSurfaceMap),
+	kineticsSurfaceMap_(kineticsSurfaceMap),
 	heterogeneousMechanism_(heterogeneousMechanism),
+	heterogeneousDetailedMechanism_(heterogeneousDetailedMechanism),
 	grid_(grid)
+
 	{
+		detailed_heterogeneous_kinetics_ = false;
+
 		n_steps_video_ = 10;
 		count_video_ = n_steps_video_;
 		n_steps_file_ = 3;
 		count_file_ = n_steps_file_;
 
-		ns_ = thermodynamicsMap_.NumberOfSpecies();
-		block_ = ns_ + 1;
+		
+		if (detailed_heterogeneous_kinetics_ == true)
+		{
+			// Homogeneous species
+			nc_ = thermodynamicsMap_.NumberOfSpecies();
+			nr_ = kineticsMap_.NumberOfReactions();
+
+			// Surface phases
+			surf_np_ = thermodynamicsSurfaceMap_.number_of_site_phases(0);
+			surf_nc_ = thermodynamicsSurfaceMap_.number_of_site_species();
+			surf_nr_ = kineticsSurfaceMap_.NumberOfReactions();
+
+			// Bulk phases
+			bulk_np_ = thermodynamicsSurfaceMap_.number_of_bulk_phases(0);
+			bulk_nc_ = thermodynamicsSurfaceMap_.number_of_bulk_species();
+
+			// Block size
+			block_ = nc_ + surf_nc_ + 1;
+		}
+
+		else
+		{
+			// Homogeneous species
+			nc_ = thermodynamicsMap_.NumberOfSpecies();
+			nr_ = kineticsMap_.NumberOfReactions();
+
+			// Surface phases
+			surf_np_ = 0;
+			surf_nc_ = 0;
+			surf_nr_ = heterogeneousMechanism_.r().size();
+
+			// Bulk phases
+			bulk_np_ = 0;
+			bulk_nc_ = 0;
+
+			// Block size
+			block_ = nc_ + 1;
+		}
+		
 		np_ = grid_.Np();
 		ne_ = block_*np_;
 		band_size_ = 2 * block_ - 1;
@@ -80,11 +126,11 @@ namespace CVI
 
 	void Reactor1D::MemoryAllocation()
 	{
-		OpenSMOKE::ChangeDimensions(ns_, &aux_X, true);
-		OpenSMOKE::ChangeDimensions(ns_, &aux_Y, true);
-		OpenSMOKE::ChangeDimensions(ns_, &aux_C, true);
-		OpenSMOKE::ChangeDimensions(ns_, &aux_R, true);
-		aux_eigen.resize(ns_);
+		OpenSMOKE::ChangeDimensions(nc_, &aux_X, true);
+		OpenSMOKE::ChangeDimensions(nc_, &aux_Y, true);
+		OpenSMOKE::ChangeDimensions(nc_, &aux_C, true);
+		OpenSMOKE::ChangeDimensions(nc_, &aux_R, true);
+		aux_eigen.resize(nc_);
 		
 		// Densities [kg/m3]
 		rho_gas_.resize(np_);
@@ -117,22 +163,22 @@ namespace CVI
 		// Mole fractions [-]
 		X_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			X_[i].resize(ns_);
+			X_[i].resize(nc_);
 
 		// Mass fractions [-]
 		Y_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			Y_[i].resize(ns_);
+			Y_[i].resize(nc_);
 
 		// Formation rates in gas pahse [kg/m3/s]
 		omega_homogeneous_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			omega_homogeneous_[i].resize(ns_);
+			omega_homogeneous_[i].resize(nc_);
 
 		// Heterogeneous formation rates [kg/m3/s]
 		omega_heterogeneous_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			omega_heterogeneous_[i].resize(ns_);
+			omega_heterogeneous_[i].resize(nc_);
 
 		// Deposition rate [kg/m3/s]
 		omega_deposition_per_unit_volume_.resize(np_);
@@ -143,12 +189,12 @@ namespace CVI
 		// Effective diffusion coefficiennts [m2/s]
 		gamma_star_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			gamma_star_[i].resize(ns_);
+			gamma_star_[i].resize(nc_);
 
 		// Diffusion fluxes [???]
 		j_star_.resize(np_ - 1);
 		for (int i = 0; i < np_ - 1; i++)
-			j_star_[i].resize(ns_);
+			j_star_[i].resize(nc_);
 
 		// Correction diffusion flux [???]
 		jc_star_.resize(np_ - 1);
@@ -156,33 +202,46 @@ namespace CVI
 		// Spatial derivatives: mole fractions [1/m]
 		dX_over_dx_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			dX_over_dx_[i].resize(ns_);
+			dX_over_dx_[i].resize(nc_);
 
 		// Spatial derivatives: mass fractions [1/m]
 		dY_over_dx_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			dY_over_dx_[i].resize(ns_);
+			dY_over_dx_[i].resize(nc_);
 
 		// Second order spatial derivatives: mass fractions [1/m2]
 		d2Y_over_dx2_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			d2Y_over_dx2_[i].resize(ns_);
+			d2Y_over_dx2_[i].resize(nc_);
 
 		// Time derivatives: mass fractions [1/s]
 		dY_over_dt_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			dY_over_dt_[i].resize(ns_);
+			dY_over_dt_[i].resize(nc_);
 
 		// Spatial derivatives: mass diffusion coefficients [m2/s/m]
 		dgamma_star_over_dx_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			dgamma_star_over_dx_[i].resize(ns_);
+			dgamma_star_over_dx_[i].resize(nc_);
 
 		// Spatial derivatives: density of gaseous phase
 		drho_gas_over_dx_.resize(np_);
 
 		// Time derivatives: porosity [1/s]
 		depsilon_over_dt_.resize(np_);
+
+		if (detailed_heterogeneous_kinetics_ == true)
+		{
+			// Surface fractions [-]
+			Z_.resize(np_);
+			for (int i = 0; i < np_; i++)
+				Z_[i].resize(surf_nc_);
+
+			// Time derivatives: surface species fractions [1/s]
+			dZ_over_dt_.resize(np_);
+			for (int i = 0; i < np_; i++)
+				dZ_over_dt_[i].resize(surf_nc_);
+		}
 
 		// Reset to zero
 		for (int i = 0; i < np_-1; i++)
@@ -206,50 +265,60 @@ namespace CVI
 
 		unsigned int count = 0;
 
-		// Interal boundary (symmetry plane)
+		// Internal boundary (symmetry plane)
 		{
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				id_equations_[count++] = false;
 			id_equations_[count++] = true;
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				id_equations_[count++] = true;
 		}
 
 		// Internal points
 		for (int i = 1; i < grid_.Ni(); i++)
 		{
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				id_equations_[count++] = true;
 			id_equations_[count++] = true;
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				id_equations_[count++] = true;
 		}
 
 		// Gas side
 		{
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				id_equations_[count++] = false;
 			id_equations_[count++] = true;
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				id_equations_[count++] = true;
 		}
 	}
 
 	void Reactor1D::SetGasSide(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas)
 	{
-		Y_gas_side_.resize(ns_);
-		for (unsigned int j = 0; j < ns_; j++)
+		Y_gas_side_.resize(nc_);
+		for (unsigned int j = 0; j < nc_; j++)
 			Y_gas_side_(j) = omega_gas(j);
 
 		P_gas_side_ = P_gas;
 		T_gas_side_ = T_gas;
 
-		for (unsigned int j = 0; j < ns_; j++)
+		for (unsigned int j = 0; j < nc_; j++)
 			Y_[grid_.Ni()](j) = omega_gas(j);
 
 		P_(grid_.Ni()) = P_gas;
 		T_(grid_.Ni()) = T_gas;
 	}
 
-	void Reactor1D::SetInitialConditions(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas)
+	void Reactor1D::SetInitialConditions(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas, const Eigen::VectorXd& Z_initial)
 	{
 		for (int i = 0; i < np_; i++)
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				Y_[i](j) = omega_gas(j);
+
+		for (int i = 0; i < np_; i++)
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				Z_[i](j) = Z_initial(j);
 
 		P_.setConstant(P_gas);
 		T_.setConstant(T_gas);
@@ -266,11 +335,11 @@ namespace CVI
 				thermodynamicsMap_.SetTemperature(T_(i));
 
 				//aux_Y.CopyFrom(Y_[i].data());
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					aux_Y[j + 1] = Y_[i](j);
 				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
 				//aux_X.CopyTo(X_[i].data());
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					X_[i](j) = aux_X[j + 1];
 
 				// Concentrations [kmol/m3]
@@ -298,10 +367,10 @@ namespace CVI
 
 				// Mixture diffusion coefficients
 				{
-					for (unsigned int j = 0; j < ns_; j++)
+					for (unsigned int j = 0; j < nc_; j++)
 						aux_eigen(j) = aux_X[j + 1];
 					porousMedium_.EffectiveDiffusionCoefficients(aux_eigen);
-					for (unsigned int j = 0; j < ns_; j++)
+					for (unsigned int j = 0; j < nc_; j++)
 						gamma_star_[i](j) = porousMedium_.gamma_effective()(j);
 				}
 			}
@@ -319,19 +388,51 @@ namespace CVI
 					aux_R.CopyTo(omega_homogeneous_[i].data());
 				}
 
-				// Heterogeneous phase
-				if (heterogeneousMechanism_.heterogeneous_reactions() == true)
+				// Heterogeneous phase (non detailed)
+				if (	heterogeneousMechanism_.heterogeneous_reactions() == true &&
+						detailed_heterogeneous_kinetics_ == false )
 				{
 					heterogeneousMechanism_.SetTemperature(T_(i));
 					heterogeneousMechanism_.SetPressure(P_(i));
 
-					for (unsigned int j = 0; j < ns_; j++)
+					for (unsigned int j = 0; j < nc_; j++)
 						aux_eigen(j) = aux_C[j + 1];
 					heterogeneousMechanism_.FormationRates(Sv_(i), aux_eigen);
-					for (unsigned int j = 0; j < ns_; j++)
+					for (unsigned int j = 0; j < nc_; j++)
 						omega_heterogeneous_[i](j) = heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];								// [kg/m3/s]
 					omega_deposition_per_unit_area_(i) = heterogeneousMechanism_.r_deposition_per_unit_area()*heterogeneousMechanism_.mw_carbon();			// [kg/m2/s]
 					omega_deposition_per_unit_volume_(i) = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+				}
+
+				// Heterogeneous phase (detailed)
+				if (heterogeneousMechanism_.heterogeneous_reactions() == true &&
+					detailed_heterogeneous_kinetics_ == true)
+				{
+					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+					heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+					Eigen::VectorXd C(nc_);
+					Eigen::VectorXd Z(surf_nc_);
+					Eigen::VectorXd a(bulk_nc_);
+					Eigen::VectorXd gamma(surf_np_);
+
+					for (unsigned int j = 0; j < nc_; j++)
+						C(j) = aux_C[j + 1];
+
+					for (unsigned int j = 0; j < surf_nc_; j++)
+						Z(j) = Z_[i](j);
+
+					for (unsigned int j = 0; j < bulk_nc_; j++)
+						a(j) = 1.;
+
+					for (unsigned int j = 0; j < surf_np_; j++)
+						gamma(j) = thermodynamicsSurfaceMap_.matrix_densities_site_phases()[0][j];
+
+					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), C, Z, a, gamma);
+					for (unsigned int j = 0; j < nc_; j++)
+						omega_heterogeneous_[i](j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j + 1];								// [kg/m3/s]
+				//	omega_deposition_per_unit_area_(i) = heterogeneousMechanism_.r_deposition_per_unit_area()*heterogeneousMechanism_.mw_carbon();			// [kg/m2/s]
+				//	omega_deposition_per_unit_volume_(i) = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
 				}
 			}
 		}
@@ -346,7 +447,7 @@ namespace CVI
 			for (int i = 0; i < grid_.Ni(); i++)
 			{
 				j_star_[i].setZero();
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					j_star_[i](j) = -0.50 * (rho_gas_(i)*gamma_star_[i](j) + rho_gas_(i + 1)*gamma_star_[i + 1](j)) *dY_over_dx_[i + 1](j);
 			}
 		}
@@ -356,7 +457,7 @@ namespace CVI
 			jc_star_.setZero();
 			for (int i = 0; i < grid_.Ni(); i++)
 			{
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					jc_star_(i) -= j_star_[i](j);
 			}
 		}
@@ -365,7 +466,7 @@ namespace CVI
 		{
 			for (int i = 0; i < grid_.Ni(); i++)
 			{
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					j_star_[i](j) += 0.50*(Y_[i](j) + Y_[i + 1](j))*jc_star_(i);
 			}
 		}
@@ -387,12 +488,12 @@ namespace CVI
 	void Reactor1D::SubEquations_MassFractions()
 	{
 		// Internal side (symmetry)
-		for (unsigned int j = 0; j < ns_; j++)
+		for (unsigned int j = 0; j < nc_; j++)
 			dY_over_dt_[0](j) = Y_[0](j) - Y_[1](j);
 
 		for (int i = 1; i < grid_.Ni(); i++)
 		{
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 			{
 				// Explicit derivatives
 				if (planar_symmetry_ == true)
@@ -419,7 +520,7 @@ namespace CVI
 		}
 
 		// Gas side
-		for (unsigned int j = 0; j < ns_; j++)
+		for (unsigned int j = 0; j < nc_; j++)
 			dY_over_dt_[grid_.Ni()](j) = Y_[grid_.Ni()](j) - Y_gas_side_(j);
 	}
 
@@ -430,19 +531,36 @@ namespace CVI
 			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / heterogeneousMechanism_.rho_graphite();
 	}
 
+	void Reactor1D::SubEquations_SurfaceSpeciesFractions()
+	{
+		// Internal points
+		for (int i = 0; i < grid_.Np(); i++)
+			for (unsigned int j = 0; j < surf_nc_; j++)
+			{
+				const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
+//				dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * Rsurface_[j + 1])
+//										/ thermodynamicsSurfaceMap_.matrix_densities_site_phases()[0][index_phase];
+			}
+	}
+
 	void Reactor1D::Recover_Unknowns(const double* y)
 	{
 		unsigned int count = 0;
 		for (int i = 0; i < np_; i++)
 		{
 			// Species
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				Y_[i](j) = y[count++];
 
 			// Porosity
 			epsilon_(i) = y[count++];
+
+			// Surface species
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				Z_[i](j) = y[count++];
 		}
 	}
+
 
 	void Reactor1D::Recover_Residuals(double* dy)
 	{
@@ -450,11 +568,15 @@ namespace CVI
 		for (int i = 0; i < np_; i++)
 		{
 			// Species
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				dy[count++] = dY_over_dt_[i](j);
 			
 			// Porosity
 			dy[count++] = depsilon_over_dt_(i);
+
+			// Surface species
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				dy[count++] = dZ_over_dt_[i](j);
 		}
 	}
 
@@ -473,10 +595,13 @@ namespace CVI
 		unsigned int count = 0;
 		for (int i = 0; i < np_; i++)
 		{
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = Y_[i](j);
 
 			v[count++] = epsilon_[i];
+
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				v[count++] = Z_[i](j);
 		}
 	}
 
@@ -485,14 +610,17 @@ namespace CVI
 		unsigned int count = 0;
 		for (int i = 0; i < np_; i++)
 		{
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				Y_[i](j) = v[count++];
 
 			epsilon_(i) = v[count++];
 
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				Z_[i](j) = v[count++];
+
 			// Normalize
 			//const double sum = Y_[i].sum();
-			//for (unsigned int j = 0; j < ns_; j++)
+			//for (unsigned int j = 0; j < nc_; j++)
 			//	Y_[i](j) /= sum;
 		}
 	}
@@ -504,10 +632,13 @@ namespace CVI
 		unsigned int count = 0;
 		for (int i = 0; i < np_; i++)
 		{
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = zero;
 
 			v[count++] = zero;
+
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				v[count++] = zero;
 		}
 	}
 
@@ -518,10 +649,13 @@ namespace CVI
 		unsigned int count = 0;
 		for (int i = 0; i < np_; i++)
 		{
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = one;
 
 			v[count++] = one;
+
+			for (unsigned int j = 0; j < surf_nc_; j++)
+				v[count++] = one;
 		}
 	}
 
@@ -542,6 +676,7 @@ namespace CVI
 		// Equations
 		SubEquations_MassFractions();
 		SubEquations_Porosity();
+		SubEquations_SurfaceSpeciesFractions();
 
 		// Recover residuals
 		Recover_Residuals(dy);
@@ -613,9 +748,9 @@ namespace CVI
 
 			for (unsigned int j = 0; j < thermodynamicsMap_.elements().size(); j++)
 				OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, thermodynamicsMap_.elements()[j] + "_x", count);
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, thermodynamicsMap_.NamesOfSpecies()[j] + "_x", count);
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, thermodynamicsMap_.NamesOfSpecies()[j] + "_w", count);
 
 			fOutput << std::endl;
@@ -623,10 +758,10 @@ namespace CVI
 
 		for (int i = 0; i < np_; i++)
 		{
-			OpenSMOKE::OpenSMOKEVectorDouble yy(ns_);
-			OpenSMOKE::OpenSMOKEVectorDouble xx(ns_);
+			OpenSMOKE::OpenSMOKEVectorDouble yy(nc_);
+			OpenSMOKE::OpenSMOKEVectorDouble xx(nc_);
 
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				yy[j + 1] = Y_[i](j);
 
 			thermodynamicsMap_.SetPressure(P_(i));
@@ -657,7 +792,7 @@ namespace CVI
 				for (unsigned int j = 0; j < thermodynamicsMap_.elements().size(); j++)
 				{
 					double sum = 0.;
-					for (unsigned int k = 0; k < ns_; k++)
+					for (unsigned int k = 0; k < nc_; k++)
 						sum += thermodynamicsMap_.atomic_composition()(k, j) * xx(k + 1);
 					fOutput << std::setprecision(9) << std::setw(20) << sum;
 				}
@@ -665,9 +800,9 @@ namespace CVI
 
 			// Species (mole fractions and mass fractions)
 			{
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					fOutput << std::setprecision(9) << std::setw(20) << xx(j + 1);
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					fOutput << std::setprecision(9) << std::setw(20) << yy(j + 1);
 			}
 
@@ -688,7 +823,7 @@ namespace CVI
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "T[K]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "P[Pa]", count);
 
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 			{
 				OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, thermodynamicsMap_.NamesOfSpecies()[j] + "_ToE", count);
 				OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, thermodynamicsMap_.NamesOfSpecies()[j] + "_FiE", count);
@@ -713,7 +848,7 @@ namespace CVI
 				aux_Y.CopyFrom(Y_[i].data());
 				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
 				aux_X.CopyTo(X_[i].data());
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					aux_eigen(j) = aux_X[j + 1];
 				porousMedium_.EffectiveDiffusionCoefficients(aux_eigen);
 			}
@@ -725,7 +860,7 @@ namespace CVI
 
 			// Diffusion coefficients
 			{
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 				{
 					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.gamma_effective()(j);
 					fOutput << std::setprecision(9) << std::setw(20) << porousMedium_.gamma_fick_effective()(j);
@@ -752,7 +887,7 @@ namespace CVI
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "T[K]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "P[Pa]", count);
 
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 				OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, thermodynamicsMap_.NamesOfSpecies()[j] + "[kmol/m3/s]", count);
 
 			fOutput << std::endl;
@@ -780,7 +915,7 @@ namespace CVI
 			fOutput << std::setprecision(9) << std::setw(20) << T_(i);
 			fOutput << std::setprecision(9) << std::setw(20) << P_(i);
 
-			for (unsigned int j = 0; j < ns_; j++)
+			for (unsigned int j = 0; j < nc_; j++)
 					fOutput << std::setprecision(9) << std::setw(20) << aux_R[j+1];
 
 			fOutput << std::endl;
@@ -850,7 +985,7 @@ namespace CVI
 
 				heterogeneousMechanism_.SetTemperature(T_(i));
 				heterogeneousMechanism_.SetPressure(P_(i));
-				for (unsigned int j = 0; j < ns_; j++)
+				for (unsigned int j = 0; j < nc_; j++)
 					aux_eigen(j) = aux_C[j + 1];
 				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
 			}

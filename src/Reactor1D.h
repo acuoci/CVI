@@ -55,18 +55,21 @@ namespace CVI
 
 		/**
 		*@brief Default constructor
-		*@param thermodynamicsMap	reference to the thermodynamic map
-		*@param kineticsMap			reference to the kinetic map
-		*@param transportMap		reference to the transport map
-		*@param porousMedium		reference to the porous medium
+		*@param thermodynamicsMap			reference to the thermodynamic map
+		*@param kineticsMap					reference to the kinetic map
+		*@param transportMap				reference to the transport map
+		*@param porousMedium				reference to the porous medium
 		*@param heterogeneousMechanism		reference to the heterogeneous mechanism
-		*@param grid				reference to 1D grid
+		*@param grid						reference to 1D grid
 		*/
 		Reactor1D(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
 					OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
 					OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+					OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>& thermodynamicsSurfaceMap,
+					OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&	kineticsSurfaceMap,
 					CVI::PorousMedium& porousMedium,
 					CVI::HeterogeneousMechanism& heterogeneousMechanism,
+					CVI::HeterogeneousDetailedMechanism& heterogeneousDetailedMechanism,
 					OpenSMOKE::Grid1D& grid);
 
 		/**
@@ -89,7 +92,7 @@ namespace CVI
 		*@param P_initial		initial pressure [Pa]
 		*@param omega_initial	initial mass fractions
 		*/
-		void SetInitialConditions(const double T_initial, const double P_initial, const Eigen::VectorXd& omega_initial);
+		void SetInitialConditions(const double T_initial, const double P_initial, const Eigen::VectorXd& omega_initial, const Eigen::VectorXd& Z_initial);
 
 		/**
 		*@brief Returns the differential equations
@@ -205,6 +208,11 @@ namespace CVI
 		void SubEquations_Porosity();
 
 		/**
+		*@brief Equations of conservation of surface fractions of species
+		*/
+		void SubEquations_SurfaceSpeciesFractions();
+
+		/**
 		*@brief Calculates the diffusion fluxes
 		*/
 		void DiffusionFluxes();
@@ -257,16 +265,30 @@ namespace CVI
 	protected:
 
 		// References
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;			//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;				//!< reference to the kinetic map
-		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;				//!< reference to the trasport properties map
-		CVI::PorousMedium&										porousMedium_;				//!< reference to the porous mmedium
-		CVI::HeterogeneousMechanism&							heterogeneousMechanism_;	//!< reference to the heterogeneous mechanism
-		OpenSMOKE::Grid1D&										grid_;						//!< reference to the 1D grid
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;					//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;						//!< reference to the kinetic map
+		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;						//!< reference to the trasport properties map
+		OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>&	thermodynamicsSurfaceMap_;
+		OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&			kineticsSurfaceMap_;
+		CVI::PorousMedium&										porousMedium_;						//!< reference to the porous mmedium
+		CVI::HeterogeneousMechanism&							heterogeneousMechanism_;			//!< reference to the heterogeneous mechanism
+		CVI::HeterogeneousDetailedMechanism&					heterogeneousDetailedMechanism_;	//!< reference to the heterogeneous detailed mechanism
+		OpenSMOKE::Grid1D&										grid_;								//!< reference to the 1D grid
+
+		bool detailed_heterogeneous_kinetics_;
 
 		// Dimensions
-		unsigned int ns_;						//!< total number of gaseous species
-		unsigned int np_;						//!< total number of grid points
+		unsigned int nc_;						//!< total number of gaseous species
+		unsigned int nr_;						//!< total number of homogeneous reactions
+		unsigned int np_;						//!< total number of points
+
+		unsigned int surf_np_;					//!< total number of site phases
+		unsigned int surf_nc_;					//!< total number of surface species
+		unsigned int surf_nr_;					//!< total number of heterogeneous reactions
+
+		unsigned int bulk_np_;					//!< total number of bulk phases
+		unsigned int bulk_nc_;					//!< total number of bulk species
+
 		unsigned int ne_;						//!< total number of equations
 		unsigned int block_;					//!< block size
 		unsigned int band_size_;				//!< lower and upper band sizes
@@ -276,6 +298,7 @@ namespace CVI
 		Eigen::VectorXd					P_;		//!< current pressure [Pa]
 		std::vector<Eigen::VectorXd>	Y_;		//!< mass fractions
 		std::vector<Eigen::VectorXd>	X_;		//!< mole fractions
+		std::vector<Eigen::VectorXd>	Z_;		//!< surface fractions
 
 		// Properties
 		Eigen::VectorXd					rho_gas_;			//!< density of gaseous phase [kg/m3]
@@ -310,6 +333,7 @@ namespace CVI
 		// Time derivatives
 		std::vector<Eigen::VectorXd>	dY_over_dt_;			//!< time derivatives of mass fractions	[1/s]
 		Eigen::VectorXd					depsilon_over_dt_;		//!< time derivative of porosity [1/s]
+		std::vector<Eigen::VectorXd>	dZ_over_dt_;			//!< time derivatives of fractions of surface species [1/s]
 
 		// Gas side data
 		Eigen::VectorXd					Y_gas_side_;			//!< mass fractions along the gas side
