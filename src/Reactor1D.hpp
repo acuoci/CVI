@@ -57,7 +57,9 @@ namespace CVI
 		n_steps_file_ = 3;
 		count_file_ = n_steps_file_;
 
-		
+		time_total_ = 48.*3600.;
+		dae_time_interval_ = 3600.;
+
 		if (detailed_heterogeneous_kinetics_ == true)
 		{
 			// Homogeneous species
@@ -76,7 +78,6 @@ namespace CVI
 			// Block size
 			block_ = nc_ + surf_nc_ + 1;
 		}
-
 		else
 		{
 			// Homogeneous species
@@ -171,17 +172,20 @@ namespace CVI
 			Y_[i].resize(nc_);
 
 		// Formation rates in gas pahse [kg/m3/s]
-		omega_homogeneous_.resize(np_);
+		omega_homogeneous_from_homogeneous_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			omega_homogeneous_[i].resize(nc_);
+			omega_homogeneous_from_homogeneous_[i].resize(nc_);
 
 		// Heterogeneous formation rates [kg/m3/s]
-		omega_heterogeneous_.resize(np_);
+		omega_homogeneous_from_heterogeneous_.resize(np_);
 		for (int i = 0; i < np_; i++)
-			omega_heterogeneous_[i].resize(nc_);
+			omega_homogeneous_from_heterogeneous_[i].resize(nc_);
 
 		// Deposition rate [kg/m3/s]
 		omega_deposition_per_unit_volume_.resize(np_);
+
+		// Loss for the homogeneous phase because the heterogeneous reactions [kg/m3/s]
+		omega_loss_per_unit_volume_.resize(np_);
 
 		// Deposition rate [kg/m2/s]
 		omega_deposition_per_unit_area_.resize(np_);
@@ -230,6 +234,18 @@ namespace CVI
 		// Time derivatives: porosity [1/s]
 		depsilon_over_dt_.resize(np_);
 
+		// Reset to zero
+		for (int i = 0; i < np_-1; i++)
+			j_star_[i].setZero();
+		for (int i = 0; i < np_; i++)
+			omega_homogeneous_from_homogeneous_[i].setZero();
+		for (int i = 0; i < np_; i++)
+			omega_homogeneous_from_heterogeneous_[i].setZero();
+		omega_deposition_per_unit_volume_.setZero();
+		omega_deposition_per_unit_area_.setZero();
+		omega_loss_per_unit_volume_.setZero();
+
+		// Detailed heterogeneous kinetics
 		if (detailed_heterogeneous_kinetics_ == true)
 		{
 			// Surface fractions [-]
@@ -241,17 +257,32 @@ namespace CVI
 			dZ_over_dt_.resize(np_);
 			for (int i = 0; i < np_; i++)
 				dZ_over_dt_[i].resize(surf_nc_);
-		}
 
-		// Reset to zero
-		for (int i = 0; i < np_-1; i++)
-			j_star_[i].setZero();
-		for (int i = 0; i < np_; i++)
-			omega_homogeneous_[i].setZero();
-		for (int i = 0; i < np_; i++)
-			omega_heterogeneous_[i].setZero();
-		omega_deposition_per_unit_volume_.setZero();
-		omega_deposition_per_unit_area_.setZero();
+			// Heterogeneous formation rates for surface species [kg/m2/s]
+			omega_heterogeneous_from_heterogeneous_.resize(np_);
+			for (int i = 0; i < np_; i++)
+				omega_heterogeneous_from_heterogeneous_[i].resize(surf_nc_);
+
+			// Auxiliary vectors
+			eigen_C_.resize(nc_);
+			eigen_Z_.resize(surf_nc_);
+			eigen_a_.resize(bulk_nc_);
+			eigen_gamma_.resize(surf_np_);
+
+			// Reset to zero
+			for (int i = 0; i < np_; i++)
+				omega_heterogeneous_from_heterogeneous_[i].setZero();
+		}
+	}
+
+	void Reactor1D::SetTimeTotal(const double time_total)
+	{
+		time_total_ = time_total;
+	}
+
+	void Reactor1D::SetDaeTimeInterval(const double time_interval)
+	{
+		dae_time_interval_ = time_interval;
 	}
 
 	void Reactor1D::SetPlanarSymmetry(const bool flag)
@@ -376,6 +407,7 @@ namespace CVI
 			}
 
 			// Kinetics
+			if (detailed_heterogeneous_kinetics_ == false)
 			{
 				// Homogeneous phase
 				if (heterogeneousMechanism_.homogeneous_reactions() == true)
@@ -385,12 +417,11 @@ namespace CVI
 					kineticsMap_.ReactionRates(aux_C);
 					kineticsMap_.FormationRates(&aux_R);
 					ElementByElementProduct(aux_R, thermodynamicsMap_.MW(), &aux_R); // [kg/m3/s]
-					aux_R.CopyTo(omega_homogeneous_[i].data());
+					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
 				}
 
-				// Heterogeneous phase (non detailed)
-				if (	heterogeneousMechanism_.heterogeneous_reactions() == true &&
-						detailed_heterogeneous_kinetics_ == false )
+				// Heterogeneous phase (global)
+				if (heterogeneousMechanism_.heterogeneous_reactions() == true)
 				{
 					heterogeneousMechanism_.SetTemperature(T_(i));
 					heterogeneousMechanism_.SetPressure(P_(i));
@@ -399,40 +430,62 @@ namespace CVI
 						aux_eigen(j) = aux_C[j + 1];
 					heterogeneousMechanism_.FormationRates(Sv_(i), aux_eigen);
 					for (unsigned int j = 0; j < nc_; j++)
-						omega_heterogeneous_[i](j) = heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];								// [kg/m3/s]
+						omega_homogeneous_from_heterogeneous_[i](j) = heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j + 1];						// [kg/m3/s]
+
 					omega_deposition_per_unit_area_(i) = heterogeneousMechanism_.r_deposition_per_unit_area()*heterogeneousMechanism_.mw_carbon();			// [kg/m2/s]
 					omega_deposition_per_unit_volume_(i) = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+
+					omega_loss_per_unit_volume_(i) = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+						omega_loss_per_unit_volume_(i) += heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j + 1];					// [kg/m3/s]
+				}
+			}
+			else
+			{
+				// Homogeneous phase
+				if (heterogeneousDetailedMechanism_.homogeneous_reactions() == true)
+				{
+					kineticsMap_.SetTemperature(T_(i));
+					kineticsMap_.SetPressure(P_(i));
+					kineticsMap_.ReactionRates(aux_C);
+					kineticsMap_.FormationRates(&aux_R);
+					ElementByElementProduct(aux_R, thermodynamicsMap_.MW(), &aux_R); // [kg/m3/s]
+					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
 				}
 
 				// Heterogeneous phase (detailed)
-				if (heterogeneousMechanism_.heterogeneous_reactions() == true &&
-					detailed_heterogeneous_kinetics_ == true)
+				if (heterogeneousDetailedMechanism_.heterogeneous_reactions() == true )
 				{
 					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
 					heterogeneousDetailedMechanism_.SetPressure(P_(i));
 
-					Eigen::VectorXd C(nc_);
-					Eigen::VectorXd Z(surf_nc_);
-					Eigen::VectorXd a(bulk_nc_);
-					Eigen::VectorXd gamma(surf_np_);
-
 					for (unsigned int j = 0; j < nc_; j++)
-						C(j) = aux_C[j + 1];
+						eigen_C_(j) = aux_C[j + 1];
 
 					for (unsigned int j = 0; j < surf_nc_; j++)
-						Z(j) = Z_[i](j);
+						eigen_Z_(j) = Z_[i](j);
 
 					for (unsigned int j = 0; j < bulk_nc_; j++)
-						a(j) = 1.;
+						eigen_a_(j) = 1.;
 
 					for (unsigned int j = 0; j < surf_np_; j++)
-						gamma(j) = thermodynamicsSurfaceMap_.matrix_densities_site_phases()[0][j];
+						eigen_gamma_(j) = thermodynamicsSurfaceMap_.matrix_densities_site_phases()[0][j];
 
-					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), C, Z, a, gamma);
+					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
+
 					for (unsigned int j = 0; j < nc_; j++)
-						omega_heterogeneous_[i](j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j + 1];								// [kg/m3/s]
-				//	omega_deposition_per_unit_area_(i) = heterogeneousMechanism_.r_deposition_per_unit_area()*heterogeneousMechanism_.mw_carbon();			// [kg/m2/s]
-				//	omega_deposition_per_unit_volume_(i) = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+						omega_homogeneous_from_heterogeneous_[i](j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j + 1];				// [kg/m3/s]
+
+					for (unsigned int j = 0; j < surf_nc_; j++)
+						omega_heterogeneous_from_heterogeneous_[i](j) = heterogeneousDetailedMechanism_.Rsurface()(j);	// [kmol/m2/s]
+
+					omega_deposition_per_unit_area_(i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_area()*heterogeneousDetailedMechanism_.mw_carbon();			// [kg/m2/s]
+					omega_deposition_per_unit_volume_(i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_volume()*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m3/s]
+
+					omega_loss_per_unit_volume_(i) = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+						omega_loss_per_unit_volume_(i) += heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsSurfaceMap_.MW()[j + 1];					// [kg/m3/s]
+
 				}
 			}
 		}
@@ -500,19 +553,18 @@ namespace CVI
 				{
 					dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
 										(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
-										epsilon_(i)*omega_homogeneous_[i](j) + omega_heterogeneous_[i](j) + Y_[i](j)*omega_deposition_per_unit_volume_(i);
+										epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
 				}
 				else
 				{
 					dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
 										(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
 										gamma_star_[i](j)*rho_gas_(i)*dY_over_dx_[i](j)/grid_.x()[i] +
-										epsilon_(i)*omega_homogeneous_[i](j) + omega_heterogeneous_[i](j) + Y_[i](j)*omega_deposition_per_unit_volume_(i);
-				}
+										epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
 
-				// Fluxes
-				// dY_over_dt_[i](j) = -(j_star_[i](j) - j_star_[i - 1](j)) / grid_.dxc_over_2()(i) +
-				//					epsilon_(i)*omega_homogeneous_[i](j) + omega_heterogeneous_[i](j) + Y_[i](j)*omega_deposition_(i);
+					
+
+				}
 
 				dY_over_dt_[i](j) /= (rho_gas_(i)*epsilon_(i));
 			}
@@ -527,8 +579,16 @@ namespace CVI
 	void Reactor1D::SubEquations_Porosity()
 	{
 		// Internal points
-		for (int i = 0; i < np_; i++)
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / heterogeneousMechanism_.rho_graphite();
+		if (detailed_heterogeneous_kinetics_ == false)
+		{
+			for (int i = 0; i < np_; i++)
+				depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / heterogeneousMechanism_.rho_graphite();
+		}
+		else
+		{
+			for (int i = 0; i < np_; i++)
+				depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / heterogeneousDetailedMechanism_.rho_graphite();
+		}
 	}
 
 	void Reactor1D::SubEquations_SurfaceSpeciesFractions()
@@ -538,8 +598,8 @@ namespace CVI
 			for (unsigned int j = 0; j < surf_nc_; j++)
 			{
 				const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
-//				dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * Rsurface_[j + 1])
-//										/ thermodynamicsSurfaceMap_.matrix_densities_site_phases()[0][index_phase];
+				dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * omega_heterogeneous_from_heterogeneous_[i](j))
+										/ thermodynamicsSurfaceMap_.matrix_densities_site_phases()[0][index_phase];
 			}
 	}
 
@@ -689,12 +749,11 @@ namespace CVI
 		fMonitoring.setf(std::ios::scientific);
 
 		// Loop
-		double time_interval = 3600.*10.;		// [s]
-		unsigned int number_intervals = 12;
+		unsigned int number_intervals = time_total_ / dae_time_interval_;
 		for (unsigned int k = 1; k <= number_intervals; k++)
 		{
-			const double t0 = (k - 1)*time_interval;
-			const double tf = t0 + time_interval;
+			const double t0 = (k - 1)*dae_time_interval_;
+			const double tf = t0 + dae_time_interval_;
 
 			// Solve
 			int flag = Solve(dae_parameters, t0, tf);
@@ -926,6 +985,14 @@ namespace CVI
 
 	void Reactor1D::PrintHeterogeneousRates(const double t, const std::string name_file)
 	{
+		if (detailed_heterogeneous_kinetics_ == true)
+			PrintDetailedHeterogeneousRates(t, name_file);
+		else
+			PrintGlobalHeterogeneousRates(t, name_file);
+	}
+
+	void Reactor1D::PrintGlobalHeterogeneousRates(const double t, const std::string name_file)
+	{
 		unsigned int width = 25;
 
 		std::ofstream fOutput(name_file.c_str(), std::ios::out);
@@ -1026,6 +1093,112 @@ namespace CVI
 		fOutput.close();
 	}
 
+	void Reactor1D::PrintDetailedHeterogeneousRates(const double t, const std::string name_file)
+	{
+		unsigned int width = 25;
+
+		std::ofstream fOutput(name_file.c_str(), std::ios::out);
+
+		{
+			unsigned int count = 1;
+			OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "time[s]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "x[mm]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "T[K]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "P[Pa]", count);
+
+			// Total deposition rate
+			OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "rDepo[kmol/m2/s]", count);
+
+			// Reaction rates 
+		//	for (int j = 0; j < heterogeneousDetailedMechanism_.r().size(); j++)
+		//	{
+		//		std::stringstream number; number << j + 1;
+		//		OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, "r" + number.str() + "[kmol/m2/s]", count);
+		//	}
+
+			// Formation rates of homogeneous species from heterogeneous reactions [kmol/m3/s] 
+			for (unsigned int i = 0; i < nc_; i++)
+			{
+				std::string label = "RV_" + thermodynamicsMap_.NamesOfSpecies()[i];
+				OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, label, count);
+			}
+
+			// Formation rates of surface species from heterogeneous reactions [kmol/m2/s] 
+			for (unsigned int i = 0; i < surf_nc_; i++)
+			{
+				std::string label = "RS_" + thermodynamicsSurfaceMap_.NamesOfSpecies()[nc_+i];
+				OpenSMOKE::PrintTagOnASCIILabel(width, fOutput, label, count);
+			}
+
+			fOutput << std::endl;
+		}
+
+		for (int i = 0; i < np_; i++)
+		{
+			// Calculate the reaction and formation rates of heterogeneous reactions
+			{
+				porousMedium_.SetPorosity(epsilon_(i));
+				porousMedium_.SetTemperature(T_(i));
+				porousMedium_.SetPressure(P_(i));
+
+				// Homogeneous contributions
+				{
+					thermodynamicsMap_.SetPressure(P_(i));
+					thermodynamicsMap_.SetTemperature(T_(i));
+					aux_Y.CopyFrom(Y_[i].data());
+					thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
+					aux_X.CopyTo(X_[i].data());
+					const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
+					Product(cTot, aux_X, &aux_C);
+				}
+
+				// Heterogeneous mechanism
+				{
+					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+					heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+					for (unsigned int j = 0; j < nc_; j++)
+						eigen_C_(j) = aux_C[j + 1];
+
+					for (unsigned int j = 0; j < surf_nc_; j++)
+						eigen_Z_(j) = Z_[i](j);
+
+					for (unsigned int j = 0; j < bulk_nc_; j++)
+						eigen_a_(j) = 1.;
+
+					for (unsigned int j = 0; j < surf_np_; j++)
+						eigen_gamma_(j) = thermodynamicsSurfaceMap_.matrix_densities_site_phases()[0][j];
+
+					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
+				}
+			}
+
+			fOutput << std::setprecision(9) << std::setw(width) << t;
+			fOutput << std::setprecision(9) << std::setw(width) << grid_.x()[i] * 1000.;
+			fOutput << std::setprecision(9) << std::setw(width) << T_(i);
+			fOutput << std::setprecision(9) << std::setw(width) << P_(i);
+
+			// Reaction rates
+			{
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousDetailedMechanism_.r_deposition_per_unit_area();
+		//		for (int j = 0; j < heterogeneousDetailedMechanism_.r().size(); j++)
+		//			fOutput << std::setprecision(9) << std::setw(width) << heterogeneousDetailedMechanism_.r()(j);
+			}
+
+			// Formation rates of homogeneous species from heterogeneous reactions[kmol/m3/s]
+			for (unsigned int i = 0; i < nc_; i++)
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousDetailedMechanism_.Rgas()(i);
+
+			// Formation rates of surface species from heterogeneous reactions[kmol/m2/s]
+			for (unsigned int i = 0; i < surf_nc_; i++)
+				fOutput << std::setprecision(9) << std::setw(width) << heterogeneousDetailedMechanism_.Rsurface()(i);
+
+			fOutput << std::endl;
+		}
+
+		fOutput.close();
+	}
+
 	void Reactor1D::Print(const double t, const double* y)
 	{
 		if (count_video_ == n_steps_video_)
@@ -1036,6 +1209,14 @@ namespace CVI
 			std::cout << std::left << std::setw(16) << std::scientific << t;
 			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(3) << min_epsilon;
 			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(3) << max_epsilon;
+
+			if (detailed_heterogeneous_kinetics_ == true)
+			{
+				std::cout << std::left << std::setw(16) << std::setprecision(2) << std::scientific << Z_[10].sum();
+				std::cout << std::left << std::setw(16) << std::setprecision(2) << std::scientific << Z_[10](0);
+				std::cout << std::left << std::setw(16) << std::setprecision(2) << std::scientific << Z_[10](1);
+			}
+
 			std::cout << std::endl;
 
 			count_video_ = 0;

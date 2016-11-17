@@ -47,7 +47,6 @@ namespace CVI
 
 	void HeterogeneousDetailedMechanism::Initialize()
 	{
-		std::cout << "H1" << std::endl;
 		// Constants
 		mw_carbon_ = 12.010999679565430;												// [kg/kmol]
 		rho_graphite_ = thermodynamicsSurfaceMap_.vector_densities_bulk_species()[0];	// [kg/m3]
@@ -55,7 +54,7 @@ namespace CVI
 		// Number of species
 		nc_ = thermodynamicsMap_.NumberOfSpecies();
 		nr_ = kineticsMap_.NumberOfReactions();
-		std::cout << "H2" << std::endl;
+
 		// Surface phases
 		surf_np_ = thermodynamicsSurfaceMap_.number_of_site_phases(0);
 		surf_nc_ = thermodynamicsSurfaceMap_.number_of_site_species();
@@ -64,9 +63,10 @@ namespace CVI
 		// Bulk phases
 		bulk_np_ = thermodynamicsSurfaceMap_.number_of_bulk_phases(0);
 		bulk_nc_ = thermodynamicsSurfaceMap_.number_of_bulk_species();
-		std::cout << "H3" << std::endl;
+
 		// Memory allocation
 		Rgas_.resize(nc_);
+		Rsurface_.resize(surf_nc_);
 		r_heterogeneous_.resize(surf_nr_);
 		r_heterogeneous_deposition_per_unit_area_per_single_reaction_.resize(surf_nr_);
 		r_heterogeneous_deposition_per_unit_volume_per_single_reaction_.resize(surf_nr_);
@@ -75,7 +75,6 @@ namespace CVI
 		OpenSMOKE::ChangeDimensions(surf_nc_, &Rsurface_from_surface_, true);	
 		OpenSMOKE::ChangeDimensions(bulk_nc_, &Rbulk_from_surface_, true);		
 		OpenSMOKE::ChangeDimensions(surf_np_, &Rphases_from_surface_, true);
-		std::cout << "H4" << std::endl;
 		
 		// Summary on the screen
 		Summary();
@@ -126,14 +125,21 @@ namespace CVI
 			kineticsSurfaceMap_.FormationRates(&Rgas_from_surface_, &Rsurface_from_surface_, &Rbulk_from_surface_, &Rphases_from_surface_);
 		}
 
-		// Consumption rate of homogeneous species [kmol/m3/s]
+		// Formation rate of homogeneous species [kmol/m3/s]
 		for (unsigned int i = 0; i < nc_; i++)
 			Rgas_(i) = Sv*Rgas_from_surface_[i+1];
+
+		// Formation rate of homogeneous species [kmol/m2/s]
+		for (unsigned int i = 0; i < surf_nc_; i++)
+			Rsurface_(i) = Rsurface_from_surface_[i + 1];
 
 		// Total heterogeneous deposition rate [kmol/m2/s]
 		r_heterogeneous_deposition_per_unit_area_ = Rbulk_from_surface_[1];
 
 		// Heterogeneous deposition rate [kmol/m3/s]
+		r_heterogeneous_deposition_per_unit_volume_ = Sv*r_heterogeneous_deposition_per_unit_area_;
+
+		// Homogeneous rate of disappearance
 		r_heterogeneous_deposition_per_unit_volume_ = Sv*r_heterogeneous_deposition_per_unit_area_;
 
 		// Single constributions (TODO)

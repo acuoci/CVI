@@ -185,6 +185,18 @@ namespace CVI
 		*/
 		void MaximumUnknownsVector(double* v);
 
+		/**
+		*@brief Sets the total time of integration
+		*@param time_total total time of integration [s]
+		*/
+		void SetTimeTotal(const double time_total);
+
+		/**
+		*@brief Sets the interval time for solving successive DAE systems
+		*@param time_interval interval time [s]
+		*/
+		void SetDaeTimeInterval(const double time_interval);
+
 	private:
 
 		/**
@@ -249,6 +261,20 @@ namespace CVI
 		void PrintHeterogeneousRates(const double t, const std::string name_file);
 
 		/**
+		*@brief Prints the fomation rates of species due to the heterogeneous reactions on file
+		*@param t current time [s]
+		*@param name_file name of file where the formation rates will be written
+		*/
+		void PrintGlobalHeterogeneousRates(const double t, const std::string name_file);
+
+		/**
+		*@brief Prints the fomation rates of species due to the heterogeneous reactions on file
+		*@param t current time [s]
+		*@param name_file name of file where the formation rates will be written
+		*/
+		void PrintDetailedHeterogeneousRates(const double t, const std::string name_file);
+
+		/**
 		*@brief Solves the system of DAE describing the 1D reactor
 		*@param dae_parameters parameters governing the solution of the DAE system
 		*@param t0 starting time [s]
@@ -293,12 +319,21 @@ namespace CVI
 		unsigned int block_;					//!< block size
 		unsigned int band_size_;				//!< lower and upper band sizes
 
+		// Time
+		double time_total_;
+		double dae_time_interval_;
+
 		// Main variables
 		Eigen::VectorXd					T_;		//!< current temperature [K]
 		Eigen::VectorXd					P_;		//!< current pressure [Pa]
 		std::vector<Eigen::VectorXd>	Y_;		//!< mass fractions
 		std::vector<Eigen::VectorXd>	X_;		//!< mole fractions
 		std::vector<Eigen::VectorXd>	Z_;		//!< surface fractions
+
+		Eigen::VectorXd eigen_C_;				//!< concentrations of gaseous species [kmol/m3]
+		Eigen::VectorXd eigen_Z_;				//!< surface fractions [-]
+		Eigen::VectorXd eigen_a_;				//!< activities of bulk species [-]
+		Eigen::VectorXd eigen_gamma_;			//!< site surface densities [kmol/m2]
 
 		// Properties
 		Eigen::VectorXd					rho_gas_;			//!< density of gaseous phase [kg/m3]
@@ -313,10 +348,13 @@ namespace CVI
 		Eigen::VectorXd					rp_;				//!< radius of pores [m]
 
 		// Reactions	
-		std::vector<Eigen::VectorXd>	omega_homogeneous_;					//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
-		std::vector<Eigen::VectorXd>	omega_heterogeneous_;				//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
+		std::vector<Eigen::VectorXd>	omega_homogeneous_from_homogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
+		std::vector<Eigen::VectorXd>	omega_homogeneous_from_heterogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
+		std::vector<Eigen::VectorXd>	omega_heterogeneous_from_heterogeneous_;	//!< formation rates of surface species [kg/m2/s] (only contribution from heterogeneus reactions)
+
 		Eigen::VectorXd					omega_deposition_per_unit_volume_;	//!< deposition rate [kg/m3/s]
 		Eigen::VectorXd					omega_deposition_per_unit_area_;	//!< deposition rate [kg/m2/s]
+		Eigen::VectorXd					omega_loss_per_unit_volume_;		//!< loss for the homogeneous phase because of heterogeneous reactions [kg/m3/s]
 
 		// Diffusion
 		std::vector<Eigen::VectorXd>	gamma_star_;			//!< mass diffusion coefficients [m2/s]

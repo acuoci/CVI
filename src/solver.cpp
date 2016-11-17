@@ -742,6 +742,8 @@ int main(int argc, char** argv)
 		reactor1d->SetPlanarSymmetry(symmetry_planar);
 		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega, initial_Z);
 		reactor1d->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
+		reactor1d->SetTimeTotal(time_total);
+		reactor1d->SetDaeTimeInterval(dae_time_interval);
 
 		// Solve
 		{
