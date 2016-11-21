@@ -312,12 +312,19 @@ int main(int argc, char** argv)
 	}
 
 	// On the fly ROPA
-	OpenSMOKE::SurfaceOnTheFlyROPA* onTheFlyROPA = new OpenSMOKE::SurfaceOnTheFlyROPA(*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML);
-	if (dictionaries(main_dictionary_name_).CheckOption("@OnTheFlyROPA") == true)
+	OpenSMOKE::SurfaceOnTheFlyROPA* onTheFlyROPA;
+	bool on_the_fly_ropa = false;
+	if (detailed_heterogeneous_kinetics == true)
 	{
-		std::string name_of_options_subdictionary;
-		dictionaries(main_dictionary_name_).ReadDictionary("@OnTheFlyROPA", name_of_options_subdictionary);
-		onTheFlyROPA->SetupFromDictionary(dictionaries(name_of_options_subdictionary), path_kinetics_output);
+		if (dictionaries(main_dictionary_name_).CheckOption("@OnTheFlyROPA") == true)
+		{
+			std::string name_of_options_subdictionary;
+			dictionaries(main_dictionary_name_).ReadDictionary("@OnTheFlyROPA", name_of_options_subdictionary);
+
+			on_the_fly_ropa = true;
+			onTheFlyROPA = new OpenSMOKE::SurfaceOnTheFlyROPA(*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML);
+			onTheFlyROPA->SetupFromDictionary(dictionaries(name_of_options_subdictionary), path_kinetics_output);
+		}
 	}
 
 	// Monodimensional grid along the x axis
@@ -864,7 +871,9 @@ int main(int argc, char** argv)
 		capillary->SetDaeTimeInterval(dae_time_interval);
 		capillary->SetOdeEndTime(ode_end_time);
 		capillary->SetTecplotTimeInterval(tecplot_time_interval);
-		capillary->SetSurfaceOnTheFlyROPA(onTheFlyROPA);
+
+		if (on_the_fly_ropa == true)
+			capillary->SetSurfaceOnTheFlyROPA(onTheFlyROPA);
 
 		// Solve
 		{
