@@ -32,6 +32,7 @@
 
 // Reactor utilities
 #include "reactors/utilities/Utilities"
+#include "surfacereactors/utilities/Utilities"
 
 // 1D grid
 #include "grids/adaptive/Grid1D.h"
@@ -141,8 +142,8 @@ int main(int argc, char** argv)
 		std::string value;
 		if (dictionaries(main_dictionary_name_).CheckOption("@Type") == true)
 			dictionaries(main_dictionary_name_).ReadString("@Type", value);
-		if (value == "1D")			problem_type = CVI_REACTOR1D;
-		else if (value == "2D")			problem_type = CVI_REACTOR2D;
+		if (value == "1D")					problem_type = CVI_REACTOR1D;
+		else if (value == "2D")				problem_type = CVI_REACTOR2D;
 		else if (value == "Capillary")		problem_type = CVI_CAPILLARY;
 		else OpenSMOKE::FatalErrorMessage("Wrong @Type: Capillary | 1D | 2D");
 	}
@@ -285,12 +286,38 @@ int main(int argc, char** argv)
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
 	}
 
+	bool detailed_heterogeneous_kinetics = true;;
+	if (dictionaries(main_dictionary_name_).CheckOption("@DetailedSurfaceChemistry") == true)
+	{
+		dictionaries(main_dictionary_name_).ReadBool("@DetailedSurfaceChemistry", detailed_heterogeneous_kinetics);
+	}
+
+	bool dae_formulation = false;;
+	if (dictionaries(main_dictionary_name_).CheckOption("@DaeFormulation") == true)
+	{
+		dictionaries(main_dictionary_name_).ReadBool("@DaeFormulation", dae_formulation);
+	}
+
+	std::string dae_species = "none";
+	if (dictionaries(main_dictionary_name_).CheckOption("@DaeSpecies") == true)
+	{
+		dictionaries(main_dictionary_name_).ReadString("@DaeSpecies", dae_species);
+	}
 
 	boost::filesystem::path output_path;
 	if (dictionaries(main_dictionary_name_).CheckOption("@Output") == true)
 	{
 		dictionaries(main_dictionary_name_).ReadPath("@Output", output_path);
 		OpenSMOKE::CreateDirectory(output_path);
+	}
+
+	// On the fly ROPA
+	OpenSMOKE::SurfaceOnTheFlyROPA* onTheFlyROPA = new OpenSMOKE::SurfaceOnTheFlyROPA(*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML);
+	if (dictionaries(main_dictionary_name_).CheckOption("@OnTheFlyROPA") == true)
+	{
+		std::string name_of_options_subdictionary;
+		dictionaries(main_dictionary_name_).ReadDictionary("@OnTheFlyROPA", name_of_options_subdictionary);
+		onTheFlyROPA->SetupFromDictionary(dictionaries(name_of_options_subdictionary), path_kinetics_output);
 	}
 
 	// Monodimensional grid along the x axis
@@ -377,6 +404,16 @@ int main(int argc, char** argv)
 		dae_parameters->SetupFromDictionary(dictionaries(name_of_subdictionary));
 	}
 	dae_parameters->SetMinimumMeanThreshold(0.);
+
+	// Ode Options
+	OdeSMOKE::OdeSolver_Parameters* ode_parameters;
+	ode_parameters = new OdeSMOKE::OdeSolver_Parameters();
+	if (dictionaries(main_dictionary_name_).CheckOption("@OdeParameters") == true)
+	{
+		std::string name_of_subdictionary;
+		dictionaries(main_dictionary_name_).ReadDictionary("@OdeParameters", name_of_subdictionary);
+		ode_parameters->SetupFromDictionary(dictionaries(name_of_subdictionary));
+	}
 
 	// Read the plug flow residence time 
 	double residence_time = 2.;
@@ -474,6 +511,21 @@ int main(int argc, char** argv)
 			initial_omega(i - 1) = aux[i];
 	}
 
+	// Read initial conditions
+	OpenSMOKE::OpenSMOKEVectorDouble Z0(thermodynamicsSurfaceMapXML->number_of_site_species());
+	Eigen::VectorXd Gamma0(thermodynamicsSurfaceMapXML->number_of_site_phases(0));
+	std::vector<bool> SiteNonConservation(thermodynamicsSurfaceMapXML->number_of_site_phases(0));
+	for (unsigned int k = 0; k<thermodynamicsSurfaceMapXML->number_of_site_phases(0); k++)
+	{
+		bool site_non_conservation;
+		const std::string name = "Surface-" + thermodynamicsSurfaceMapXML->matrix_names_site_phases()[0][k];
+		GetSurfaceCompositionFromDictionary
+		(dictionaries(name), *thermodynamicsSurfaceMapXML, Z0, site_non_conservation);
+
+		SiteNonConservation[k] = site_non_conservation;
+		Gamma0(k) = thermodynamicsSurfaceMapXML->matrix_densities_site_phases()[0][k];
+	}
+
 	// Interval time
 	double dae_time_interval = 0.;
 	{
@@ -486,6 +538,21 @@ int main(int argc, char** argv)
 			else if (units == "min")		dae_time_interval = dae_time_interval * 60.;
 			else if (units == "h")			dae_time_interval = dae_time_interval * 3600.;
 			else OpenSMOKE::FatalErrorMessage("Unknown @DaeTimeInterval units");
+		}
+	}
+
+	// Interval time
+	double ode_end_time = 1.;
+	{
+		std::string units;
+		if (dictionaries(main_dictionary_name_).CheckOption("@OdeEndTime") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadMeasure("@OdeEndTime", ode_end_time, units);
+			if (units == "s")				ode_end_time = ode_end_time;
+			else if (units == "ms")			ode_end_time = ode_end_time / 1.e3;
+			else if (units == "min")		ode_end_time = ode_end_time * 60.;
+			else if (units == "h")			ode_end_time = ode_end_time * 3600.;
+			else OpenSMOKE::FatalErrorMessage("Unknown @OdeEndTime units");
 		}
 	}
 
@@ -732,15 +799,16 @@ int main(int argc, char** argv)
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, *porous_medium, *heterogeneous_mechanism, *heterogeneous_detailed_mechanism, *grid_x);
+		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, *porous_medium, *heterogeneous_mechanism, *heterogeneous_detailed_mechanism, *grid_x, detailed_heterogeneous_kinetics);
 
-		// TODO
+		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
-		initial_Z.setZero();
-		initial_Z(0) = 1.;
+		for (unsigned int i = 0;i<thermodynamicsSurfaceMapXML->number_of_site_species();i++)
+			initial_Z(i) = Z0[i+1];
 
 		reactor1d->SetPlanarSymmetry(symmetry_planar);
 		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega, initial_Z);
+		reactor1d->SetSiteNonConservation(SiteNonConservation);
 		reactor1d->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
 		reactor1d->SetTimeTotal(time_total);
 		reactor1d->SetDaeTimeInterval(dae_time_interval);
@@ -775,14 +843,28 @@ int main(int argc, char** argv)
 		// Set heterogeneous mechanism
 		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_heterogeneous_mechanism));
 		
-		// Set capillary
-		CVI::Capillary* capillary = new CVI::Capillary(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *heterogeneous_mechanism, *grid_x);
+		// Set heterogeneous mechanism
+		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
 
-		capillary->SetInitialConditions(initial_T, initial_P, capillary_diameter, initial_omega);
+		// Set capillary
+		CVI::Capillary* capillary = new CVI::Capillary(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, 
+														*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, 
+														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
+														*grid_x, detailed_heterogeneous_kinetics, 
+														SiteNonConservation, dae_formulation, dae_species);
+
+		// Initial surface fractions
+		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
+		for (unsigned int i = 0; i<thermodynamicsSurfaceMapXML->number_of_site_species(); i++)
+			initial_Z(i) = Z0[i + 1];
+		
+		capillary->SetInitialConditions(initial_T, initial_P, capillary_diameter, initial_omega, Gamma0, initial_Z);
 		capillary->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
 		capillary->SetTimeTotal(time_total);
 		capillary->SetDaeTimeInterval(dae_time_interval);
+		capillary->SetOdeEndTime(ode_end_time);
 		capillary->SetTecplotTimeInterval(tecplot_time_interval);
+		capillary->SetSurfaceOnTheFlyROPA(onTheFlyROPA);
 
 		// Solve
 		{
@@ -790,7 +872,7 @@ int main(int argc, char** argv)
 			time_t timerEnd;
 
 			time(&timerStart);
-			int flag = capillary->SolveFromScratch(*dae_parameters);
+			int flag = capillary->SolveFromScratch(*dae_parameters, *ode_parameters);
 			time(&timerEnd);
 
 			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;

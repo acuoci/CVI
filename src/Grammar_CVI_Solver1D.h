@@ -44,6 +44,21 @@ namespace CVI
 				"Type of problem to be solved: Capillary | 1D | 2D",
 				true));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DetailedSurfaceChemistry",
+				OpenSMOKE::SINGLE_BOOL,
+				"Detailed vs Global heterogeneous chemistry",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DaeSpecies",
+				OpenSMOKE::SINGLE_STRING,
+				"Name of surface species chosen for the algebraic equation closure",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DaeFormulation",
+				OpenSMOKE::SINGLE_BOOL,
+				"Algebraic equations for surface species (default: false)",
+				true));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Symmetry",
 				OpenSMOKE::SINGLE_STRING,
 				"Type of symmetry: Planar | Cylindrical",
@@ -160,6 +175,21 @@ namespace CVI
 				OpenSMOKE::SINGLE_MEASURE,
 				"Interval of time for successive DAE system solutions",
 				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@OdeParameters",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Dictionary containing the numerical parameters for solving the stiff ODE system",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@OdeEndTime",
+				OpenSMOKE::SINGLE_MEASURE,
+				"Time for solving the surface species equations for determining the initial conditions (default: 1 s)",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@OnTheFlyROPA",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Dictionary specifying the details for carrying out the ROPA (on the fly)",
+				false));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TecplotTimeInterval",
 				OpenSMOKE::SINGLE_MEASURE,

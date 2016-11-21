@@ -55,12 +55,13 @@ namespace CVI
 
 		/**
 		*@brief Default constructor
-		*@param thermodynamicsMap			reference to the thermodynamic map
-		*@param kineticsMap					reference to the kinetic map
-		*@param transportMap				reference to the transport map
-		*@param porousMedium				reference to the porous medium
-		*@param heterogeneousMechanism		reference to the heterogeneous mechanism
-		*@param grid						reference to 1D grid
+		*@param thermodynamicsMap				reference to the thermodynamic map
+		*@param kineticsMap						reference to the kinetic map
+		*@param transportMap					reference to the transport map
+		*@param porousMedium					reference to the porous medium
+		*@param heterogeneousMechanism			reference to the heterogeneous mechanism
+		*@param grid							reference to 1D grid
+		*@param detailed_heterogeneous_kinetics detailed kinetics (true/false)
 		*/
 		Reactor1D(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
 					OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
@@ -70,7 +71,8 @@ namespace CVI
 					CVI::PorousMedium& porousMedium,
 					CVI::HeterogeneousMechanism& heterogeneousMechanism,
 					CVI::HeterogeneousDetailedMechanism& heterogeneousDetailedMechanism,
-					OpenSMOKE::Grid1D& grid);
+					OpenSMOKE::Grid1D& grid,
+					const bool detailed_heterogeneous_kinetics);
 
 		/**
 		*@brief Sets the planar symmetry
@@ -197,6 +199,12 @@ namespace CVI
 		*/
 		void SetDaeTimeInterval(const double time_interval);
 
+		/**
+		*@brief Sets the non conservation of sites equations
+		*@param site_non_conservation boolean vector (true: non conservation is allowed)
+		*/
+		void SetSiteNonConservation(std::vector<bool>& site_non_conservation);
+
 	private:
 
 		/**
@@ -318,6 +326,8 @@ namespace CVI
 		unsigned int ne_;						//!< total number of equations
 		unsigned int block_;					//!< block size
 		unsigned int band_size_;				//!< lower and upper band sizes
+
+		std::vector<bool> site_non_conservation_;	//!< site non conservation (true: non conservation is allowed)
 
 		// Time
 		double time_total_;

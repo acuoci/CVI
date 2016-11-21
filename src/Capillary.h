@@ -40,6 +40,7 @@
 #include "grids/adaptive/Grid1D.h"
 
 // Numerical parameters
+#include "math/multivalue-ode-solvers/parameters/OdeSolver_Parameters.h"
 #include "math/multivalue-dae-solvers/parameters/DaeSolver_Parameters.h"
 
 namespace CVI
@@ -62,10 +63,17 @@ namespace CVI
 		*@param grid				reference to 1D grid
 		*/
 		Capillary(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-				OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-				OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
-				CVI::HeterogeneousMechanism& heterogeneousMechanism,
-				OpenSMOKE::Grid1D& grid);
+					OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
+					OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+					OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>& thermodynamicsSurfaceMap,
+					OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&	kineticsSurfaceMap,
+					CVI::HeterogeneousMechanism& heterogeneousMechanism,
+					CVI::HeterogeneousDetailedMechanism& heterogeneousDetailedMechanism,
+					OpenSMOKE::Grid1D& grid,
+					const bool detailed_heterogeneous_kinetics,
+					const std::vector<bool>& site_non_conservation,
+					const bool dae_formulation,
+					const std::string dae_species);
 
 		/**
 		*@brief Sets the conditions along the gas side
@@ -82,7 +90,7 @@ namespace CVI
 		*@param D_initial	initial diameter [m]
 		*@param omega_initial	initial mass fractions
 		*/
-		void SetInitialConditions(const double T_initial, const double P_initial, const double D_initial, const Eigen::VectorXd& omega_initial);
+		void SetInitialConditions(const double T_initial, const double P_initial, const double D_initial, const Eigen::VectorXd& omega_initial, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0);
 
 		/**
 		*@brief Sets the total time of integration
@@ -95,6 +103,12 @@ namespace CVI
 		*@param time_interval interval time [s]
 		*/
 		void SetDaeTimeInterval(const double time_interval);
+
+		/**
+		*@brief Sets the total maximum time for integrating ODE systems for determining the initial conditions
+		*@param time_interval interval time [s]
+		*/
+		void SetOdeEndTime(const double time_interval);
 
 		/**
 		*@brief Sets the interval time for writing Tecplot output
@@ -114,6 +128,8 @@ namespace CVI
 		*/
 		void SetStepsFile(const int steps_file);
 
+		void SetSurfaceOnTheFlyROPA (OpenSMOKE::SurfaceOnTheFlyROPA* ropa);
+
 		/**
 		*@brief Returns the differential equations
 		*@param t current time [s]
@@ -127,7 +143,7 @@ namespace CVI
 		*@param dae_parameters parameters governing the solution of the DAE system
 		*@return the returned value is >0 in case of success, otherwise is <0
 		*/
-		int SolveFromScratch(DaeSMOKE::DaeSolver_Parameters& dae_parameters);
+		int SolveFromScratch(DaeSMOKE::DaeSolver_Parameters& dae_parameters, OdeSMOKE::OdeSolver_Parameters& ode_parameters);
 
 		/**
 		*@brief Prints info on the screen
@@ -205,6 +221,9 @@ namespace CVI
 		*/
 		void MaximumUnknownsVector(double* v);
 
+		int OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy);
+		int Capillary::OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y);
+
 	private:
 
 		/**
@@ -226,6 +245,11 @@ namespace CVI
 		*@brief Equation describing the evolution of diameter
 		*/
 		void SubEquations_Diameter();
+
+		/**
+		*@brief Equation describing the evolution ofsurface species fractions
+		*/
+		void SubEquations_SurfaceSpeciesFractions();
 
 		/**
 		*@brief Calculates the diffusion fluxes
@@ -262,6 +286,10 @@ namespace CVI
 		*@param name_file name of file where the formation rates will be written
 		*/
 		void PrintHeterogeneousRates(const double t, const std::string name_file);
+		void PrintGlobalHeterogeneousRates(const double t, const std::string name_file);
+		void PrintDetailedHeterogeneousRates(const double t, const std::string name_file);
+
+		void PrintROPA(const double t, const std::string name_file);
 
 		/**
 		*@brief Solves the system of DAE describing the 1D reactor
@@ -270,7 +298,7 @@ namespace CVI
 		*@param tf final time [s]
 		*@return the returned value is >0 in case of success, otherwise is <0
 		*/
-		int Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, const double t0, const double tf);
+		int Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, OdeSMOKE::OdeSolver_Parameters& ode_parameters, const double t0, const double tf);
 
 		/**
 		*@brief Sets the algebraic and differential equations
@@ -281,36 +309,66 @@ namespace CVI
 
 		// References
 		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;		//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&				kineticsMap_;			//!< reference to the kinetic map
+		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;			//!< reference to the kinetic map
 		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;			//!< reference to the trasport properties map
-		CVI::HeterogeneousMechanism& 					heterogeneousMechanism_;	//!< reference to the heterogeneous mechanism
-		OpenSMOKE::Grid1D&						grid_;				//!< reference to the 1D grid
+		OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>&	thermodynamicsSurfaceMap_;
+		OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&			kineticsSurfaceMap_;
+		CVI::HeterogeneousMechanism& 							heterogeneousMechanism_;	//!< reference to the heterogeneous mechanism
+		CVI::HeterogeneousDetailedMechanism&					heterogeneousDetailedMechanism_;	//!< reference to the heterogeneous detailed mechanism
+
+		OpenSMOKE::Grid1D&										grid_;				//!< reference to the 1D grid
+
+		OpenSMOKE::SurfaceOnTheFlyROPA*							ropa_;
+		bool ropa_analysis_;
+
+		bool dae_formulation_;
+		bool detailed_heterogeneous_kinetics_;
+		double rho_graphite_;
+		unsigned int dae_species_index_;
+
+		int i_current;
 
 		// Dimensions
-		unsigned int ns_;					//!< total number of gaseous species
+		unsigned int nc_;					//!< total number of gaseous species
 		unsigned int np_;					//!< total number of grid points
+
+		unsigned int surf_np_;				//!< total number of site phases
+		unsigned int surf_nc_;				//!< total number of surface species
+		unsigned int surf_nr_;				//!< total number of heterogeneous reactions
+
+		unsigned int bulk_np_;				//!< total number of bulk phases
+		unsigned int bulk_nc_;				//!< total number of bulk species
+
 		unsigned int ne_;					//!< total number of equations
-		unsigned int block_;					//!< block size
-		unsigned int band_size_;				//!< lower and upper band sizes
+		unsigned int block_;				//!< block size
+		unsigned int band_size_;			//!< lower and upper band sizes
 
 		// Main variables
-		Eigen::VectorXd			T_;		//!< current temperature [K]
-		Eigen::VectorXd			P_;		//!< current pressure [Pa]
+		Eigen::VectorXd					T_;		//!< current temperature [K]
+		Eigen::VectorXd					P_;		//!< current pressure [Pa]
 		std::vector<Eigen::VectorXd>	Y_;		//!< mass fractions
 		std::vector<Eigen::VectorXd>	X_;		//!< mole fractions
+		std::vector<Eigen::VectorXd>	Z_;		//!< surface fractions
+
+		Eigen::VectorXd eigen_C_;				//!< concentrations of gaseous species [kmol/m3]
+		Eigen::VectorXd eigen_Z_;				//!< surface fractions [-]
+		Eigen::VectorXd eigen_a_;				//!< activities of bulk species [-]
+		Eigen::VectorXd eigen_gamma_;			//!< surface densities [kmol/m2]
 
 		// Properties
-		Eigen::VectorXd			rho_gas_;		//!< density of gaseous phase [kg/m3]
-		Eigen::VectorXd			mw_;			//!< molecular weight of gaseous phase [kg/kmol]
-		Eigen::VectorXd			diameter_;		//!< graphite diameter [m]
-		double				diameter_initial_;	//!< initial diameter [m]
+		Eigen::VectorXd			rho_gas_;			//!< density of gaseous phase [kg/m3]
+		Eigen::VectorXd			mw_;				//!< molecular weight of gaseous phase [kg/kmol]
+		Eigen::VectorXd			diameter_;			//!< graphite diameter [m]
+		double					diameter_initial_;	//!< initial diameter [m]
 
 
 		// Reactions	
-		std::vector<Eigen::VectorXd>	omega_homogeneous_;			//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
-		std::vector<Eigen::VectorXd>	omega_heterogeneous_;			//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
-		Eigen::VectorXd			omega_deposition_per_unit_volume_;	//!< deposition rate [kg/m3/s]
-		Eigen::VectorXd			omega_deposition_per_unit_area_;	//!< deposition rate [kg/m2/s]
+		std::vector<Eigen::VectorXd>	omega_homogeneous_from_homogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
+		std::vector<Eigen::VectorXd>	omega_homogeneous_from_heterogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
+		std::vector<Eigen::VectorXd>	omega_heterogeneous_from_heterogeneous_;	//!< formation rates of surface species [kg/m2/s] (only contribution from heterogeneus reactions)
+		Eigen::VectorXd					omega_deposition_per_unit_volume_;			//!< deposition rate [kg/m3/s]
+		Eigen::VectorXd					omega_deposition_per_unit_area_;			//!< deposition rate [kg/m2/s]
+		Eigen::VectorXd					omega_loss_per_unit_volume_;				//!< loss for the homogeneous phase because of heterogeneous reactions [kg/m3/s]
 
 		// Diffusion
 		std::vector<Eigen::VectorXd>	gamma_star_;			//!< mass diffusion coefficients [m2/s]
@@ -326,7 +384,9 @@ namespace CVI
 
 		// Time derivatives
 		std::vector<Eigen::VectorXd>	dY_over_dt_;			//!< time derivatives of mass fractions	[1/s]
-		Eigen::VectorXd			ddiameter_over_dt_;		//!< time derivative of porosity [1/s]
+		Eigen::VectorXd					ddiameter_over_dt_;		//!< time derivative of porosity [1/s]
+		std::vector<Eigen::VectorXd>	dZ_over_dt_;			//!< time derivatives of fractions of surface species [1/s]
+		std::vector<Eigen::VectorXd>	dGamma_over_dt_;		//!< time derivatives of surface densities [kmol/m2/s]
 
 		// Gas side data
 		Eigen::VectorXd					Y_gas_side_;			//!< mass fractions along the gas side
@@ -336,9 +396,14 @@ namespace CVI
 		// Algebraic/Differential equations
 		std::vector<bool>				id_equations_;			//!< algebraic/differential equations
 
+		std::vector< Eigen::VectorXd >		Gamma_;
+		std::vector< Eigen::VectorXd >		GammaFromEqn_;
+		const std::vector<bool>				site_non_conservation_;
+
 		// Time
 		double time_total_;
 		double dae_time_interval_;
+		double ode_end_time_;
 		double time_smoothing_;
 
 		// Tecplot
@@ -354,24 +419,73 @@ namespace CVI
 		Eigen::VectorXd						aux_eigen;			//!< auxiliary eigen vector
 		
 		// Output
-		unsigned int n_steps_video_;					//!< number of steps for updating info on the screen
-		unsigned int count_video_;					//!< counter of steps for updating info on the screen
+		unsigned int n_steps_video_;				//!< number of steps for updating info on the screen
+		unsigned int count_dae_video_;				//!< counter of steps for updating info on the screen
+		unsigned int count_ode_video_;				//!< counter of steps for updating info on the screen
 		unsigned int n_steps_file_;					//!< number of steps for updating info on the file
 		unsigned int count_file_;					//!< counter of steps for updating info on the file
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 
 		// Output folders
-		boost::filesystem::path output_folder_;				//!< name of output folder
-		boost::filesystem::path output_matlab_folder_;			//!< name of output folder fot Matlab files
-		boost::filesystem::path output_diffusion_folder_;		//!< name of output folder fot diffusion coefficient files
-		boost::filesystem::path output_heterogeneous_folder_;		//!< name of output folder fot heterogeneous reaction files
-		boost::filesystem::path output_homogeneous_folder_;		//!< name of output folder fot homogeneous reaction files
+		boost::filesystem::path output_folder_;					//!< name of output folder
+		boost::filesystem::path output_matlab_folder_;			//!< name of output folder for Matlab files
+		boost::filesystem::path output_diffusion_folder_;		//!< name of output folder for diffusion coefficient files
+		boost::filesystem::path output_heterogeneous_folder_;	//!< name of output folder for heterogeneous reaction files
+		boost::filesystem::path output_homogeneous_folder_;		//!< name of output folder for homogeneous reaction files
+		boost::filesystem::path output_ropa_folder_;			//!< name of output folder for ropa (on the fly)
 
 		double AreaAveraged(const Eigen::VectorXd& v);
 		double AreaStandardDeviation(const double mean, const Eigen::VectorXd& v);
 		void PrintLabelMonitoringFile();
 	};
 }
+
+namespace OpenSMOKE
+{
+	class ODESystem_OpenSMOKE_Capillary
+	{
+	public:
+
+		ODESystem_OpenSMOKE_Capillary() {};
+
+		void SetCapillary(CVI::Capillary* capillary)
+		{
+			capillary_ = capillary;
+		}
+
+	protected:
+
+		unsigned int ne_;
+
+		void MemoryAllocation()
+		{
+			OpenSMOKE::ChangeDimensions(ne_, &y_, true);
+			OpenSMOKE::ChangeDimensions(ne_, &dy_, false);
+		}
+
+		virtual void Equations(const Eigen::VectorXd &Y, const double t, Eigen::VectorXd &DY)
+		{
+			y_.CopyFrom(Y.data());
+			capillary_->OdeEquations(t, y_, dy_);
+			dy_.CopyTo(DY.data());
+		}
+
+		virtual void Jacobian(const Eigen::VectorXd &Y, const double t, Eigen::MatrixXd &J) {};
+
+		void Print(const double t, const Eigen::VectorXd &Y)
+		{
+			y_.CopyFrom(Y.data());
+			capillary_->OdePrint(t, y_);
+		}
+
+	private:
+
+		CVI::Capillary* capillary_;
+		OpenSMOKE::OpenSMOKEVectorDouble  y_;
+		OpenSMOKE::OpenSMOKEVectorDouble dy_;
+	};
+}
+
 
 #include "Capillary.hpp"
 

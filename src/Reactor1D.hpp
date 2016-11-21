@@ -37,7 +37,8 @@ namespace CVI
 							CVI::PorousMedium& porousMedium,
 							CVI::HeterogeneousMechanism& heterogeneousMechanism,
 							CVI::HeterogeneousDetailedMechanism& heterogeneousDetailedMechanism,
-							OpenSMOKE::Grid1D& grid) :
+							OpenSMOKE::Grid1D& grid,
+							const bool detailed_heterogeneous_kinetics) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -47,11 +48,10 @@ namespace CVI
 	kineticsSurfaceMap_(kineticsSurfaceMap),
 	heterogeneousMechanism_(heterogeneousMechanism),
 	heterogeneousDetailedMechanism_(heterogeneousDetailedMechanism),
-	grid_(grid)
+	grid_(grid),
+	detailed_heterogeneous_kinetics_(detailed_heterogeneous_kinetics)
 
 	{
-		detailed_heterogeneous_kinetics_ = false;
-
 		n_steps_video_ = 10;
 		count_video_ = n_steps_video_;
 		n_steps_file_ = 3;
@@ -288,6 +288,11 @@ namespace CVI
 	void Reactor1D::SetPlanarSymmetry(const bool flag)
 	{
 		planar_symmetry_ = flag;
+	}
+
+	void Reactor1D::SetSiteNonConservation(std::vector<bool>& site_non_conservation)
+	{
+		site_non_conservation_ = site_non_conservation;
 	}
 
 	void Reactor1D::SetAlgebraicDifferentialEquations()
@@ -561,9 +566,6 @@ namespace CVI
 										(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
 										gamma_star_[i](j)*rho_gas_(i)*dY_over_dx_[i](j)/grid_.x()[i] +
 										epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
-
-					
-
 				}
 
 				dY_over_dt_[i](j) /= (rho_gas_(i)*epsilon_(i));

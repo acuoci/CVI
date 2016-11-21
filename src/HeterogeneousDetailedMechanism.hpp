@@ -67,6 +67,7 @@ namespace CVI
 		// Memory allocation
 		Rgas_.resize(nc_);
 		Rsurface_.resize(surf_nc_);
+		Rphases_.resize(surf_np_);
 		r_heterogeneous_.resize(surf_nr_);
 		r_heterogeneous_deposition_per_unit_area_per_single_reaction_.resize(surf_nr_);
 		r_heterogeneous_deposition_per_unit_volume_per_single_reaction_.resize(surf_nr_);
@@ -119,8 +120,8 @@ namespace CVI
 			thermodynamicsSurfaceMap_.SetTemperature(T_);
 			kineticsSurfaceMap_.SetPressure(P_Pa_);
 			kineticsSurfaceMap_.SetTemperature(T_);
-			kineticsSurfaceMap_.ReactionEnthalpiesAndEntropies();
-			kineticsSurfaceMap_.ArrheniusKineticConstants();
+
+			kineticsSurfaceMap_.KineticConstants();
 			kineticsSurfaceMap_.ReactionRates(os_C, os_Z, os_a, os_Gamma);
 			kineticsSurfaceMap_.FormationRates(&Rgas_from_surface_, &Rsurface_from_surface_, &Rbulk_from_surface_, &Rphases_from_surface_);
 		}
@@ -133,13 +134,15 @@ namespace CVI
 		for (unsigned int i = 0; i < surf_nc_; i++)
 			Rsurface_(i) = Rsurface_from_surface_[i + 1];
 
+		// Surface densities rates [kmol/m2/s]
+		for (unsigned int i = 0; i < surf_np_; i++)
+			Rphases_(i) = Rphases_from_surface_[i + 1];
+
+		
 		// Total heterogeneous deposition rate [kmol/m2/s]
 		r_heterogeneous_deposition_per_unit_area_ = Rbulk_from_surface_[1];
 
 		// Heterogeneous deposition rate [kmol/m3/s]
-		r_heterogeneous_deposition_per_unit_volume_ = Sv*r_heterogeneous_deposition_per_unit_area_;
-
-		// Homogeneous rate of disappearance
 		r_heterogeneous_deposition_per_unit_volume_ = Sv*r_heterogeneous_deposition_per_unit_area_;
 
 		// Single constributions (TODO)

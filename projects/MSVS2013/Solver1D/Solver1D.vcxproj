@@ -92,6 +92,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\Grammar_SurfaceOnTheFlyROPA.h" />
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.h" />
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.hpp" />
     <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_BzzDae.h" />
     <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_Daspk.h" />
     <ClInclude Include="..\..\..\src\Capillary.h" />

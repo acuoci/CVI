@@ -110,6 +110,12 @@ namespace CVI
 		const Eigen::VectorXd& Rsurface() const { return Rsurface_; }
 
 		/**
+		*@brief Returns the formation rates of surface densities
+		*@return the formation rates [kmol/m2/s]
+		*/
+		const Eigen::VectorXd& Rphases() const { return Rphases_; }
+
+		/**
 		*@brief Returns the reaction rates of heterogeneous reactions
 		*@return the reaction rates [kmol/m3/s]
 		*/
@@ -203,6 +209,7 @@ namespace CVI
 				
 		Eigen::VectorXd Rgas_;		//!< formation rate of gaseous species due to heterogeneous reactions [kmol/m3/s]
 		Eigen::VectorXd Rsurface_;	//!< formation rate of surface species due to homogeneous reactions [kmol/m2/s]
+		Eigen::VectorXd Rphases_;	//!< formation rate of surface densities [kmol/m2/s]
 
 		Eigen::VectorXd r_heterogeneous_;													//!< reaction rates of heterogeneous reactions [kmol/m3/s]
 		Eigen::VectorXd r_heterogeneous_deposition_per_unit_area_per_single_reaction_;		//!< deposition rate per unit of surface for single reactions [kmol/m2/s]

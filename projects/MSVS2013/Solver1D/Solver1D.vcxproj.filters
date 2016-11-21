@@ -19,6 +19,9 @@
     <Filter Include="Source Files\plugflow">
       <UniqueIdentifier>{4b09fcf5-05ac-40d2-af1e-f5b7de5844bb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\ropa">
+      <UniqueIdentifier>{b67c9d60-b1ab-47df-8b6c-55185e079f44}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\PorousMedium.h">
@@ -110,6 +113,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\PlugFlowReactorCoupledProfiles.hpp">
       <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\Grammar_SurfaceOnTheFlyROPA.h">
+      <Filter>Source Files\ropa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.h">
+      <Filter>Source Files\ropa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.hpp">
+      <Filter>Source Files\ropa</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
