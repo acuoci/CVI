@@ -40,7 +40,6 @@ namespace CVI
 							OpenSMOKE::Grid1D& grid,
 							const bool detailed_heterogeneous_kinetics,
 							const std::vector<bool>& site_non_conservation,
-							const bool dae_formulation,
 							const std::string dae_species) :
 
 	thermodynamicsMap_(thermodynamicsMap),
@@ -53,8 +52,7 @@ namespace CVI
 	heterogeneousDetailedMechanism_(heterogeneousDetailedMechanism),
 	grid_(grid),
 	detailed_heterogeneous_kinetics_(detailed_heterogeneous_kinetics),
-	site_non_conservation_(site_non_conservation),
-	dae_formulation_(dae_formulation)
+	site_non_conservation_(site_non_conservation)
 
 	{
 		n_steps_video_ = 10;
@@ -90,6 +88,7 @@ namespace CVI
 			rho_graphite_ = heterogeneousDetailedMechanism_.rho_graphite();
 
 			// Dae species
+			dae_formulation_ = true;
 			dae_species_index_ = thermodynamicsSurfaceMap_.IndexOfSpecies(dae_species) - (nc_ + 1);
 		}
 		else
@@ -112,6 +111,9 @@ namespace CVI
 
 			// Graphite density [kg/m3]
 			rho_graphite_ = heterogeneousMechanism_.rho_graphite();
+
+			// Dae Species
+			dae_formulation_ = false;
 		}
 		
 		np_ = grid_.Np();
@@ -347,7 +349,7 @@ namespace CVI
 
 		unsigned int count = 0;
 
-		// Symmetry plane
+		// Internal plane
 		{
 			for (unsigned int j = 0; j < nc_; j++)
 				id_equations_[count++] = false;
@@ -489,7 +491,7 @@ namespace CVI
 				Sv_(i) = porousMedium_.Sv();
 				rp_(i) = porousMedium_.rp();
 				permeability_(i) = porousMedium_.permeability();
-				rho_bulk_(i) = porousMedium_.density_bulk();
+				rho_bulk_(i) = porousMedium_.density_bulk(rho_graphite_);
 				eta_bulk_(i) = porousMedium_.eta_bulk();
 				eta_knudsen_(i) = porousMedium_.eta_knudsen();
 				eta_viscous_(i) = porousMedium_.eta_viscous();
@@ -643,7 +645,7 @@ namespace CVI
 
 	void Reactor1D::SubEquations_MassFractions()
 	{
-		// Internal side (symmetry)
+		// Internal plane
 		for (unsigned int j = 0; j < nc_; j++)
 			dY_over_dt_[0](j) = Y_[0](j) - Y_[1](j);
 

@@ -78,19 +78,6 @@ namespace CVI
 			}
 		}
 
-		// Read graphite density
-		{
-			double value;
-			std::string units;
-			if (dictionary.CheckOption("@GraphiteDensity") == true)
-			{
-				dictionary.ReadMeasure("@GraphiteDensity", value, units);
-				if (units == "kg/m3")			rho_graphite_ = value;
-				else if (units == "g/cm3")		rho_graphite_ = value*1.e3;
-				else OpenSMOKE::FatalErrorMessage("@GraphiteDensity: Unknown graphite density units. Available units: kg/m3 | g/cm3");
-			}
-		}
-
 		// Read initial porosity
 		if (dictionary.CheckOption("@InitialPorosity") == true)
 			dictionary.ReadDouble("@InitialPorosity", epsilon0_);
@@ -144,7 +131,6 @@ namespace CVI
 		std::cout << "-------------------------------------------------------" << std::endl;
 		std::cout << "                      Porous Medium                    " << std::endl;
 		std::cout << "-------------------------------------------------------" << std::endl;
-		std::cout << " * Bulk density density [kg/m3]:     " << density_bulk() << std::endl;
 		std::cout << " * Porosity [-]:                     " << epsilon0_ << std::endl;
 		std::cout << " * Fiber density [kg/m3]:            " << rho_fiber_ << std::endl;
 		std::cout << " * Fiber radius [micron]:            " << rf_*1e6 << std::endl;
@@ -173,14 +159,9 @@ namespace CVI
 		epsilon_ = epsilon;
 	}
 
-	void PorousMedium::SetGraphiteDensity(const double rho_graphite)
+	double PorousMedium::density_bulk(const double rho_graphite)
 	{
-		rho_graphite_ = rho_graphite;
-	}
-
-	double PorousMedium::density_bulk()
-	{
-		return rho_fiber_*(1. - epsilon0_) + rho_graphite_*(epsilon0_ - epsilon_);
+		return rho_fiber_*(1. - epsilon0_) + rho_graphite*(epsilon0_ - epsilon_);
 	}
 
 	double PorousMedium::Sv()

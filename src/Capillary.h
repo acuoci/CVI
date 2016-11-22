@@ -72,7 +72,6 @@ namespace CVI
 					OpenSMOKE::Grid1D& grid,
 					const bool detailed_heterogeneous_kinetics,
 					const std::vector<bool>& site_non_conservation,
-					const bool dae_formulation,
 					const std::string dae_species);
 
 		/**

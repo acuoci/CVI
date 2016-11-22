@@ -49,11 +49,6 @@ namespace CVI
 				"Fiber density",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@GraphiteDensity",
-				OpenSMOKE::SINGLE_MEASURE,
-				"Graphite density",
-				true));
-
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@InitialPorosity",
 				OpenSMOKE::SINGLE_DOUBLE,
 				"Initial porosity",

@@ -604,7 +604,7 @@ namespace CVI
 				Sv_(i) = porousMedium_.Sv();
 				rp_(i) = porousMedium_.rp();
 				permeability_(i) = porousMedium_.permeability();
-				rho_bulk_(i) = porousMedium_.density_bulk();
+				rho_bulk_(i) = porousMedium_.density_bulk(heterogeneousMechanism_.rho_graphite());
 				eta_bulk_(i) = porousMedium_.eta_bulk();
 				eta_knudsen_(i) = porousMedium_.eta_knudsen();
 				eta_viscous_(i) = porousMedium_.eta_viscous();

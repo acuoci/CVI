@@ -85,12 +85,6 @@ namespace CVI
 		void SetPorosity(const double epsilon);
 
 		/**
-		*@brief Sets the density of graphite
-		*@param rho_graphite density [kg/m3]
-		*/
-		void SetGraphiteDensity(const double rho_graphite);
-
-		/**
 		*@brief Calculates and returns the surface per unit of volume
 		*@return the surface per unit of volume [1/m]
 		*/
@@ -130,7 +124,7 @@ namespace CVI
 		*@brief Calculates and returns the bulk density
 		*@return the bulk density [kg/m3]
 		*/
-		double density_bulk();
+		double density_bulk(const double rho_graphite);
 
 		/**
 		*@brief Calculates the effective mass diffusion coefficients resulting from the combination of ordinary and Knudsen diffusion
@@ -217,7 +211,6 @@ namespace CVI
 		double epsilon0_;		//!< initial porosity
 		double rf_;				//!< current radius of fibers [m]
 		double rho_fiber_;		//!< density of fibers [kg/m3]
-		double rho_graphite_;	//!< density of graphite [kg/m3]
 
 		double mass_diffusion_multiplier_;
 

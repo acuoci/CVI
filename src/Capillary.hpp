@@ -39,7 +39,6 @@ namespace CVI
 							OpenSMOKE::Grid1D& grid,
 							const bool detailed_heterogeneous_kinetics,
 							const std::vector<bool>& site_non_conservation,
-							const bool dae_formulation,
 							const std::string dae_species) :
 
 	thermodynamicsMap_(thermodynamicsMap),
@@ -51,8 +50,8 @@ namespace CVI
 	heterogeneousDetailedMechanism_(heterogeneousDetailedMechanism),
 	grid_(grid),
 	detailed_heterogeneous_kinetics_(detailed_heterogeneous_kinetics),
-	site_non_conservation_(site_non_conservation),
-	dae_formulation_(dae_formulation)
+	site_non_conservation_(site_non_conservation)
+
 	{
 		n_steps_video_ = 10;
 		count_dae_video_ = 1;
@@ -83,6 +82,7 @@ namespace CVI
 			rho_graphite_ = heterogeneousDetailedMechanism_.rho_graphite();
 
 			// Dae species
+			dae_formulation_ = true;
 			dae_species_index_ = thermodynamicsSurfaceMap_.IndexOfSpecies(dae_species) - (nc_+1);
 		}
 		else
@@ -104,6 +104,9 @@ namespace CVI
 
 			// Graphite density [kg/m3]
 			rho_graphite_ = heterogeneousMechanism_.rho_graphite();
+
+			// Dae species
+			dae_formulation_ = false;
 		}
 		
 		np_ = grid_.Np();

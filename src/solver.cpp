@@ -292,12 +292,6 @@ int main(int argc, char** argv)
 		dictionaries(main_dictionary_name_).ReadBool("@DetailedSurfaceChemistry", detailed_heterogeneous_kinetics);
 	}
 
-	bool dae_formulation = false;;
-	if (dictionaries(main_dictionary_name_).CheckOption("@DaeFormulation") == true)
-	{
-		dictionaries(main_dictionary_name_).ReadBool("@DaeFormulation", dae_formulation);
-	}
-
 	std::string dae_species = "none";
 	if (dictionaries(main_dictionary_name_).CheckOption("@DaeSpecies") == true)
 	{
@@ -811,7 +805,7 @@ int main(int argc, char** argv)
 														*porous_medium, 
 														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 														*grid_x, detailed_heterogeneous_kinetics,
-														SiteNonConservation, dae_formulation, dae_species);
+														SiteNonConservation, dae_species);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -867,7 +861,7 @@ int main(int argc, char** argv)
 														*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, 
 														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 														*grid_x, detailed_heterogeneous_kinetics, 
-														SiteNonConservation, dae_formulation, dae_species);
+														SiteNonConservation, dae_species);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());

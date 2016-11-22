@@ -54,11 +54,6 @@ namespace CVI
 				"Name of surface species chosen for the algebraic equation closure",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DaeFormulation",
-				OpenSMOKE::SINGLE_BOOL,
-				"Algebraic equations for surface species (default: false)",
-				true));
-
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Symmetry",
 				OpenSMOKE::SINGLE_STRING,
 				"Type of symmetry: Planar | Cylindrical",
