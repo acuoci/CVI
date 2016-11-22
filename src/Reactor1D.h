@@ -40,6 +40,7 @@
 #include "grids/adaptive/Grid1D.h"
 
 // Numerical parameters
+#include "math/multivalue-ode-solvers/parameters/OdeSolver_Parameters.h"
 #include "math/multivalue-dae-solvers/parameters/DaeSolver_Parameters.h"
 
 namespace CVI
@@ -72,7 +73,10 @@ namespace CVI
 					CVI::HeterogeneousMechanism& heterogeneousMechanism,
 					CVI::HeterogeneousDetailedMechanism& heterogeneousDetailedMechanism,
 					OpenSMOKE::Grid1D& grid,
-					const bool detailed_heterogeneous_kinetics);
+					const bool detailed_heterogeneous_kinetics,
+					const std::vector<bool>& site_non_conservation,
+					const bool dae_formulation,
+					const std::string dae_species);
 
 		/**
 		*@brief Sets the planar symmetry
@@ -94,7 +98,7 @@ namespace CVI
 		*@param P_initial		initial pressure [Pa]
 		*@param omega_initial	initial mass fractions
 		*/
-		void SetInitialConditions(const double T_initial, const double P_initial, const Eigen::VectorXd& omega_initial, const Eigen::VectorXd& Z_initial);
+		void SetInitialConditions(const double T_initial, const double P_initial, const Eigen::VectorXd& omega_initial, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0);
 
 		/**
 		*@brief Returns the differential equations
@@ -109,7 +113,7 @@ namespace CVI
 		*@param dae_parameters parameters governing the solution of the DAE system
 		*@return the returned value is >0 in case of success, otherwise is <0
 		*/
-		int SolveFromScratch(DaeSMOKE::DaeSolver_Parameters& dae_parameters);
+		int SolveFromScratch(DaeSMOKE::DaeSolver_Parameters& dae_parameters, OdeSMOKE::OdeSolver_Parameters& ode_parameters);
 
 		/**
 		*@brief Prints info on the screen
@@ -200,10 +204,22 @@ namespace CVI
 		void SetDaeTimeInterval(const double time_interval);
 
 		/**
+		*@brief Sets the total maximum time for integrating ODE systems for determining the initial conditions
+		*@param time_interval interval time [s]
+		*/
+		void SetOdeEndTime(const double time_interval);
+
+		/**
 		*@brief Sets the non conservation of sites equations
 		*@param site_non_conservation boolean vector (true: non conservation is allowed)
 		*/
 		void SetSiteNonConservation(std::vector<bool>& site_non_conservation);
+
+		void SetSurfaceOnTheFlyROPA(OpenSMOKE::SurfaceOnTheFlyROPA* ropa);
+
+		int OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy);
+		int OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y);
+
 
 	private:
 
@@ -296,6 +312,8 @@ namespace CVI
 		*/
 		void SetAlgebraicDifferentialEquations();
 
+		void PrintROPA(const double t, const std::string name_file);
+
 	protected:
 
 		// References
@@ -309,7 +327,15 @@ namespace CVI
 		CVI::HeterogeneousDetailedMechanism&					heterogeneousDetailedMechanism_;	//!< reference to the heterogeneous detailed mechanism
 		OpenSMOKE::Grid1D&										grid_;								//!< reference to the 1D grid
 
+		OpenSMOKE::SurfaceOnTheFlyROPA*							ropa_;
+		bool ropa_analysis_;
+
+		bool dae_formulation_;
 		bool detailed_heterogeneous_kinetics_;
+		double rho_graphite_;
+		unsigned int dae_species_index_;
+
+		int i_current;
 
 		// Dimensions
 		unsigned int nc_;						//!< total number of gaseous species
@@ -328,10 +354,13 @@ namespace CVI
 		unsigned int band_size_;				//!< lower and upper band sizes
 
 		std::vector<bool> site_non_conservation_;	//!< site non conservation (true: non conservation is allowed)
+		std::vector< Eigen::VectorXd >		Gamma_;
+		std::vector< Eigen::VectorXd >		GammaFromEqn_;
 
 		// Time
 		double time_total_;
 		double dae_time_interval_;
+		double ode_end_time_;
 
 		// Main variables
 		Eigen::VectorXd					T_;		//!< current temperature [K]
@@ -382,6 +411,7 @@ namespace CVI
 		std::vector<Eigen::VectorXd>	dY_over_dt_;			//!< time derivatives of mass fractions	[1/s]
 		Eigen::VectorXd					depsilon_over_dt_;		//!< time derivative of porosity [1/s]
 		std::vector<Eigen::VectorXd>	dZ_over_dt_;			//!< time derivatives of fractions of surface species [1/s]
+		std::vector<Eigen::VectorXd>	dGamma_over_dt_;		//!< time derivatives of surface densities [kmol/m2/s]
 
 		// Gas side data
 		Eigen::VectorXd					Y_gas_side_;			//!< mass fractions along the gas side
@@ -404,7 +434,8 @@ namespace CVI
 		// Output
 		unsigned int n_steps_video_;				//!< number of steps for updating info on the screen
 		unsigned int n_steps_file_;					//!< number of steps for updating info on files
-		unsigned int count_video_;					//!< counter of steps for updating info on the screen
+		unsigned int count_dae_video_;				//!< counter of steps for updating info on the screen
+		unsigned int count_ode_video_;				//!< counter of steps for updating info on the screen
 		unsigned int count_file_;					//!< counter of steps for updating info on file
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 
@@ -414,6 +445,7 @@ namespace CVI
 		boost::filesystem::path output_diffusion_folder_;		//!< name of output folder fot diffusion coefficient files
 		boost::filesystem::path output_heterogeneous_folder_;	//!< name of output folder fot heterogeneous reaction files
 		boost::filesystem::path output_homogeneous_folder_;		//!< name of output folder fot homogeneous reaction files
+		boost::filesystem::path output_ropa_folder_;			//!< name of output folder for ropa (on the fly)
 
 		double AreaAveraged(const Eigen::VectorXd& v);
 		double AreaStandardDeviation(const double mean, const Eigen::VectorXd& v);
@@ -421,6 +453,52 @@ namespace CVI
 	};
 }
 
+namespace OpenSMOKE
+{
+	class ODESystem_OpenSMOKE_Reactor1D
+	{
+	public:
+
+		ODESystem_OpenSMOKE_Reactor1D() {};
+
+		void SetReactor1D(CVI::Reactor1D* reactor1d)
+		{
+			reactor1d_ = reactor1d;
+		}
+
+	protected:
+
+		unsigned int ne_;
+
+		void MemoryAllocation()
+		{
+			OpenSMOKE::ChangeDimensions(ne_, &y_, true);
+			OpenSMOKE::ChangeDimensions(ne_, &dy_, false);
+		}
+
+		virtual void Equations(const Eigen::VectorXd &Y, const double t, Eigen::VectorXd &DY)
+		{
+			y_.CopyFrom(Y.data());
+			reactor1d_->OdeEquations(t, y_, dy_);
+			dy_.CopyTo(DY.data());
+		}
+
+		virtual void Jacobian(const Eigen::VectorXd &Y, const double t, Eigen::MatrixXd &J) {};
+
+		void Print(const double t, const Eigen::VectorXd &Y)
+		{
+			y_.CopyFrom(Y.data());
+			reactor1d_->OdePrint(t, y_);
+		}
+
+	private:
+
+		CVI::Reactor1D* reactor1d_;
+		OpenSMOKE::OpenSMOKEVectorDouble  y_;
+		OpenSMOKE::OpenSMOKEVectorDouble dy_;
+	};
+}
+
 #include "Reactor1D.hpp"
 
-#endif /* OpenSMOKE_PorousMedium_H */
+#endif /* OpenSMOKE_Reactor1D_H */

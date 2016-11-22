@@ -806,19 +806,28 @@ int main(int argc, char** argv)
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, *porous_medium, *heterogeneous_mechanism, *heterogeneous_detailed_mechanism, *grid_x, detailed_heterogeneous_kinetics);
+		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, 
+														*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, 
+														*porous_medium, 
+														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
+														*grid_x, detailed_heterogeneous_kinetics,
+														SiteNonConservation, dae_formulation, dae_species);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
-		for (unsigned int i = 0;i<thermodynamicsSurfaceMapXML->number_of_site_species();i++)
-			initial_Z(i) = Z0[i+1];
+		for (unsigned int i = 0; i<thermodynamicsSurfaceMapXML->number_of_site_species(); i++)
+			initial_Z(i) = Z0[i + 1];
 
 		reactor1d->SetPlanarSymmetry(symmetry_planar);
-		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega, initial_Z);
+		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		reactor1d->SetSiteNonConservation(SiteNonConservation);
 		reactor1d->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
 		reactor1d->SetTimeTotal(time_total);
 		reactor1d->SetDaeTimeInterval(dae_time_interval);
+		reactor1d->SetOdeEndTime(ode_end_time);
+
+		if (on_the_fly_ropa == true)
+			reactor1d->SetSurfaceOnTheFlyROPA(onTheFlyROPA);
 
 		// Solve
 		{
@@ -826,7 +835,7 @@ int main(int argc, char** argv)
 			time_t timerEnd;
 
 			time(&timerStart);
-			int flag = reactor1d->SolveFromScratch(*dae_parameters);
+			int flag = reactor1d->SolveFromScratch(*dae_parameters, *ode_parameters);
 			time(&timerEnd);
 
 			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;

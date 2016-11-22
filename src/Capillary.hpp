@@ -457,11 +457,9 @@ namespace CVI
 				thermodynamicsMap_.SetPressure(P_(i));
 				thermodynamicsMap_.SetTemperature(T_(i));
 
-				//aux_Y.CopyFrom(Y_[i].data());
 				for (unsigned int j = 0; j < nc_; j++)
 					aux_Y[j + 1] = Y_[i](j);
 				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
-				//aux_X.CopyTo(X_[i].data());
 				for (unsigned int j = 0; j < nc_; j++)
 					X_[i](j) = aux_X[j + 1];
 
@@ -720,7 +718,7 @@ namespace CVI
 			kineticsSurfaceMap_.FormationRates(&RfromSurface, &Rsurface, &Rbulk, &RsurfacePhases);
 		}
 
-		// Recovering residuals
+		// Equations
 		{
 			unsigned int k = 1;
 
@@ -740,19 +738,9 @@ namespace CVI
 				dZ_over_dt[j+1] = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * Rsurface[j+1] -
 									Z[j+1] * dGamma_over_dt[index_phase+1]) / Gamma[index_phase+1];
 			}
-
-			/*
-			{
-				double sum = 0.;
-				for (unsigned int j = 0; j < surf_nc_; ++j)
-					if (j != dae_species_index_)
-						sum += dZ_over_dt[j+1];
-				dZ_over_dt[dae_species_index_ + 1] = -sum;
-			}
-			*/
 		}
 
-
+		// Recover unknowns
 		{
 			unsigned int k = 1;
 			for (unsigned int j = 0; j < surf_np_; j++)
@@ -769,7 +757,7 @@ namespace CVI
 		// Video output
 		if (count_ode_video_%n_steps_video_ == 1) 
 		{
-			if (count_dae_video_ % (n_steps_video_ * 10) == 1)
+			if (count_dae_video_ % (n_steps_video_ * 1000) == 1)
 			{
 				std::cout << std::endl;
 				std::cout << std::setw(18) << std::left << "Time[s]";
@@ -882,11 +870,6 @@ namespace CVI
 			for (unsigned int j = 0; j < surf_np_; j++)
 				if (site_non_conservation_[j] == true)
 					Gamma_[i](j) = GammaFromEqn_[i](j);
-
-			// Normalize
-			//const double sum = Y_[i].sum();
-			//for (unsigned int j = 0; j < nc_; j++)
-			//	Y_[i](j) /= sum;
 		}
 	}
 
@@ -1081,7 +1064,7 @@ namespace CVI
 			const double tf = t0 + dae_time_interval_;
 
 			// Solve
-			int flag = Solve(dae_parameters, ode_parameters, t0, tf);
+			int flag = Solve(dae_parameters, t0, tf);
 			if (flag < 0)
 				return flag;
 
@@ -1105,7 +1088,7 @@ namespace CVI
 		return true;
 	}
 
-	int Capillary::Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, OdeSMOKE::OdeSolver_Parameters& ode_parameters, const double t0, const double tf)
+	int Capillary::Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, const double t0, const double tf)
 	{
 		int flag = DaeSMOKE::Solve_Band_OpenSMOKEppDae<Capillary, OpenSMOKE_Capillary_DaeSystem>(this, dae_parameters, t0, tf);
 		return flag;

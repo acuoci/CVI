@@ -222,7 +222,7 @@ namespace CVI
 		void MaximumUnknownsVector(double* v);
 
 		int OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy);
-		int Capillary::OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y);
+		int OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y);
 
 	private:
 
@@ -298,7 +298,7 @@ namespace CVI
 		*@param tf final time [s]
 		*@return the returned value is >0 in case of success, otherwise is <0
 		*/
-		int Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, OdeSMOKE::OdeSolver_Parameters& ode_parameters, const double t0, const double tf);
+		int Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, const double t0, const double tf);
 
 		/**
 		*@brief Sets the algebraic and differential equations
