@@ -429,11 +429,24 @@ namespace CVI
 		P_gas_side_ = P_gas;
 		T_gas_side_ = T_gas;
 
-		for (unsigned int j = 0; j < nc_; j++)
-			Y_[grid_.Ni()](j) = omega_gas(j);
+		// Internal side
+		if (planar_symmetry_ == false)
+		{
+			for (unsigned int j = 0; j < nc_; j++)
+				Y_[0](j) = omega_gas(j);
 
-		P_(grid_.Ni()) = P_gas;
-		T_(grid_.Ni()) = T_gas;
+			P_(0) = P_gas;
+			T_(0) = T_gas;
+		}
+
+		// External side
+		{
+			for (unsigned int j = 0; j < nc_; j++)
+				Y_[grid_.Ni()](j) = omega_gas(j);
+
+			P_(grid_.Ni()) = P_gas;
+			T_(grid_.Ni()) = T_gas;
+		}
 	}
 
 	void Reactor1D::SetInitialConditions(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0)
@@ -645,35 +658,51 @@ namespace CVI
 
 	void Reactor1D::SubEquations_MassFractions()
 	{
-		// Internal plane
-		for (unsigned int j = 0; j < nc_; j++)
-			dY_over_dt_[0](j) = Y_[0](j) - Y_[1](j);
-
-		for (int i = 1; i < grid_.Ni(); i++)
+		// Internal side
+		if (planar_symmetry_ == true)
 		{
 			for (unsigned int j = 0; j < nc_; j++)
-			{
-				// Explicit derivatives
-				if (planar_symmetry_ == true)
-				{
-					dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
-										(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
-										epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
-				}
-				else
-				{
-					dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
-										(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
-										gamma_star_[i](j)*rho_gas_(i)*dY_over_dx_[i](j)/grid_.x()[i] +
-										epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
-				}
-
-				dY_over_dt_[i](j) /= (rho_gas_(i)*epsilon_(i));
-			}
-
+				dY_over_dt_[0](j) = Y_[0](j) - Y_[1](j);
+		}
+		else
+		{
+			for (unsigned int j = 0; j < nc_; j++)
+				dY_over_dt_[0](j) = Y_[0](j) - Y_gas_side_(j);
 		}
 
-		// Gas side
+		// Internal points
+		const double epsilon_threshold = 1.e-3;
+		for (int i = 1; i < grid_.Ni(); i++)
+		{
+			if (epsilon_(i) < epsilon_threshold)
+			{
+				dY_over_dt_[i].setZero();
+			}
+			else
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+				{
+					// Explicit derivatives
+					if (planar_symmetry_ == true)
+					{
+						dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
+							(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
+							epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
+					}
+					else
+					{
+						dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
+							(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
+							gamma_star_[i](j)*rho_gas_(i)*dY_over_dx_[i](j) / grid_.x()[i] +
+							epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
+					}
+
+					dY_over_dt_[i](j) /= (rho_gas_(i)*epsilon_(i));
+				}
+			}
+		}
+
+		// External side
 		for (unsigned int j = 0; j < nc_; j++)
 			dY_over_dt_[grid_.Ni()](j) = Y_[grid_.Ni()](j) - Y_gas_side_(j);
 	}
@@ -683,27 +712,43 @@ namespace CVI
 		// Internal points
 		for (int i = 0; i < np_; i++)
 			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
+
+		// In case of porosity very small
+		const double epsilon_threshold = 1e-3;
+		for (int i = 0; i < np_; i++)
+			if (epsilon_(i) < epsilon_threshold)
+				depsilon_over_dt_(i) = 0.;
+
 	}
 
 	void Reactor1D::SubEquations_SurfaceSpeciesFractions()
 	{
-		// Internal points
+		const double epsilon_threshold = 1.e-3;
+
 		for (int i = 0; i < grid_.Np(); i++)
 		{
-			for (unsigned int j = 0; j < surf_np_; j++)
+			if (epsilon_(i) < epsilon_threshold)
 			{
-				if (site_non_conservation_[j] == true)
-					dGamma_over_dt_[i](j) = heterogeneousDetailedMechanism_.Rphases()(j);
-				else
-					dGamma_over_dt_[i](j) = 0.;
+				dGamma_over_dt_[i].setZero();
+				dZ_over_dt_[i].setZero();
 			}
-
-			for (unsigned int j = 0; j < surf_nc_; j++)
+			else
 			{
-				const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
-				dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * omega_heterogeneous_from_heterogeneous_[i](j)
-					- Z_[i](j)*dGamma_over_dt_[i](index_phase))
-					/ Gamma_[i](index_phase);
+				for (unsigned int j = 0; j < surf_np_; j++)
+				{
+					if (site_non_conservation_[j] == true)
+						dGamma_over_dt_[i](j) = heterogeneousDetailedMechanism_.Rphases()(j);
+					else
+						dGamma_over_dt_[i](j) = 0.;
+				}
+
+				for (unsigned int j = 0; j < surf_nc_; j++)
+				{
+					const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
+					dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * omega_heterogeneous_from_heterogeneous_[i](j)
+						- Z_[i](j)*dGamma_over_dt_[i](index_phase))
+						/ Gamma_[i](index_phase);
+				}
 			}
 
 			if (dae_formulation_ == true)
@@ -1016,7 +1061,7 @@ namespace CVI
 					Eigen::VectorXd y0_eigen(yOde0.Size());
 					yOde0.CopyTo(y0_eigen.data());
 
-					// Final solution
+					// Final f
 					Eigen::VectorXd yf_eigen(y0_eigen.size());
 
 					// Create the solver
@@ -1566,31 +1611,45 @@ namespace CVI
 			OpenSMOKE::OpenSMOKEVectorDouble a(bulk_nc_);
 			OpenSMOKE::OpenSMOKEVectorDouble gamma(surf_np_);
 
-			const unsigned int point = 0;
+			std::vector<double> list_points(3);
+			list_points[0] = 0;
+			list_points[1] = np_/2;
+			list_points[2] = np_-1;
 
-			// Molar fractions
-			double mw;
-			for (unsigned int j = 0; j < nc_; j++)
-				omega[j + 1] = Y_[point](j);
-			thermodynamicsMap_.MoleFractions_From_MassFractions(x, mw, omega);
+			for (unsigned int i=0;i<list_points.size();i++)
+			{
+				const unsigned int point = list_points[i];
 
-			// Concentrations
-			const double cTot = rho_gas_(point) / mw_(point);
-			OpenSMOKE::Product(cTot, x, &c);
+				fROPA << std::endl;
+				fROPA << "-------------------------------------------------------------------" << std::endl;
+				fROPA << "ROPA at point: " << point << " - coordinate: " << grid_.x()[point] << std::endl;
+				fROPA << "-------------------------------------------------------------------" << std::endl;
+				fROPA << std::endl;
 
-			// Surface species
-			for (unsigned int j = 0; j < surf_nc_; j++)
-				z[j + 1] = Z_[point](j);
+				// Molar fractions
+				double mw;
+				for (unsigned int j = 0; j < nc_; j++)
+					omega[j + 1] = Y_[point](j);
+				thermodynamicsMap_.MoleFractions_From_MassFractions(x, mw, omega);
 
-			// Bulk activities
-			for (unsigned int j = 0; j < bulk_nc_; j++)
-				a[j + 1] = 1.;
+				// Concentrations
+				const double cTot = rho_gas_(point) / mw_(point);
+				OpenSMOKE::Product(cTot, x, &c);
 
-			// Surface densities
-			for (unsigned int j = 0; j < surf_np_; j++)
-				gamma[j + 1] = Gamma_[point](j);
+				// Surface species
+				for (unsigned int j = 0; j < surf_nc_; j++)
+					z[j + 1] = Z_[point](j);
 
-			ropa_->Analyze(fROPA, 0, 0., T_(point), P_(point), c, omega, z, a, gamma);
+				// Bulk activities
+				for (unsigned int j = 0; j < bulk_nc_; j++)
+					a[j + 1] = 1.;
+
+				// Surface densities
+				for (unsigned int j = 0; j < surf_np_; j++)
+					gamma[j + 1] = Gamma_[point](j);
+
+				ropa_->Analyze(fROPA, 0, 0., T_(point), P_(point), c, omega, z, a, gamma);
+			}
 		}
 	}
 
@@ -1603,9 +1662,9 @@ namespace CVI
 				std::cout << std::endl;
 				std::cout << std::left << std::setw(14) << "Time[s]";		// [s]
 				std::cout << std::left << std::setw(14) << "Time[h]";		// [h]
-				std::cout << std::left << std::setw(16) << "Rho(SP)[-]";	// [kg/m3]
-				std::cout << std::left << std::setw(16) << "Rho(GS)[mu]";	// [kg/m3]
-				std::cout << std::left << std::setw(16) << "Rdep[mu/h]";	// [micron/h]
+				std::cout << std::left << std::setw(14) << "Rho(SP)[-]";	// [kg/m3]
+				std::cout << std::left << std::setw(14) << "Rho(GS)[mu]";	// [kg/m3]
+				std::cout << std::left << std::setw(14) << "Rdep[mu/h]";	// [micron/h]
 				std::cout << std::left << std::setw(16) << "Rdep[kg/m3/h]";	// [kg/m3/h]
 
 				if (detailed_heterogeneous_kinetics_ == true)
@@ -1623,9 +1682,9 @@ namespace CVI
 
 			std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t;									// [s]
 			std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t / 3600.;							// [h]
-			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << rho_bulk_(0);		// [kg/m3]
-			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << rho_bulk_(np_-1);	// [kg/m3]
-			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1e6*3600.;	// [micron/h]
+			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_(0);		// [kg/m3]
+			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_(np_-1);	// [kg/m3]
+			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1e6*3600.;	// [micron/h]
 			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << r_deposition_per_unit_volume_mean *3600.;					// [kg/m3/h]
 
 			if (detailed_heterogeneous_kinetics_ == true)
