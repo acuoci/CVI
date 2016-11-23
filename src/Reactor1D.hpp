@@ -693,7 +693,7 @@ namespace CVI
 					{
 						dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
 							(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
-							gamma_star_[i](j)*rho_gas_(i)*dY_over_dx_[i](j) / grid_.x()[i] +
+							gamma_star_[i](j)*rho_gas_(i)*(Y_[i+1](j)-Y_[i-1](j))/(grid_.x()[i+1]-grid_.x()[i-1]) / grid_.x()[i] +
 							epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
 					}
 
