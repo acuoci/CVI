@@ -65,7 +65,8 @@ namespace CVI
 							CVI::PlugFlowReactorCoupled& plugFlowReactor,
 							const bool detailed_heterogeneous_kinetics,
 							const std::vector<bool>& site_non_conservation,
-							const std::string dae_species) :
+							const std::string gas_dae_species,
+							const std::string surface_dae_species) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -124,7 +125,7 @@ namespace CVI
 
 			// Dae species
 			dae_formulation_ = true;
-			dae_species_index_ = thermodynamicsSurfaceMap_.IndexOfSpecies(dae_species) - (nc_ + 1);
+			surface_dae_species_index_ = thermodynamicsSurfaceMap_.IndexOfSpecies(surface_dae_species) - (nc_ + 1);
 		}
 		else
 		{
@@ -158,6 +159,8 @@ namespace CVI
 		band_size_ = block_*(nx_+1)-1;
 
 		planar_symmetry_ = true;
+
+		gas_dae_species_index_ = thermodynamicsMap_.IndexOfSpecies(gas_dae_species)-1;
 
 		vx_ = 0.;
 		vy_ = 0.;
@@ -425,10 +428,10 @@ namespace CVI
 			}
 			else
 			{
-				for (unsigned int j = 0; j < dae_species_index_; j++)
+				for (unsigned int j = 0; j < surface_dae_species_index_; j++)
 					id_equations_[count++] = true;
 				id_equations_[count++] = false;
-				for (unsigned int j = dae_species_index_ + 1; j < surf_nc_; j++)
+				for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
 					id_equations_[count++] = true;
 			}
 		}
@@ -457,10 +460,10 @@ namespace CVI
 				}
 				else
 				{
-					for (unsigned int j = 0; j < dae_species_index_; j++)
+					for (unsigned int j = 0; j < surface_dae_species_index_; j++)
 						id_equations_[count++] = true;
 					id_equations_[count++] = false;
-					for (unsigned int j = dae_species_index_ + 1; j < surf_nc_; j++)
+					for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
 						id_equations_[count++] = true;
 				}
 			}
@@ -469,7 +472,10 @@ namespace CVI
 			for (unsigned int i = 1; i < nx_-1; i++)
 			{
 				// Species
-				for (unsigned int j = 0; j < nc_; j++)
+				for (unsigned int j = 0; j < gas_dae_species_index_; j++)
+					id_equations_[count++] = true;
+				id_equations_[count++] = false;
+				for (unsigned int j = gas_dae_species_index_ + 1; j < nc_; j++)
 					id_equations_[count++] = true;
 
 				// Porosity
@@ -486,10 +492,10 @@ namespace CVI
 				}
 				else
 				{
-					for (unsigned int j = 0; j < dae_species_index_; j++)
+					for (unsigned int j = 0; j < surface_dae_species_index_; j++)
 						id_equations_[count++] = true;
 					id_equations_[count++] = false;
-					for (unsigned int j = dae_species_index_ + 1; j < surf_nc_; j++)
+					for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
 						id_equations_[count++] = true;
 				}
 			}
@@ -514,10 +520,10 @@ namespace CVI
 				}
 				else
 				{
-					for (unsigned int j = 0; j < dae_species_index_; j++)
+					for (unsigned int j = 0; j < surface_dae_species_index_; j++)
 						id_equations_[count++] = true;
 					id_equations_[count++] = false;
-					for (unsigned int j = dae_species_index_ + 1; j < surf_nc_; j++)
+					for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
 						id_equations_[count++] = true;
 				}
 			}
@@ -544,10 +550,10 @@ namespace CVI
 			}
 			else
 			{
-				for (unsigned int j = 0; j < dae_species_index_; j++)
+				for (unsigned int j = 0; j < surface_dae_species_index_; j++)
 					id_equations_[count++] = true;
 				id_equations_[count++] = false;
-				for (unsigned int j = dae_species_index_ + 1; j < surf_nc_; j++)
+				for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
 					id_equations_[count++] = true;
 			}
 		}
@@ -1126,6 +1132,8 @@ namespace CVI
 					dY_over_dt_[center](j) /= (rho_gas_(center)*epsilon_(center));
 				}
 
+				dY_over_dt_[center](gas_dae_species_index_) = 1.-Y_[center].sum();
+
 				if (epsilon_(center) < porousMedium_.epsilon_threshold())
 				{
 					dY_over_dt_[center].setZero();
@@ -1173,7 +1181,7 @@ namespace CVI
 			}
 
 			if (dae_formulation_ == true)
-				dZ_over_dt_[i](dae_species_index_) = 1. - Z_[i].sum();
+				dZ_over_dt_[i](surface_dae_species_index_) = 1. - Z_[i].sum();
 		}
 	}
 
@@ -1374,9 +1382,9 @@ namespace CVI
 					Gamma_[i](j) = GammaFromEqn_[i](j);
 
 			// Normalize
-			const double sum = Y_[i].sum();
-			for (unsigned int j = 0; j < nc_; j++)
-				Y_[i](j) /= sum;
+			//const double sum = Y_[i].sum();
+			//for (unsigned int j = 0; j < nc_; j++)
+			//	Y_[i](j) /= sum;
 		}
 
 		Properties();

@@ -292,10 +292,16 @@ int main(int argc, char** argv)
 		dictionaries(main_dictionary_name_).ReadBool("@DetailedSurfaceChemistry", detailed_heterogeneous_kinetics);
 	}
 
-	std::string dae_species = "none";
-	if (dictionaries(main_dictionary_name_).CheckOption("@DaeSpecies") == true)
+	std::string gas_dae_species = "none";
+	if (dictionaries(main_dictionary_name_).CheckOption("@GasDaeSpecies") == true)
 	{
-		dictionaries(main_dictionary_name_).ReadString("@DaeSpecies", dae_species);
+		dictionaries(main_dictionary_name_).ReadString("@GasDaeSpecies", gas_dae_species);
+	}
+
+	std::string surface_dae_species = "none";
+	if (dictionaries(main_dictionary_name_).CheckOption("@SurfaceDaeSpecies") == true)
+	{
+		dictionaries(main_dictionary_name_).ReadString("@SurfaceDaeSpecies", surface_dae_species);
 	}
 
 	boost::filesystem::path output_path;
@@ -714,7 +720,7 @@ int main(int argc, char** argv)
 										*porous_medium, *porosity_defect,
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 										*grid_x, *grid_y, *plug_flow_reactor,
-										detailed_heterogeneous_kinetics, SiteNonConservation, dae_species);
+										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -774,7 +780,7 @@ int main(int argc, char** argv)
 										*porous_medium, *porosity_defect,
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 										*grid_x, *grid_y, *plug_flow_reactor,
-										detailed_heterogeneous_kinetics, SiteNonConservation, dae_species);
+										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -837,7 +843,7 @@ int main(int argc, char** argv)
 														*porous_medium, 
 														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 														*grid_x, detailed_heterogeneous_kinetics,
-														SiteNonConservation, dae_species);
+														SiteNonConservation, surface_dae_species);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -893,7 +899,7 @@ int main(int argc, char** argv)
 														*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, 
 														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 														*grid_x, detailed_heterogeneous_kinetics, 
-														SiteNonConservation, dae_species);
+														SiteNonConservation, surface_dae_species);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());

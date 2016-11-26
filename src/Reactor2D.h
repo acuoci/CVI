@@ -86,7 +86,8 @@ namespace CVI
 					CVI::PlugFlowReactorCoupled& plugFlowReactor,
 					const bool detailed_heterogeneous_kinetics,
 					const std::vector<bool>& site_non_conservation,
-					const std::string dae_species);
+					const std::string gas_dae_species,
+					const std::string surface_dae_species);
 
 		/**
 		*@brief Sets the planar symmetry
@@ -401,7 +402,8 @@ namespace CVI
 		bool dae_formulation_;
 		bool detailed_heterogeneous_kinetics_;
 		double rho_graphite_;
-		unsigned int dae_species_index_;
+		unsigned int surface_dae_species_index_;
+		unsigned int gas_dae_species_index_;
 
 		int i_current;
 

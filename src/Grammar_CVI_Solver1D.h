@@ -49,7 +49,12 @@ namespace CVI
 				"Detailed vs Global heterogeneous chemistry",
 				true));
 
-			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DaeSpecies",
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@GasDaeSpecies",
+				OpenSMOKE::SINGLE_STRING,
+				"Name of gas species chosen for the algebraic equation closure",
+				true));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@SurfaceDaeSpecies",
 				OpenSMOKE::SINGLE_STRING,
 				"Name of surface species chosen for the algebraic equation closure",
 				true));
