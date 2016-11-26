@@ -126,6 +126,8 @@ namespace CVI
 		*/
 		double density_bulk(const double rho_graphite);
 
+		double epsilon_threshold() { return epsilon_threshold_; }
+
 		/**
 		*@brief Calculates the effective mass diffusion coefficients resulting from the combination of ordinary and Knudsen diffusion
 		*@param mole_fractions mole fractions of gaseous species
@@ -221,6 +223,8 @@ namespace CVI
 		Eigen::VectorXd gamma_fick_;					//!< non-effective mass diffusion coefficients (ordinary or Fick) [m2/s]
 		Eigen::VectorXd gamma_fick_effective_;			//!< effective mass diffusion coefficients (ordinary or Fick) [m2/s]
 		Eigen::VectorXd gamma_effective_;				//!< effective mass diffusion coefficients (ordinary + Knudsen) [m2/s]
+
+		double epsilon_threshold_;
 	};
 }
 

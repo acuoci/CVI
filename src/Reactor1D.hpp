@@ -671,10 +671,9 @@ namespace CVI
 		}
 
 		// Internal points
-		const double epsilon_threshold = 1.e-3;
 		for (int i = 1; i < grid_.Ni(); i++)
 		{
-			if (epsilon_(i) < epsilon_threshold)
+			if (epsilon_(i) < porousMedium_.epsilon_threshold())
 			{
 				dY_over_dt_[i].setZero();
 			}
@@ -714,20 +713,17 @@ namespace CVI
 			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
 
 		// In case of porosity very small
-		const double epsilon_threshold = 1e-3;
 		for (int i = 0; i < np_; i++)
-			if (epsilon_(i) < epsilon_threshold)
+			if (epsilon_(i) < porousMedium_.epsilon_threshold())
 				depsilon_over_dt_(i) = 0.;
 
 	}
 
 	void Reactor1D::SubEquations_SurfaceSpeciesFractions()
 	{
-		const double epsilon_threshold = 1.e-3;
-
 		for (int i = 0; i < grid_.Np(); i++)
 		{
-			if (epsilon_(i) < epsilon_threshold)
+			if (epsilon_(i) < porousMedium_.epsilon_threshold())
 			{
 				dGamma_over_dt_[i].setZero();
 				dZ_over_dt_[i].setZero();

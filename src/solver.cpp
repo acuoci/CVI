@@ -709,19 +709,32 @@ int main(int argc, char** argv)
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *porosity_defect, *heterogeneous_mechanism, *grid_x, *grid_y, *plug_flow_reactor);
+		reactor2d = new CVI::Reactor2D(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML,
+										*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML,
+										*porous_medium, *porosity_defect,
+										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
+										*grid_x, *grid_y, *plug_flow_reactor,
+										detailed_heterogeneous_kinetics, SiteNonConservation, dae_species);
+
+		// Initial surface fractions
+		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
+		for (unsigned int i = 0; i<thermodynamicsSurfaceMapXML->number_of_site_species(); i++)
+			initial_Z(i) = Z0[i + 1];
 
 		// Set options
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
-		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega);
+		reactor2d->SetSiteNonConservation(SiteNonConservation);
+		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		reactor2d->SetGasSide(inlet_T, inlet_P, Y_gas_side);
 		reactor2d->SetUniformVelocity(vx, vy);
 		reactor2d->SetTimeTotal(time_total);
 		reactor2d->SetDaeTimeInterval(dae_time_interval);
+		reactor2d->SetOdeEndTime(ode_end_time);
 		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);
-		if (steps_video>0)		reactor2d->SetStepsVideo(steps_video);
-		if (steps_file>0)		reactor2d->SetStepsFile(steps_file);
+		if (steps_video>0)				reactor2d->SetStepsVideo(steps_video);
+		if (steps_file>0)				reactor2d->SetStepsFile(steps_file);
 		if (steps_update_plug_flow>0)	reactor2d->SetStepsUpdatePlugFlow(steps_update_plug_flow);
+		if (on_the_fly_ropa == true)	reactor2d->SetSurfaceOnTheFlyROPA(onTheFlyROPA);
 
 		// Solve
 		{
@@ -729,7 +742,7 @@ int main(int argc, char** argv)
 			time_t timerEnd;
 
 			time(&timerStart);
-			int flag = reactor2d->SolveFromScratch(*dae_parameters);
+			int flag = reactor2d->SolveFromScratch(*dae_parameters, *ode_parameters);
 			time(&timerEnd);
 
 			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;
@@ -745,23 +758,42 @@ int main(int argc, char** argv)
 		// Set heterogeneous mechanism
 		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_heterogeneous_mechanism));
 
+		// Set detailed heterogeneous mechanism
+		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
+
+
 		// Set porous medium
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
 		CVI::PlugFlowReactorCoupled* plug_flow_reactor; // dummy
-		reactor2d = new CVI::Reactor2D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *porous_medium, *porosity_defect, *heterogeneous_mechanism, *grid_x, *grid_y, *plug_flow_reactor);
+														
+		// Creates the reactor
+		reactor2d = new CVI::Reactor2D(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML,
+										*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML,
+										*porous_medium, *porosity_defect,
+										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
+										*grid_x, *grid_y, *plug_flow_reactor,
+										detailed_heterogeneous_kinetics, SiteNonConservation, dae_species);
+
+		// Initial surface fractions
+		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
+		for (unsigned int i = 0; i<thermodynamicsSurfaceMapXML->number_of_site_species(); i++)
+			initial_Z(i) = Z0[i + 1];
 
 		// Set options
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
-		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega);
+		reactor2d->SetSiteNonConservation(SiteNonConservation);
+		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		reactor2d->SetGasSide(inlet_T, inlet_P, disk);
 		reactor2d->SetUniformVelocity(vx, vy);
 		reactor2d->SetTimeTotal(time_total);
 		reactor2d->SetDaeTimeInterval(dae_time_interval);
+		reactor2d->SetOdeEndTime(ode_end_time);
 		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);
-		if (steps_video>0)		reactor2d->SetStepsVideo(steps_video);
-		if (steps_file>0)		reactor2d->SetStepsFile(steps_file);
+		if (steps_video>0)				reactor2d->SetStepsVideo(steps_video);
+		if (steps_file>0)				reactor2d->SetStepsFile(steps_file);
+		if (on_the_fly_ropa == true)	reactor2d->SetSurfaceOnTheFlyROPA(onTheFlyROPA);
 
 		// Solve
 		{
@@ -769,7 +801,7 @@ int main(int argc, char** argv)
 			time_t timerEnd;
 
 			time(&timerStart);
-			int flag = reactor2d->SolveFromScratch(*dae_parameters);
+			int flag = reactor2d->SolveFromScratch(*dae_parameters, *ode_parameters);
 			time(&timerEnd);
 
 			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;

@@ -63,6 +63,11 @@ namespace CVI
 				OpenSMOKE::SINGLE_DOUBLE,
 				"Mass diffusion multiplier",
 				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@ThresholdPorosity",
+				OpenSMOKE::SINGLE_DOUBLE,
+				"Threshold porosity (default: 1e-3)",
+				false));		
 		}
 	};
 }

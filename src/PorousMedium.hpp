@@ -87,6 +87,11 @@ namespace CVI
 		if (dictionary.CheckOption("@MassDiffusionMultiplier") == true)
 			dictionary.ReadDouble("@MassDiffusionMultiplier", mass_diffusion_multiplier_);
 
+		// Thrrshold porosity
+		epsilon_threshold_ = 1e-3;
+			if (dictionary.CheckOption("@ThresholdPorosity") == true)
+				dictionary.ReadDouble("@ThresholdPorosity", epsilon_threshold_);
+
 		// Read porous substrate type
 		{
 			std::string value;
