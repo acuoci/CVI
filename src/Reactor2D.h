@@ -87,7 +87,8 @@ namespace CVI
 					const bool detailed_heterogeneous_kinetics,
 					const std::vector<bool>& site_non_conservation,
 					const std::string gas_dae_species,
-					const std::string surface_dae_species);
+					const std::string surface_dae_species,
+					const boost::filesystem::path output_folder);
 
 		/**
 		*@brief Sets the planar symmetry
@@ -271,6 +272,12 @@ namespace CVI
 		void SetSiteNonConservation(std::vector<bool>& site_non_conservation);
 
 		void SetSurfaceOnTheFlyROPA(OpenSMOKE::SurfaceOnTheFlyROPA* ropa);
+
+		void SetDerivativeMassFractions(const OpenSMOKE::derivative_type value);
+
+		void SetDerivativeEffectiveDiffusivity(const OpenSMOKE::derivative_type value);
+
+		void SetDerivativeBulkDensity(const OpenSMOKE::derivative_type value);
 
 		int OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy);
 		int OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y);
@@ -551,6 +558,11 @@ namespace CVI
 		bool planar_symmetry_;	// planar vs cylindrical symmetry
 		double vx_;				// x-component component of velocity [m/s]
 		double vy_;				// y-component component of velocity [m/s]
+
+		// Spatial derivatives
+		OpenSMOKE::derivative_type derivative_type_mass_fractions_;
+		OpenSMOKE::derivative_type derivative_type_effective_diffusivity_;
+		OpenSMOKE::derivative_type derivative_type_bulk_density_;
 
 		// Provisional
 		void PrintOnTheScreen(const std::string, const int k, double* v);

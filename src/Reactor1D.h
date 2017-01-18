@@ -75,7 +75,8 @@ namespace CVI
 					OpenSMOKE::Grid1D& grid,
 					const bool detailed_heterogeneous_kinetics,
 					const std::vector<bool>& site_non_conservation,
-					const std::string dae_species);
+					const std::string dae_species,
+					const boost::filesystem::path output_folder);
 
 		/**
 		*@brief Sets the planar symmetry
@@ -215,6 +216,12 @@ namespace CVI
 		void SetSiteNonConservation(std::vector<bool>& site_non_conservation);
 
 		void SetSurfaceOnTheFlyROPA(OpenSMOKE::SurfaceOnTheFlyROPA* ropa);
+
+		void SetDerivativeMassFractions(const OpenSMOKE::derivative_type value);
+
+		void SetDerivativeEffectiveDiffusivity(const OpenSMOKE::derivative_type value);
+
+		void SetDerivativeBulkDensity(const OpenSMOKE::derivative_type value);
 
 		int OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy);
 		int OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y);
@@ -449,6 +456,10 @@ namespace CVI
 		double AreaAveraged(const Eigen::VectorXd& v);
 		double AreaStandardDeviation(const double mean, const Eigen::VectorXd& v);
 		void PrintLabelMonitoringFile();
+
+		OpenSMOKE::derivative_type derivative_type_mass_fractions_;
+		OpenSMOKE::derivative_type derivative_type_effective_diffusivity_;
+		OpenSMOKE::derivative_type derivative_type_bulk_density_;
 	};
 }
 

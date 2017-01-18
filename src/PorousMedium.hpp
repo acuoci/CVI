@@ -88,7 +88,7 @@ namespace CVI
 			dictionary.ReadDouble("@MassDiffusionMultiplier", mass_diffusion_multiplier_);
 
 		// Thrrshold porosity
-		epsilon_threshold_ = 1e-3;
+		epsilon_threshold_ = 1e-2;
 			if (dictionary.CheckOption("@ThresholdPorosity") == true)
 				dictionary.ReadDouble("@ThresholdPorosity", epsilon_threshold_);
 

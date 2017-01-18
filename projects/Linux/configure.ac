@@ -84,7 +84,7 @@ AS_IF([test "$SYSTEM_BOOST" = "yes"], [
 	AC_CHECK_HEADERS([regex.h], [], [Include file regex.h not found. Try downloading the Boost C++ libraries from http://www.boost.org], [])
 
 	BOOST_INCLUDE_DIR=""
-	BOOST_LIBS="-lboost_date_time -lboost_filesystem -lboost_program_options -lboost_system -lboost_regex -lboost_timer -lboost_chrono";
+	BOOST_LIBS=" -lboost_regex -lboost_timer -lboost_chrono -lboost_date_time -lboost_program_options -lboost_filesystem -lboost_system ";
 ])
 
 
@@ -122,8 +122,30 @@ AS_IF([test "$SYSTEM_BOOST" = "no"], [
 		      AC_MSG_ERROR([Library file libboost_chrono.a or libboost_chrono.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
 
 	BOOST_INCLUDE_DIR="-I$with_boost_include_path"
-	BOOST_LIBS="-L$with_boost_lib_path -lboost_date_time -lboost_filesystem -lboost_program_options -lboost_system -lboost_regex -lboost_timer -lboost_chrono"
+	BOOST_LIBS="-L$with_boost_lib_path -lboost_regex -lboost_timer -lboost_chrono -lboost_date_time -lboost_program_options -lboost_filesystem -lboost_system "
 ])
+
+# ---------------------------------------------------------------------------------------------------------------------------------------
+# Add libconfig library (compulsory)
+# ---------------------------------------------------------------------------------------------------------------------------------------
+
+LIBCONFIG_INCLUDE_DIR=""
+LIBCONFIG_LIBS=""
+
+AC_ARG_WITH([libconfig-include], [AS_HELP_STRING([--with-libconfig-include=DIR], 
+            [installation prefix (include) for libconfig libraries])], 
+            [ with_libconfig_include_path=$with_libconfig_include; LIBCONFIG_INCLUDE_DIR=" -I$with_libconfig_include_path ";
+
+		AC_CHECK_FILE([${with_libconfig_include_path}/libconfig.h++], [], 
+              	AC_MSG_ERROR([Include file libconfig.h++ not found. Try downloading the libconfig libraries from http://www.hyperrealm.com/libconfig/])) ])
+
+AC_ARG_WITH([libconfig-lib], [AS_HELP_STRING([--with-libconfig-lib=PATH], 
+            [path to the libconfig libraries])], 
+            [ with_libconfig_lib_path=$with_libconfig_lib; LIBCONFIG_LIBS=" $with_libconfig_lib_path ";
+
+		AC_CHECK_FILE([${with_libconfig_lib_path}], [], 
+              	AC_MSG_ERROR([Library file ${with_libconfig_lib_path} not found. Try downloading the libconfig libraries from http://www.hyperrealm.com/libconfig/])) ])
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # Add Intel MKL library (optional)
@@ -145,25 +167,6 @@ AC_ARG_WITH([mkl], [AS_HELP_STRING([--with-mkl=DIR],
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
-# Add OpenBLAS (optional, as alternative to MKL)
-# ---------------------------------------------------------------------------------------------------------------------------------------
-
-USE_OPENBLAS=" -DOPENSMOKE_USE_OPENBLAS=0 "
-OPENBLAS_INCLUDE_DIR=""
-OPENBLAS_LIBS=""
-
-AC_ARG_WITH([openblas], [AS_HELP_STRING([--with-openblas=DIR], 
-            [installation prefix for OpenBLAS libraries])], 
-            [ with_openblas_include_path=$with_openblas/include; 
-	      with_openblas_lib_path=$with_openblas/lib; 
-	      USE_OPENBLAS=" -DOPENSMOKE_USE_OPENBLAS=1 "; 
-	      OPENBLAS_INCLUDE_DIR=" -I$with_openblas_include_path "; 
-	      OPENBLAS_LIBS=" -Wl,--no-as-needed -L$with_openblas_lib_path -lopenblas ";
-	      AC_CHECK_FILE( [${with_openblas_include_path}/lapacke.h], [], 
-                             AC_MSG_ERROR([Include file lapacke.h not found. Try downloading the OpenBLAS libraries from http://www.openblas.net/])) ])
-
-
-# ---------------------------------------------------------------------------------------------------------------------------------------
 # Add Intel compiler (optional)
 # ---------------------------------------------------------------------------------------------------------------------------------------
 
@@ -172,7 +175,7 @@ INTEL_COMPILER_LIBS=""
 AC_ARG_WITH([intel-compiler], [AS_HELP_STRING([--with-intel-compiler=DIR], 
             [installation prefix for Intel Compiler])], 
             [ with_intel_compiler_path=$with_intel_compiler/lib/intel64;
-	      INTEL_COMPILER_LIBS=" -L$with_intel_compiler_path -Wl,--start-group -lifcore -lirc -limf -Wl,--end-group ";
+	      INTEL_COMPILER_LIBS=" -L$with_intel_compiler_path -Wl,--start-group -lifcore -lirc -limf -lsvml -Wl,--end-group ";
 	      AC_CHECK_FILE( [${with_intel_compiler_path}/libifcore.so], [], 
                              AC_MSG_ERROR([Library file ${with_intel_compiler_path}/libifcore.so not found. Try downloading the Intel Compiler from https://software.intel.com])) ])
 
@@ -261,7 +264,7 @@ AC_ARG_WITH([superlu-include], [AS_HELP_STRING([--with-superlu-include=DIR],
               	AC_MSG_ERROR([Include file slu_cdefs.h not found. Try downloading the SuperLU libraries from http://crd-legacy.lbl.gov/~xiaoye/SuperLU/])) ])
 
 AC_ARG_WITH([superlu-lib], [AS_HELP_STRING([--with-superlu-lib=PATH], 
-            [path to the BzzMath libraries])], 
+            [path to the SuperLU libraries])], 
             [ with_superlu_lib_path=$with_superlu_lib; USE_SUPERLU=" -DOPENSMOKE_USE_SUPERLU=1 "; SUPERLU_LIBS=" $with_superlu_lib_path ";
 
 		AC_CHECK_FILE([${with_superlu_lib_path}], [], 
@@ -277,7 +280,7 @@ ODEPACK_LIBS=""
 
 AC_ARG_WITH([odepack], [AS_HELP_STRING([--with-odepack=DIR], 
             [installation prefix (include) for ODEPACK library])], 
-            [ with_odepack_path=$with_odepack; USE_ODEPACK=" -DOPENSMOKE_USE_ODEPACK=1 "; ODEPACK_LIBS=" $with_odepack_path ";
+            [ with_odepack_path=$with_odepack; USE_ODEPACK=" -DOPENSMOKE_USE_ODEPACK=1 -DOPENSMOKE_USE_DVODE=1"; ODEPACK_LIBS=" $with_odepack_path ";
 
 		AC_CHECK_FILE([${with_odepack_path}], [], 
               	AC_MSG_ERROR([Library file ${with_odepack_path} not found. Try downloading the ODEPACK library from https://computation.llnl.gov/casc/odepack/odepack_home.html])) ])
@@ -356,6 +359,11 @@ AC_ARG_WITH([ceq], [AS_HELP_STRING([--with-ceq=DIR],
               	AC_MSG_ERROR([Library file ${with_ceq_path} not found. Try downloading the CEQ library from http://eccentric.mae.cornell.edu/~pope/CEQ/])) ])
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
+# Add OpenBLAS library (optional)
+# ---------------------------------------------------------------------------------------------------------------------------------------
+OPENBLAS_LIBS=""
+
+# ---------------------------------------------------------------------------------------------------------------------------------------
 # Add LIS library (optional)
 # ---------------------------------------------------------------------------------------------------------------------------------------
 LIS_LIBS=""
@@ -377,6 +385,8 @@ AC_SUBST(EIGEN_INCLUDE_DIR)
 AC_SUBST(RAPIDXML_INCLUDE_DIR)
 AC_SUBST(BOOST_INCLUDE_DIR)
 AC_SUBST(BOOST_LIBS)
+AC_SUBST(LIBCONFIG_INCLUDE_DIR)
+AC_SUBST(LIBCONFIG_LIBS)
 
 #Intel MKL
 AC_SUBST(MKL_INCLUDE_DIR)
@@ -385,11 +395,6 @@ AC_SUBST(USE_MKL)
 
 #Intel compiler
 AC_SUBST(INTEL_COMPILER_LIBS)
-
-#OpenBLAS
-AC_SUBST(OPENBLAS_INCLUDE_DIR)
-AC_SUBST(OPENBLAS_LIBS)
-AC_SUBST(USE_OPENBLAS)
 
 #Linpack
 AC_SUBST(LINPACK_LIBS)
@@ -446,16 +451,16 @@ AC_SUBST(METIS_LIBS)
 AC_SUBST(PLASMA_LIBS)
 
 
-USE_EXTERNAL_LIBRARIES="$USE_BZZMATH $USE_DASPK $USE_RADAU $USE_MEBDF $USE_ODEPACK $USE_UMFPACK $USE_SUPERLU $USE_SUNDIALS $USE_OPENBLAS"
+USE_EXTERNAL_LIBRARIES="$USE_BZZMATH $USE_DASPK $USE_RADAU $USE_MEBDF $USE_ODEPACK $USE_UMFPACK $USE_SUPERLU $USE_SUNDIALS"
 AC_SUBST(USE_EXTERNAL_LIBRARIES)
 
-COMPULSORY_INCLUDE_DIRS="$OPENSMOKEPP_INCLUDE_DIR $EIGEN_INCLUDE_DIR $RAPIDXML_INCLUDE_DIR $BOOST_INCLUDE_DIR"
+COMPULSORY_INCLUDE_DIRS="$OPENSMOKEPP_INCLUDE_DIR $EIGEN_INCLUDE_DIR $RAPIDXML_INCLUDE_DIR $BOOST_INCLUDE_DIR $LIBCONFIG_INCLUDE_DIR"
 AC_SUBST(COMPULSORY_INCLUDE_DIRS)
 
-EXTERNAL_INCLUDE_DIRS="$BZZMATH_INCLUDE_DIR $UMFPACK_INCLUDE_DIR $SUPERLU_INCLUDE_DIR $SUNDIALS_INCLUDE_DIR $OPENBLAS_INCLUDE_DIR"
+EXTERNAL_INCLUDE_DIRS="$BZZMATH_INCLUDE_DIR $UMFPACK_INCLUDE_DIR $SUPERLU_INCLUDE_DIR $SUNDIALS_INCLUDE_DIR"
 AC_SUBST(EXTERNAL_INCLUDE_DIRS)
 
-EXTERNAL_LIBS="$CEQ_LIBS $BZZMATH_LIBS $DASPK_LIBS $MEBDF_LIBS $ODEPACK_LIBS $LINPACK_LIBS $RADAU_LIBS $SUNDIALS_LIBS $UMFPACK_LIBS $METIS_LIBS $SUPERLU_LIBS $LIS_LIBS $PLASMA_LIBS $OPENBLAS_LIBS $INTEL_COMPILER_LIBS"
+EXTERNAL_LIBS="$CEQ_LIBS $BZZMATH_LIBS $DASPK_LIBS $MEBDF_LIBS $ODEPACK_LIBS $LINPACK_LIBS $RADAU_LIBS $SUNDIALS_LIBS $UMFPACK_LIBS $METIS_LIBS $SUPERLU_LIBS $LIS_LIBS $PLASMA_LIBS $INTEL_COMPILER_LIBS"
 AC_SUBST(EXTERNAL_LIBS)
 
 

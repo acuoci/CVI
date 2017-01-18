@@ -614,6 +614,48 @@ int main(int argc, char** argv)
 			dictionaries(main_dictionary_name_).ReadInt("@StepsPlugFlow", steps_update_plug_flow);
 	}
 
+
+	// Derivatives
+	OpenSMOKE::derivative_type derivative_mass_fractions = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+	OpenSMOKE::derivative_type derivative_effective_diffusivity = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+	OpenSMOKE::derivative_type derivative_bulk_density = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+	{
+		std::string dummy;
+		
+		if (dictionaries(main_dictionary_name_).CheckOption("@DerivativeMassFractions") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadString("@DerivativeMassFractions", dummy);
+			if (dummy == "Backward")
+				derivative_mass_fractions = OpenSMOKE::DERIVATIVE_1ST_BACKWARD;
+			else if (dummy == "Forward")
+				derivative_mass_fractions = OpenSMOKE::DERIVATIVE_1ST_FORWARD;
+			else if (dummy == "Centered")
+				derivative_mass_fractions = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+		}
+
+		if (dictionaries(main_dictionary_name_).CheckOption("@DerivativeBulkDensity") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadString("@DerivativeBulkDensity", dummy);
+			if (dummy == "Backward")
+				derivative_bulk_density = OpenSMOKE::DERIVATIVE_1ST_BACKWARD;
+			else if (dummy == "Forward")
+				derivative_bulk_density = OpenSMOKE::DERIVATIVE_1ST_FORWARD;
+			else if (dummy == "Centered")
+				derivative_bulk_density = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+		}
+
+		if (dictionaries(main_dictionary_name_).CheckOption("@DerivativeEffectiveDiffusivity") == true)
+		{
+			dictionaries(main_dictionary_name_).ReadString("@DerivativeEffectiveDiffusivity", dummy);
+			if (dummy == "Backward")
+				derivative_effective_diffusivity = OpenSMOKE::DERIVATIVE_1ST_BACKWARD;
+			else if (dummy == "Forward")
+				derivative_effective_diffusivity = OpenSMOKE::DERIVATIVE_1ST_FORWARD;
+			else if (dummy == "Centered")
+				derivative_effective_diffusivity = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+		}
+	}
+
 	// Solve the 2D problem
 	if (problem_type == CVI_REACTOR2D && gaseous_phase == CVI::GASEOUS_PHASE_FROM_PLUG_FLOW)
 	{
@@ -720,7 +762,7 @@ int main(int argc, char** argv)
 										*porous_medium, *porosity_defect,
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 										*grid_x, *grid_y, *plug_flow_reactor,
-										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species);
+										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -737,6 +779,9 @@ int main(int argc, char** argv)
 		reactor2d->SetDaeTimeInterval(dae_time_interval);
 		reactor2d->SetOdeEndTime(ode_end_time);
 		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);
+		reactor2d->SetDerivativeMassFractions(derivative_mass_fractions);
+		reactor2d->SetDerivativeEffectiveDiffusivity(derivative_effective_diffusivity);
+		reactor2d->SetDerivativeBulkDensity(derivative_bulk_density);
 		if (steps_video>0)				reactor2d->SetStepsVideo(steps_video);
 		if (steps_file>0)				reactor2d->SetStepsFile(steps_file);
 		if (steps_update_plug_flow>0)	reactor2d->SetStepsUpdatePlugFlow(steps_update_plug_flow);
@@ -780,7 +825,7 @@ int main(int argc, char** argv)
 										*porous_medium, *porosity_defect,
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 										*grid_x, *grid_y, *plug_flow_reactor,
-										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species);
+										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -797,10 +842,13 @@ int main(int argc, char** argv)
 		reactor2d->SetDaeTimeInterval(dae_time_interval);
 		reactor2d->SetOdeEndTime(ode_end_time);
 		reactor2d->SetTecplotTimeInterval(tecplot_time_interval);
+		reactor2d->SetDerivativeMassFractions(derivative_mass_fractions);
+		reactor2d->SetDerivativeEffectiveDiffusivity(derivative_effective_diffusivity);
+		reactor2d->SetDerivativeBulkDensity(derivative_bulk_density);
 		if (steps_video>0)				reactor2d->SetStepsVideo(steps_video);
 		if (steps_file>0)				reactor2d->SetStepsFile(steps_file);
 		if (on_the_fly_ropa == true)	reactor2d->SetSurfaceOnTheFlyROPA(onTheFlyROPA);
-
+		
 		// Solve
 		{
 			time_t timerStart;
@@ -843,7 +891,7 @@ int main(int argc, char** argv)
 														*porous_medium, 
 														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 														*grid_x, detailed_heterogeneous_kinetics,
-														SiteNonConservation, surface_dae_species);
+														SiteNonConservation, surface_dae_species, output_path);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -857,6 +905,9 @@ int main(int argc, char** argv)
 		reactor1d->SetTimeTotal(time_total);
 		reactor1d->SetDaeTimeInterval(dae_time_interval);
 		reactor1d->SetOdeEndTime(ode_end_time);
+		reactor1d->SetDerivativeMassFractions(derivative_mass_fractions);
+		reactor1d->SetDerivativeEffectiveDiffusivity(derivative_effective_diffusivity);
+		reactor1d->SetDerivativeBulkDensity(derivative_bulk_density);
 
 		if (on_the_fly_ropa == true)
 			reactor1d->SetSurfaceOnTheFlyROPA(onTheFlyROPA);

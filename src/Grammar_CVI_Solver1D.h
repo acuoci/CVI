@@ -235,6 +235,21 @@ namespace CVI
 				OpenSMOKE::SINGLE_MEASURE,
 				"Uniform velocity along the y axis",
 				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DerivativeMassFractions",
+				OpenSMOKE::SINGLE_STRING,
+				"Derivative of mass fractions: Backward | Forward | Centered (default: Centered)",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DerivativeBulkDensity",
+				OpenSMOKE::SINGLE_STRING,
+				"Derivative of bulk density: Backward | Forward | Centered (default: Centered)",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@DerivativeEffectiveDiffusivity",
+				OpenSMOKE::SINGLE_STRING,
+				"Derivative of effective diffusivity: Backward | Forward | Centered (default: Centered)",
+				false));
 		}
 	};
 }

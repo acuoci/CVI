@@ -40,7 +40,8 @@ namespace CVI
 							OpenSMOKE::Grid1D& grid,
 							const bool detailed_heterogeneous_kinetics,
 							const std::vector<bool>& site_non_conservation,
-							const std::string dae_species) :
+							const std::string dae_species,
+							const boost::filesystem::path output_folder) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -52,8 +53,8 @@ namespace CVI
 	heterogeneousDetailedMechanism_(heterogeneousDetailedMechanism),
 	grid_(grid),
 	detailed_heterogeneous_kinetics_(detailed_heterogeneous_kinetics),
-	site_non_conservation_(site_non_conservation)
-
+	site_non_conservation_(site_non_conservation),
+	output_folder_(output_folder)
 	{
 		n_steps_video_ = 10;
 		count_dae_video_ = 1;
@@ -65,6 +66,10 @@ namespace CVI
 		time_total_ = 48.*3600.;
 		dae_time_interval_ = 3600.;
 		ode_end_time_ = 1.;
+
+		derivative_type_mass_fractions_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+		derivative_type_effective_diffusivity_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+		derivative_type_bulk_density_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
 
 		if (detailed_heterogeneous_kinetics_ == true)
 		{
@@ -121,8 +126,6 @@ namespace CVI
 		band_size_ = 2 * block_ - 1;
 
 		planar_symmetry_ = true;
-
-		output_folder_ = "Output";
 
 		output_matlab_folder_ = output_folder_ / "Matlab";
 		OpenSMOKE::CreateDirectory(output_matlab_folder_);
@@ -336,6 +339,21 @@ namespace CVI
 	void Reactor1D::SetPlanarSymmetry(const bool flag)
 	{
 		planar_symmetry_ = flag;
+	}
+
+	void Reactor1D::SetDerivativeMassFractions(const OpenSMOKE::derivative_type value)
+	{
+		derivative_type_mass_fractions_ = value;
+	}
+
+	void Reactor1D::SetDerivativeEffectiveDiffusivity(const OpenSMOKE::derivative_type value)
+	{
+		derivative_type_effective_diffusivity_ = value;
+	}
+
+	void Reactor1D::SetDerivativeBulkDensity(const OpenSMOKE::derivative_type value)
+	{
+		derivative_type_bulk_density_ = value;
 	}
 
 	void Reactor1D::SetSiteNonConservation(std::vector<bool>& site_non_conservation)
@@ -615,6 +633,7 @@ namespace CVI
 		{
 			Eigen::VectorXd dummy(np_); dummy.setZero();
 			grid_.Derivative(OpenSMOKE::DERIVATIVE_1ST_BACKWARD, dummy, Y_, &dY_over_dx_);
+			
 			for (int i = 0; i < grid_.Ni(); i++)
 			{
 				j_star_[i].setZero();
@@ -648,9 +667,9 @@ namespace CVI
 		Eigen::VectorXd dummy(np_);
 
 		// First-order derivatives
-		grid_.Derivative(OpenSMOKE::DERIVATIVE_1ST_BACKWARD, dummy, Y_, &dY_over_dx_);
-		grid_.Derivative(OpenSMOKE::DERIVATIVE_1ST_FORWARD, dummy, gamma_star_, &dgamma_star_over_dx_);
-		grid_.Derivative(OpenSMOKE::DERIVATIVE_1ST_FORWARD, dummy, rho_gas_, &drho_gas_over_dx_);
+		grid_.Derivative(derivative_type_mass_fractions_, dummy, Y_, &dY_over_dx_);
+		grid_.Derivative(derivative_type_effective_diffusivity_, dummy, gamma_star_, &dgamma_star_over_dx_);
+		grid_.Derivative(derivative_type_bulk_density_, dummy, rho_gas_, &drho_gas_over_dx_);
 
 		// Second order derivatives
 		grid_.SecondDerivative(Y_, &d2Y_over_dx2_);
@@ -673,28 +692,28 @@ namespace CVI
 		// Internal points
 		for (int i = 1; i < grid_.Ni(); i++)
 		{
-			if (epsilon_(i) < porousMedium_.epsilon_threshold())
-			{
-				dY_over_dt_[i].setZero();
-			}
-			else
+			//if (epsilon_(i) < porousMedium_.epsilon_threshold())
+			//{
+			//	dY_over_dt_[i].setZero();
+			//}
+			//else
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 				{
 					// Explicit derivatives
 					if (planar_symmetry_ == true)
 					{
-						dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
-							(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
-							epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
+						dY_over_dt_[i](j) = 	gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
+									(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j);
 					}
 					else
 					{
-						dY_over_dt_[i](j) = gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
-							(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
-							gamma_star_[i](j)*rho_gas_(i)*(Y_[i+1](j)-Y_[i-1](j))/(grid_.x()[i+1]-grid_.x()[i-1]) / grid_.x()[i] +
-							epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
+						dY_over_dt_[i](j) = 	gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
+									(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
+									gamma_star_[i](j)*rho_gas_(i)*(Y_[i+1](j)-Y_[i-1](j))/(grid_.x()[i+1]-grid_.x()[i-1]) / grid_.x()[i];
 					}
+
+					dY_over_dt_[i](j) += epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
 
 					dY_over_dt_[i](j) /= (rho_gas_(i)*epsilon_(i));
 				}
@@ -710,12 +729,16 @@ namespace CVI
 	{
 		// Internal points
 		for (int i = 0; i < np_; i++)
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
+		{
+			const double coefficient = 1000.;
+			const double smoothing_coefficient = 0.50*(std::tanh(coefficient*(epsilon_(i)-porousMedium_.epsilon_threshold()))+1.);
+			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_*smoothing_coefficient;
+		}
 
 		// In case of porosity very small
-		for (int i = 0; i < np_; i++)
-			if (epsilon_(i) < porousMedium_.epsilon_threshold())
-				depsilon_over_dt_(i) = 0.;
+		//for (int i = 0; i < np_; i++)
+		//	if (epsilon_(i) < porousMedium_.epsilon_threshold())
+		//		depsilon_over_dt_(i) = 0.;
 
 	}
 
@@ -723,12 +746,12 @@ namespace CVI
 	{
 		for (int i = 0; i < grid_.Np(); i++)
 		{
-			if (epsilon_(i) < porousMedium_.epsilon_threshold())
-			{
-				dGamma_over_dt_[i].setZero();
-				dZ_over_dt_[i].setZero();
-			}
-			else
+			//if (epsilon_(i) < porousMedium_.epsilon_threshold())
+			//{
+			//	dGamma_over_dt_[i].setZero();
+			//	dZ_over_dt_[i].setZero();
+			//}
+			//else
 			{
 				for (unsigned int j = 0; j < surf_np_; j++)
 				{
@@ -1003,7 +1026,8 @@ namespace CVI
 		SpatialDerivatives();
 
 		// Fluxes
-		DiffusionFluxes();
+		// TODO: they are not used because the closure is done by directly imposing the summ of mass fractions equal to 1
+		// DiffusionFluxes();
 
 		// Equations
 		SubEquations_MassFractions();
@@ -1658,8 +1682,11 @@ namespace CVI
 				std::cout << std::endl;
 				std::cout << std::left << std::setw(14) << "Time[s]";		// [s]
 				std::cout << std::left << std::setw(14) << "Time[h]";		// [h]
-				std::cout << std::left << std::setw(14) << "Rho(SP)[-]";	// [kg/m3]
-				std::cout << std::left << std::setw(14) << "Rho(GS)[mu]";	// [kg/m3]
+				std::cout << std::left << std::setw(14) << "Rho(SP)[kg/m3]";	// [kg/m3]
+				std::cout << std::left << std::setw(14) << "Rho(GS)[kg/m3]";	// [kg/m3]
+				std::cout << std::left << std::setw(14) << "eps(SP)[-]";	// [-]
+				std::cout << std::left << std::setw(14) << "eps(GS)[-]";	// [-]
+				std::cout << std::left << std::setw(14) << "eps(min)[-]";	// [-]
 				std::cout << std::left << std::setw(14) << "Rdep[mu/h]";	// [micron/h]
 				std::cout << std::left << std::setw(16) << "Rdep[kg/m3/h]";	// [kg/m3/h]
 
@@ -1680,6 +1707,9 @@ namespace CVI
 			std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t / 3600.;							// [h]
 			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_(0);		// [kg/m3]
 			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_(np_-1);	// [kg/m3]
+			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << epsilon_(0);		// [-]
+			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << epsilon_(np_-1);	// [-]
+			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << epsilon_.minCoeff();	// [-]
 			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1e6*3600.;	// [micron/h]
 			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << r_deposition_per_unit_volume_mean *3600.;					// [kg/m3/h]
 

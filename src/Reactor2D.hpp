@@ -66,7 +66,8 @@ namespace CVI
 							const bool detailed_heterogeneous_kinetics,
 							const std::vector<bool>& site_non_conservation,
 							const std::string gas_dae_species,
-							const std::string surface_dae_species) :
+							const std::string surface_dae_species,
+							const boost::filesystem::path output_folder) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -81,7 +82,8 @@ namespace CVI
 	grid_y_(grid_y),
 	plugFlowReactor_(plugFlowReactor),
 	detailed_heterogeneous_kinetics_(detailed_heterogeneous_kinetics),
-	site_non_conservation_(site_non_conservation)
+	site_non_conservation_(site_non_conservation),
+	output_folder_(output_folder)
 	{
 		t_old_ = 0.;
 		time_smoothing_ = 10.;
@@ -101,6 +103,10 @@ namespace CVI
 		dae_time_interval_ = 3600.;
 		tecplot_time_interval_ = 3600.;
 		ode_end_time_ = 1.;
+
+		derivative_type_mass_fractions_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+		derivative_type_effective_diffusivity_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
+		derivative_type_bulk_density_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
 
 		if (detailed_heterogeneous_kinetics_ == true)
 		{
@@ -164,8 +170,6 @@ namespace CVI
 
 		vx_ = 0.;
 		vy_ = 0.;
-
-		output_folder_ = "Output";
 
 		output_tecplot_folder_ = output_folder_ / "Tecplot";
 		OpenSMOKE::CreateDirectory(output_tecplot_folder_);
@@ -807,6 +811,21 @@ namespace CVI
 		vy_ = vy;
 	}
 
+	void Reactor2D::SetDerivativeMassFractions(const OpenSMOKE::derivative_type value)
+	{
+		derivative_type_mass_fractions_ = value;
+	}
+
+	void Reactor2D::SetDerivativeEffectiveDiffusivity(const OpenSMOKE::derivative_type value)
+	{
+		derivative_type_effective_diffusivity_ = value;
+	}
+
+	void Reactor2D::SetDerivativeBulkDensity(const OpenSMOKE::derivative_type value)
+	{
+		derivative_type_bulk_density_ = value;
+	}
+
 	void Reactor2D::Properties()
 	{
 		for (int i = 0; i < np_; i++)
@@ -1134,34 +1153,38 @@ namespace CVI
 
 				dY_over_dt_[center](gas_dae_species_index_) = 1.-Y_[center].sum();
 
-				if (epsilon_(center) < porousMedium_.epsilon_threshold())
-				{
-					dY_over_dt_[center].setZero();
-				}
+			//	if (epsilon_(center) < porousMedium_.epsilon_threshold())
+			//	{
+			//		dY_over_dt_[center].setZero();
+			//	}
 			}
 	}
 
 	void Reactor2D::SubEquations_Porosity()
 	{
 		for (int i = 0; i < np_; i++)
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
+		{
+			const double coefficient = 1000.;
+			const double smoothing_coefficient = 0.50*(std::tanh(coefficient*(epsilon_(i)-porousMedium_.epsilon_threshold()))+1.);
+			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_ *  smoothing_coefficient;
+		}
 
 		// In case of porosity very small
-		for (int i = 0; i < np_; i++)
-			if (epsilon_(i) < porousMedium_.epsilon_threshold())
-				depsilon_over_dt_(i) = 0.;
+		//for (int i = 0; i < np_; i++)
+		//	if (epsilon_(i) < porousMedium_.epsilon_threshold())
+		//		depsilon_over_dt_(i) = 0.;
 	}
 
 	void Reactor2D::SubEquations_SurfaceSpeciesFractions()
 	{
 		for (int i = 0; i < np_; i++)
 		{
-			if (epsilon_(i) < porousMedium_.epsilon_threshold())
-			{
-				dGamma_over_dt_[i].setZero();
-				dZ_over_dt_[i].setZero();
-			}
-			else
+		//	if (epsilon_(i) < porousMedium_.epsilon_threshold())
+		//	{
+		//		dGamma_over_dt_[i].setZero();
+		//		dZ_over_dt_[i].setZero();
+		//	}
+		//	else
 			{
 				for (unsigned int j = 0; j < surf_np_; j++)
 				{
@@ -2407,12 +2430,14 @@ namespace CVI
 			if (count_dae_video_ % (n_steps_video_ * 50) == 1)
 			{
 				std::cout << std::endl;
-				std::cout << std::left << std::setw(14) << "Time[s]";			// [s]
-				std::cout << std::left << std::setw(14) << "Time[h]";			// [h]
-				std::cout << std::left << std::setw(14) << "Rho(M)[kg/m3]";		// [kg/m3]
+				std::cout << std::left << std::setw(14) << "Time[s]";		// [s]
+				std::cout << std::left << std::setw(14) << "Time[h]";		// [h]
+				std::cout << std::left << std::setw(14) << "Rho(M)[kg/m3]";	// [kg/m3]
 				std::cout << std::left << std::setw(14) << "Rho(Std)[kg/m3]";	// [kg/m3]
-				std::cout << std::left << std::setw(14) << "Rdep[mu/h]";		// [micron/h]
-				std::cout << std::left << std::setw(16) << "Rdep[kg/m3/h]";		// [kg/m3/h]
+				std::cout << std::left << std::setw(14) << "Rdep[mu/h]";	// [micron/h]
+				std::cout << std::left << std::setw(16) << "Rdep[kg/m3/h]";	// [kg/m3/h]
+				std::cout << std::left << std::setw(16) << "epsMin[-]";		// [-]
+				std::cout << std::left << std::setw(16) << "epsMax[-]";		// [-]
 
 				if (detailed_heterogeneous_kinetics_ == true)
 				{
@@ -2430,12 +2455,14 @@ namespace CVI
 			const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);		// [kg/m2/s]
 			const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);	// [kg/m3/s]
 
-			std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t;									// [s]
+			std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t;		// [s]
 			std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t / 3600.;
 			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_mean;
 			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_std;
 			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1e6*3600.;	// [micron/h]
-			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << r_deposition_per_unit_volume_mean *3600.;					// [kg/m3/h]
+			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << r_deposition_per_unit_volume_mean *3600.;			// [kg/m3/h]
+			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << epsilon_.minCoeff();
+			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << epsilon_.maxCoeff();
 
 			if (detailed_heterogeneous_kinetics_ == true)
 			{
