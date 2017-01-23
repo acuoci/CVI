@@ -499,7 +499,7 @@ int main(int argc, char** argv)
 
 		OpenSMOKE::OpenSMOKEVectorDouble aux(thermodynamicsMapXML->NumberOfSpecies());
 		GetGasStatusFromDictionary(dictionaries(dict_name), *thermodynamicsMapXML, inlet_T, inlet_P, aux);
-		for (unsigned int i = 1; i <= aux.Size(); i++)
+		for (int i = 1; i <= aux.Size(); i++)
 			inlet_omega(i - 1) = aux[i];
 	}
 
@@ -514,7 +514,7 @@ int main(int argc, char** argv)
 
 		OpenSMOKE::OpenSMOKEVectorDouble aux(thermodynamicsMapXML->NumberOfSpecies());
 		GetGasStatusFromDictionary(dictionaries(dict_name), *thermodynamicsMapXML, initial_T, initial_P, aux);
-		for (unsigned int i = 1; i <= aux.Size(); i++)
+		for (int i = 1; i <= aux.Size(); i++)
 			initial_omega(i - 1) = aux[i];
 	}
 
@@ -700,7 +700,7 @@ int main(int argc, char** argv)
 			// Assign the boundary conditions
 			PlugFlowReactorCoupledProfiles* profiles = new PlugFlowReactorCoupledProfiles(csi);
 			Y_gas_side.resize(2 * grid_x->Np() + grid_y->Np());
-			for (int i = 0; i < Y_gas_side.size(); i++)
+			for (unsigned int i = 0; i < Y_gas_side.size(); i++)
 			{
 				Y_gas_side[i].resize(thermodynamicsMapXML->NumberOfSpecies());
 				Y_gas_side[i].setZero();

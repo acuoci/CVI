@@ -109,10 +109,10 @@ namespace CVI
 		OpenSMOKE::OpenSMOKEVectorDouble os_Z(Z.size());
 		OpenSMOKE::OpenSMOKEVectorDouble os_a(a.size());
 		OpenSMOKE::OpenSMOKEVectorDouble os_Gamma(Gamma.size());
-		for (unsigned int i = 0; i < C.size(); i++)		os_C[i + 1] = C(i);
-		for (unsigned int i = 0; i < Z.size(); i++)		os_Z[i + 1] = Z(i);
-		for (unsigned int i = 0; i < a.size(); i++)		os_a[i + 1] = a(i);
-		for (unsigned int i = 0; i < Gamma.size(); i++)	os_Gamma[i + 1] = Gamma(i);
+		for (int i = 0; i < C.size(); i++)		os_C[i + 1] = C(i);
+		for (int i = 0; i < Z.size(); i++)		os_Z[i + 1] = Z(i);
+		for (int i = 0; i < a.size(); i++)		os_a[i + 1] = a(i);
+		for (int i = 0; i < Gamma.size(); i++)	os_Gamma[i + 1] = Gamma(i);
 
 		// Calculates heterogeneous kinetics
 		{

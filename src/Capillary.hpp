@@ -169,22 +169,22 @@ namespace CVI
 
 		// Mole fractions [-]
 		X_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			X_[i].resize(nc_);
 
 		// Mass fractions [-]
 		Y_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			Y_[i].resize(nc_);
 
 		// Formation rates in gas pahse [kg/m3/s]
 		omega_homogeneous_from_homogeneous_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			omega_homogeneous_from_homogeneous_[i].resize(nc_);
 
 		// Heterogeneous formation rates [kg/m3/s]
 		omega_homogeneous_from_heterogeneous_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			omega_homogeneous_from_heterogeneous_[i].resize(nc_);
 
 		// Deposition rate [kg/m3/s]
@@ -198,12 +198,12 @@ namespace CVI
 
 		// Effective diffusion coefficiennts [m2/s]
 		gamma_star_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			gamma_star_[i].resize(nc_);
 
 		// Diffusion fluxes [???]
 		j_star_.resize(np_ - 1);
-		for (int i = 0; i < np_ - 1; i++)
+		for (unsigned int i = 0; i < np_ - 1; i++)
 			j_star_[i].resize(nc_);
 
 		// Correction diffusion flux [???]
@@ -211,27 +211,27 @@ namespace CVI
 
 		// Spatial derivatives: mole fractions [1/m]
 		dX_over_dx_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			dX_over_dx_[i].resize(nc_);
 
 		// Spatial derivatives: mass fractions [1/m]
 		dY_over_dx_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			dY_over_dx_[i].resize(nc_);
 
 		// Second order spatial derivatives: mass fractions [1/m2]
 		d2Y_over_dx2_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			d2Y_over_dx2_[i].resize(nc_);
 
 		// Time derivatives: mass fractions [1/s]
 		dY_over_dt_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			dY_over_dt_[i].resize(nc_);
 
 		// Spatial derivatives: mass diffusion coefficients [m2/s/m]
 		dgamma_star_over_dx_.resize(np_);
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			dgamma_star_over_dx_[i].resize(nc_);
 
 		// Spatial derivatives: density of gaseous phase
@@ -241,11 +241,11 @@ namespace CVI
 		ddiameter_over_dt_.resize(np_);
 
 		// Reset to zero
-		for (int i = 0; i < np_-1; i++)
+		for (unsigned int i = 0; i < np_-1; i++)
 			j_star_[i].setZero();
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			omega_homogeneous_from_homogeneous_[i].setZero();
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			omega_homogeneous_from_heterogeneous_[i].setZero();
 		omega_deposition_per_unit_volume_.setZero();
 		omega_deposition_per_unit_area_.setZero();
@@ -256,24 +256,24 @@ namespace CVI
 		{
 			// Surface fractions [-]
 			Z_.resize(np_);
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 				Z_[i].resize(surf_nc_);
 
 			// Time derivatives: surface species fractions [1/s]
 			dZ_over_dt_.resize(np_);
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 				dZ_over_dt_[i].resize(surf_nc_);
 
 			Gamma_.resize(np_);
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 				Gamma_[i].resize(surf_np_);
 
 			GammaFromEqn_.resize(np_);
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 				GammaFromEqn_[i].resize(surf_np_);
 
 			dGamma_over_dt_.resize(np_);
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 			{
 				dGamma_over_dt_[i].resize(surf_np_);
 				dGamma_over_dt_[i].setZero();
@@ -281,7 +281,7 @@ namespace CVI
 
 			// Heterogeneous formation rates for surface species [kg/m2/s]
 			omega_heterogeneous_from_heterogeneous_.resize(np_);
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 				omega_heterogeneous_from_heterogeneous_[i].resize(surf_nc_);
 
 			// Auxiliary vectors
@@ -291,7 +291,7 @@ namespace CVI
 			eigen_gamma_.resize(surf_np_);
 
 			// Reset to zero
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 				omega_heterogeneous_from_heterogeneous_[i].setZero();
 		}
 	}
@@ -397,15 +397,15 @@ namespace CVI
 
 	void Capillary::SetInitialConditions(const double T_gas, const double P_gas, const double diameter, const Eigen::VectorXd& omega_gas, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0)
 	{
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			for (unsigned int j = 0; j < nc_; j++)
 				Y_[i](j) = omega_gas(j);
 
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			for (unsigned int j = 0; j < surf_nc_; j++)
 				Z_[i](j) = Z0(j);
 
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			for (unsigned int j = 0; j < surf_np_; j++)
 			{
 				Gamma_[i](j) = Gamma0(j);
@@ -453,7 +453,7 @@ namespace CVI
 
 	void Capillary::Properties()
 	{
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			// Thermodynamics
 			{
@@ -649,7 +649,7 @@ namespace CVI
 	void Capillary::SubEquations_Diameter()
 	{
 		// Internal points
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 			ddiameter_over_dt_(i) = -2.*omega_deposition_per_unit_area_(i) / rho_graphite_;
 	}
 
@@ -779,7 +779,7 @@ namespace CVI
 	void Capillary::Recover_Unknowns(const double* y)
 	{
 		unsigned int count = 0;
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			// Species
 			for (unsigned int j = 0; j < nc_; j++)
@@ -806,7 +806,7 @@ namespace CVI
 	void Capillary::Recover_Residuals(double* dy)
 	{
 		unsigned int count = 0;
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			// Species
 			for (unsigned int j = 0; j < nc_; j++)
@@ -838,7 +838,7 @@ namespace CVI
 	void Capillary::UnknownsVector(double* v)
 	{
 		unsigned int count = 0;
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = Y_[i](j);
@@ -856,7 +856,7 @@ namespace CVI
 	void Capillary::CorrectedUnknownsVector(double* v)
 	{
 		unsigned int count = 0;
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			for (unsigned int j = 0; j < nc_; j++)
 				Y_[i](j) = v[count++];
@@ -881,7 +881,7 @@ namespace CVI
 		const double zero = 0.;
 
 		unsigned int count = 0;
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = zero;
@@ -901,7 +901,7 @@ namespace CVI
 		const double one = 1.;
 
 		unsigned int count = 0;
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = one;
@@ -1060,7 +1060,7 @@ namespace CVI
 		std::cout << "--------------------------------------------------------------------------" << std::endl;
 
 		// Loop
-		unsigned int number_intervals = time_total_/dae_time_interval_;
+		unsigned int number_intervals = static_cast<int>(time_total_/dae_time_interval_);
 		for (unsigned int k = 1; k <= number_intervals; k++)
 		{
 			const double t0 = (k - 1)*dae_time_interval_;
@@ -1126,7 +1126,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			OpenSMOKE::OpenSMOKEVectorDouble yy(nc_);
 			OpenSMOKE::OpenSMOKEVectorDouble xx(nc_);
@@ -1194,7 +1194,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			// Calculate the diffusion coefficients
 			{
@@ -1243,7 +1243,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			// Formation rates
 			{
@@ -1325,7 +1325,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			// Calculate the reaction and formation rates of heterogeneous reactions
 			{
@@ -1421,7 +1421,7 @@ namespace CVI
 			fOutput << std::endl;
 		}
 
-		for (int i = 0; i < np_; i++)
+		for (unsigned int i = 0; i < np_; i++)
 		{
 			// Calculate the reaction and formation rates of heterogeneous reactions
 			{
@@ -1545,7 +1545,7 @@ namespace CVI
 
 				if (detailed_heterogeneous_kinetics_ == true)
 				{
-					for (int i = 0; i < surf_np_; i++)
+					for (unsigned int i = 0; i < surf_np_; i++)
 						std::cout << std::left << std::setw(16) << "Gamma[kmol/m2]";
 					std::cout << std::left << std::setw(14) << "Error";
 				}
@@ -1554,7 +1554,7 @@ namespace CVI
 			}
 
 			Eigen::VectorXd thickness(np_);
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 				thickness(i) = 0.50*(diameter_initial_ - diameter_(i));
 
 			const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);		// [kg/m2/s]
@@ -1571,11 +1571,11 @@ namespace CVI
 
 			if (detailed_heterogeneous_kinetics_ == true)
 			{
-				for (int i = 0; i < surf_np_; i++)
+				for (unsigned int i = 0; i < surf_np_; i++)
 					std::cout << std::left << std::setw(16) << std::scientific << Gamma_[0](i);
 
 				Eigen::VectorXd error_z_sum(np_);
-				for (int i = 0; i < np_; i++)
+				for (unsigned int i = 0; i < np_; i++)
 					error_z_sum(i) = std::fabs(Z_[i].sum()-1.);
 
 				std::cout << std::left << std::setw(14) << std::setprecision(2) << std::scientific << error_z_sum.maxCoeff();
@@ -1588,7 +1588,7 @@ namespace CVI
 		{
 			Eigen::VectorXd thickness(np_);
 			Eigen::VectorXd Sv(np_);
-			for (int i = 0; i < np_; i++)
+			for (unsigned int i = 0; i < np_; i++)
 			{
 				thickness(i) = 0.50*(diameter_initial_-diameter_(i));
 				Sv(i) = 4./diameter_(i);

@@ -274,12 +274,12 @@ namespace CVI
 			east_mass_fractions_.resize(grid_y_.Np());
 			west_mass_fractions_.resize(grid_y_.Np());
 
-			for (unsigned int i = 0; i < grid_x_.Np(); i++)
+			for (int i = 0; i < grid_x_.Np(); i++)
 			{
 				north_mass_fractions_[i].resize(thermodynamicsMap_.NumberOfSpecies());
 				south_mass_fractions_[i].resize(thermodynamicsMap_.NumberOfSpecies());
 			}
-			for (unsigned int i = 0; i < grid_y_.Np(); i++)
+			for (int i = 0; i < grid_y_.Np(); i++)
 			{
 				east_mass_fractions_[i].resize(thermodynamicsMap_.NumberOfSpecies());
 				west_mass_fractions_[i].resize(thermodynamicsMap_.NumberOfSpecies());
@@ -288,25 +288,25 @@ namespace CVI
 			// Interpolated fields
 			if (side_name == "North")
 			{
-				for (unsigned int i = 0; i < grid_x_.Np(); i++)
+				for (int i = 0; i < grid_x_.Np(); i++)
 					Interpolate(grid_x_.x()[i], north_temperature_[i], north_mass_fractions_[i],
 						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
 			}
 			else if (side_name == "South")
 			{
-				for (unsigned int i = 0; i < grid_x_.Np(); i++)
+				for (int i = 0; i < grid_x_.Np(); i++)
 					Interpolate(grid_x_.x()[i], south_temperature_[i], south_mass_fractions_[i],
 						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
 			}
 			else if (side_name == "East")
 			{
-				for (unsigned int i = 0; i < grid_y_.Np(); i++)
+				for (int i = 0; i < grid_y_.Np(); i++)
 					Interpolate(grid_y_.x()[i], east_temperature_[i], east_mass_fractions_[i],
 						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
 			}
 			else if (side_name == "West")
 			{
-				for (unsigned int i = 0; i < grid_y_.Np(); i++)
+				for (int i = 0; i < grid_y_.Np(); i++)
 					Interpolate(grid_y_.x()[i], west_temperature_[i], west_mass_fractions_[i],
 						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
 			}
@@ -337,7 +337,7 @@ namespace CVI
 			boost::filesystem::path file_name = output_folder / "Disk.North.out";
 			std::ofstream fNorth;
 			PrepareOutputFile(file_name, fNorth);
-			for (unsigned int i = 0; i < grid_x_.Np(); i++)
+			for (int i = 0; i < grid_x_.Np(); i++)
 			{
 				fNorth << std::setprecision(9) << std::setw(22) << grid_x_.x()[i] * 1000.;
 				fNorth << std::setprecision(9) << std::setw(22) << north_temperature_[i];
@@ -353,7 +353,7 @@ namespace CVI
 			boost::filesystem::path file_name = output_folder / "Disk.South.out";
 			std::ofstream fSouth;
 			PrepareOutputFile(file_name, fSouth);
-			for (unsigned int i = 0; i < grid_x_.Np(); i++)
+			for (int i = 0; i < grid_x_.Np(); i++)
 			{
 				fSouth << std::setprecision(9) << std::setw(22) << grid_x_.x()[i] * 1000.;
 				fSouth << std::setprecision(9) << std::setw(22) << south_temperature_[i];
@@ -369,7 +369,7 @@ namespace CVI
 			boost::filesystem::path file_name = output_folder / "Disk.East.out";
 			std::ofstream fEast;
 			PrepareOutputFile(file_name, fEast);
-			for (unsigned int i = 0; i < grid_y_.Np(); i++)
+			for (int i = 0; i < grid_y_.Np(); i++)
 			{
 				fEast << std::setprecision(9) << std::setw(22) << grid_y_.x()[i] * 1000.;
 				fEast << std::setprecision(9) << std::setw(22) << east_temperature_[i];
@@ -385,7 +385,7 @@ namespace CVI
 			boost::filesystem::path file_name = output_folder / "Disk.west.out";
 			std::ofstream fWest;
 			PrepareOutputFile(file_name, fWest);
-			for (unsigned int i = 0; i < grid_y_.Np(); i++)
+			for (int i = 0; i < grid_y_.Np(); i++)
 			{
 				fWest << std::setprecision(9) << std::setw(22) << grid_y_.x()[i] * 1000.;
 				fWest << std::setprecision(9) << std::setw(22) << west_temperature_[i];

@@ -71,7 +71,7 @@ int ida_preconditioner_setup(realtype t, N_Vector y, N_Vector yp, N_Vector rr, r
 	reactor2d->DiagonalJacobianForIDA(c_j, pt_J);
 
 	realtype *pt_invJ = NV_DATA_S(data->invJ);
-	for (unsigned int i = 0; i < NV_LENGTH_S(y); i++)
+	for (int i = 0; i < NV_LENGTH_S(y); i++)
 		pt_invJ[i] = 1. / pt_J[i];
 
 	return(0);
