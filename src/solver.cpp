@@ -38,7 +38,7 @@
 #include "grids/adaptive/Grid1D.h"
 
 // Grammars
-#include "Grammar_CVI_Solver1D.h"
+#include "Grammar_CVI_Solver.h"
 #include "Grammar_CVI_PlugFlowReactorCoupled.h"
 #include "Grammar_CVI_PorousMedium.h"
 #include "Grammar_CVI_HeterogeneousMechanism.h"
@@ -79,15 +79,15 @@ int main(int argc, char** argv)
 	boost::filesystem::path executable_file = OpenSMOKE::GetExecutableFileName(argv);
 	boost::filesystem::path executable_folder = executable_file.parent_path();
 
-	OpenSMOKE::OpenSMOKE_logo("CVI_Solver1D", "Alberto Cuoci (alberto.cuoci@polimi.it)");
+	OpenSMOKE::OpenSMOKE_logo("CVI_Solver", "Alberto Cuoci (alberto.cuoci@polimi.it)");
 
 	std::string input_file_name_ = "input.dic";
-	std::string main_dictionary_name_ = "CVI_Solver1D";
+	std::string main_dictionary_name_ = "CVI_Solver";
 
 	// Program options from command line
 	{
 		namespace po = boost::program_options;
-		po::options_description description("Options for the CVI_Solver1D");
+		po::options_description description("Options for the CVI_Solver");
 		description.add_options()
 			("help", "print help messages")
 			("input", po::value<std::string>(), "name of the file containing the main dictionary (default \"input.dic\")")
@@ -125,7 +125,7 @@ int main(int argc, char** argv)
 	CVI::GaseousPhase gaseous_phase = CVI::GASEOUS_PHASE_FROM_PLUG_FLOW;
 
 	// Defines the grammar rules
-	CVI::Grammar_CVI_Solver1D					grammar_cvi_solver1d;
+	CVI::Grammar_CVI_Solver						grammar_cvi_solver;
 	CVI::Grammar_CVI_PlugFlowReactorCoupled		grammar_cvi_plug_flow_reactor_coupled;
 	CVI::Grammar_CVI_PorousMedium				grammar_cvi_porous_medium;
 	CVI::Grammar_CVI_PorosityDefect				grammar_defect_porous_medium;
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 	// Define the dictionaries
 	OpenSMOKE::OpenSMOKE_DictionaryManager dictionaries;
 	dictionaries.ReadDictionariesFromFile(input_file_name_);
-	dictionaries(main_dictionary_name_).SetGrammar(grammar_cvi_solver1d);
+	dictionaries(main_dictionary_name_).SetGrammar(grammar_cvi_solver);
 
 	// Type of problem
 	enum CVIProblemType { CVI_CAPILLARY, CVI_REACTOR1D, CVI_REACTOR2D } problem_type;
@@ -656,6 +656,11 @@ int main(int argc, char** argv)
 		}
 	}
 
+	// Read from backupfile
+	boost::filesystem::path path_backup;
+	if (dictionaries(main_dictionary_name_).CheckOption("@Backup") == true)
+		dictionaries(main_dictionary_name_).ReadPath("@Backup", path_backup);
+
 	// Solve the 2D problem
 	if (problem_type == CVI_REACTOR2D && gaseous_phase == CVI::GASEOUS_PHASE_FROM_PLUG_FLOW)
 	{
@@ -772,7 +777,7 @@ int main(int argc, char** argv)
 		// Set options
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
 		reactor2d->SetSiteNonConservation(SiteNonConservation);
-		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega, Gamma0, initial_Z);
+		reactor2d->SetInitialConditions(path_backup, initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		reactor2d->SetGasSide(inlet_T, inlet_P, Y_gas_side);
 		reactor2d->SetUniformVelocity(vx, vy);
 		reactor2d->SetTimeTotal(time_total);
@@ -812,7 +817,6 @@ int main(int argc, char** argv)
 		// Set detailed heterogeneous mechanism
 		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
 
-
 		// Set porous medium
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
@@ -835,7 +839,7 @@ int main(int argc, char** argv)
 		// Set options
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
 		reactor2d->SetSiteNonConservation(SiteNonConservation);
-		reactor2d->SetInitialConditions(initial_T, initial_P, initial_omega, Gamma0, initial_Z);
+		reactor2d->SetInitialConditions(path_backup, initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		reactor2d->SetGasSide(inlet_T, inlet_P, disk);
 		reactor2d->SetUniformVelocity(vx, vy);
 		reactor2d->SetTimeTotal(time_total);

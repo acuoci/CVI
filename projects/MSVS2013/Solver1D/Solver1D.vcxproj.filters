@@ -30,9 +30,6 @@
     <ClInclude Include="..\..\..\src\PorousMedium.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\Grammar_CVI_Solver1D.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\Reactor1D.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -122,6 +119,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.hpp">
       <Filter>Source Files\ropa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Utilities.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Utilities.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Grammar_CVI_Solver.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

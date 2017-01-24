@@ -24,8 +24,8 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#ifndef OpenSMOKE_Grammar_CVI_Solver1D_H
-#define OpenSMOKE_Grammar_CVI_Solver1D_H
+#ifndef OpenSMOKE_Grammar_CVI_Solver_H
+#define OpenSMOKE_Grammar_CVI_Solver_H
 
 #include "dictionary/OpenSMOKE_DictionaryManager.h"
 #include "dictionary/OpenSMOKE_DictionaryGrammar.h"
@@ -33,7 +33,7 @@
 
 namespace CVI
 {
-	class Grammar_CVI_Solver1D : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
+	class Grammar_CVI_Solver : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
 	{
 	protected:
 
@@ -250,8 +250,13 @@ namespace CVI
 				OpenSMOKE::SINGLE_STRING,
 				"Derivative of effective diffusivity: Backward | Forward | Centered (default: Centered)",
 				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Backup",
+				OpenSMOKE::SINGLE_PATH,
+				"Name of backup file (XML Version)",
+				false));
 		}
 	};
 }
 
-#endif /* OpenSMOKE_Grammar_CVI_Solver1D_H */
+#endif /* OpenSMOKE_Grammar_CVI_Solver_H */

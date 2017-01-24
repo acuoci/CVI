@@ -1,4 +1,4 @@
-/*----------------------------------------------------------------------*\
+/*-----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -104,6 +104,9 @@ namespace CVI
 		tecplot_time_interval_ = 3600.;
 		ode_end_time_ = 1.;
 
+		time_starting_point_ = 0.;
+		start_from_backup_ = false;
+
 		derivative_type_mass_fractions_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
 		derivative_type_effective_diffusivity_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
 		derivative_type_bulk_density_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
@@ -191,6 +194,9 @@ namespace CVI
 
 		output_ropa_folder_ = output_folder_ / "ROPA";
 		OpenSMOKE::CreateDirectory(output_ropa_folder_);
+
+		output_backup_folder_ = output_folder_ / "Backup";
+		OpenSMOKE::CreateDirectory(output_backup_folder_);
 
 		fMonitoring_.open((output_folder_ / "monitor.out").string().c_str(), std::ios::out);
 		fMonitoring_.setf(std::ios::scientific);
@@ -733,7 +739,7 @@ namespace CVI
 		}
 	}
 
-	void Reactor2D::SetInitialConditions(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0)
+	void Reactor2D::SetInitialConditions(const boost::filesystem::path path_to_backup_file, const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0)
 	{
 		for (unsigned int i = 0; i < np_; i++)
 			for (unsigned int j = 0; j < nc_; j++)
@@ -763,6 +769,12 @@ namespace CVI
 					const int center = k*nx_ + i;
 					epsilon_(center) = porosityDefect_.set_porosity(grid_x_.x()(i), grid_y_.x()(k), epsilon_(center));
 				}
+		}
+
+		if (path_to_backup_file.empty() == false)
+		{
+			SetInitialConditionsFromBackupFile(path_to_backup_file);
+			start_from_backup_ = true;
 		}
 	}
 
@@ -1152,11 +1164,6 @@ namespace CVI
 				}
 
 				dY_over_dt_[center](gas_dae_species_index_) = 1.-Y_[center].sum();
-
-			//	if (epsilon_(center) < porousMedium_.epsilon_threshold())
-			//	{
-			//		dY_over_dt_[center].setZero();
-			//	}
 			}
 	}
 
@@ -1168,39 +1175,26 @@ namespace CVI
 			const double smoothing_coefficient = 0.50*(std::tanh(coefficient*(epsilon_(i)-porousMedium_.epsilon_threshold()))+1.);
 			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_ *  smoothing_coefficient;
 		}
-
-		// In case of porosity very small
-		//for (int i = 0; i < np_; i++)
-		//	if (epsilon_(i) < porousMedium_.epsilon_threshold())
-		//		depsilon_over_dt_(i) = 0.;
 	}
 
 	void Reactor2D::SubEquations_SurfaceSpeciesFractions()
 	{
 		for (unsigned int i = 0; i < np_; i++)
 		{
-		//	if (epsilon_(i) < porousMedium_.epsilon_threshold())
-		//	{
-		//		dGamma_over_dt_[i].setZero();
-		//		dZ_over_dt_[i].setZero();
-		//	}
-		//	else
+			for (unsigned int j = 0; j < surf_np_; j++)
 			{
-				for (unsigned int j = 0; j < surf_np_; j++)
-				{
-					if (site_non_conservation_[j] == true)
-						dGamma_over_dt_[i](j) = heterogeneousDetailedMechanism_.Rphases()(j);
-					else
-						dGamma_over_dt_[i](j) = 0.;
-				}
+				if (site_non_conservation_[j] == true)
+					dGamma_over_dt_[i](j) = heterogeneousDetailedMechanism_.Rphases()(j);
+				else
+					dGamma_over_dt_[i](j) = 0.;
+			}
 
-				for (unsigned int j = 0; j < surf_nc_; j++)
-				{
-					const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
-					dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * omega_heterogeneous_from_heterogeneous_[i](j)
-						- Z_[i](j)*dGamma_over_dt_[i](index_phase))
-						/ Gamma_[i](index_phase);
-				}
+			for (unsigned int j = 0; j < surf_nc_; j++)
+			{
+				const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
+				dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * omega_heterogeneous_from_heterogeneous_[i](j)
+					- Z_[i](j)*dGamma_over_dt_[i](index_phase))
+					/ Gamma_[i](index_phase);
 			}
 
 			if (dae_formulation_ == true)
@@ -1288,7 +1282,8 @@ namespace CVI
 	int Reactor2D::OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y)
 	{
 		// Video output
-		if (count_ode_video_%n_steps_video_ == 1)
+		const bool verbose_ode = true;
+		if (count_ode_video_%n_steps_video_ == 1 && verbose_ode == true)
 		{
 			if (count_dae_video_ % (n_steps_video_ * 1000) == 1)
 			{
@@ -1475,8 +1470,8 @@ namespace CVI
 		// Print initial solution
 		Properties();
 		PrintTecplot(0., (output_tecplot_folder_ / "Solution.tec.0").string().c_str());
-
-		if (detailed_heterogeneous_kinetics_ == true)
+		
+		if (detailed_heterogeneous_kinetics_ == true && start_from_backup_ == true)
 		{
 			// Solve independent ODE systems
 			for (unsigned int i = 0; i < np_; i++)
@@ -1585,7 +1580,7 @@ namespace CVI
 				}
 			}
 		}
-
+		
 		std::cout << "--------------------------------------------------------------------------" << std::endl;
 		std::cout << " Solving the whole DAE system (fully coupled)                             " << std::endl;
 		std::cout << "--------------------------------------------------------------------------" << std::endl;
@@ -1594,7 +1589,7 @@ namespace CVI
 		unsigned int number_intervals = static_cast<unsigned int>(time_total_/dae_time_interval_);
 		for (unsigned int k = 1; k <= number_intervals; k++)
 		{
-			const double t0 = (k - 1)*dae_time_interval_;
+			const double t0 = time_starting_point_ + (k - 1)*dae_time_interval_;
 			const double tf = t0 + dae_time_interval_;
 
 			// Solve
@@ -1609,14 +1604,23 @@ namespace CVI
 			std::string diffusion_coefficients_file = "DiffusionCoefficients." + hours.str() + ".out";
 			std::string heterogeneous_rates_file = "HeterogeneousRates." + hours.str() + ".out";
 			std::string homogeneous_rates_file = "HomogeneousRates." + hours.str() + ".out";
-			std::string ropa_file = "ROPA." + hours.str() + ".out";
+
 			PrintSolution(tf, (output_folder_ / solution_file).string().c_str());
 			PrintDiffusionCoefficients(tf, (output_diffusion_folder_ / diffusion_coefficients_file).string().c_str());
 			PrintHeterogeneousRates(tf, (output_heterogeneous_folder_ / heterogeneous_rates_file).string().c_str());
 			PrintHomogeneousRates(tf, (output_homogeneous_folder_ / homogeneous_rates_file).string().c_str());
 
 			if (ropa_analysis_ == true)
+			{
+				std::string ropa_file = "ROPA." + hours.str() + ".out";
 				PrintROPA(tf, (output_ropa_folder_ / ropa_file).string().c_str());
+			}
+
+			if (detailed_heterogeneous_kinetics_ == true)
+			{
+				std::string backup_file = "Solution." + hours.str() + ".xml";
+				PrintXMLFile( (output_backup_folder_ / backup_file).string(), tf);
+			}
 		}
 
 		return true;
@@ -2013,7 +2017,7 @@ namespace CVI
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "T[K]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "P[Pa]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "eps[-]", count);
-			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "rhoBulk[kg/m3]", count);
+			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "rhoB[kg/m3]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "Sv[1/m]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "rp[micron]", count);
 			OpenSMOKE::PrintTagOnASCIILabel(20, fOutput, "K[m2]", count);
@@ -2338,10 +2342,19 @@ namespace CVI
 			OpenSMOKE::OpenSMOKEVectorDouble a(bulk_nc_);
 			OpenSMOKE::OpenSMOKEVectorDouble gamma(surf_np_);
 
-			std::vector<double> list_points(3);
-			list_points[0] = 0;
-			list_points[1] = np_ / 2;
-			list_points[2] = np_ - 1;
+			std::vector<double> list_points(5);
+			list_points[0] = np_/2-1;
+			list_points[1] = 0;
+			list_points[2] = grid_x_.Np()-1;
+			list_points[3] = (np_ - grid_x_.Np()) - 1;
+			list_points[4] = np_-1;
+
+			std::vector<std::string> list_points_names(5);
+			list_points_names[0] = "Center";
+			list_points_names[1] = "SE Corner";
+			list_points_names[2] = "SW Corner";
+			list_points_names[3] = "NE Corner";
+			list_points_names[4] = "NW Corner";
 
 			for (unsigned int i = 0; i<list_points.size(); i++)
 			{
@@ -2349,7 +2362,7 @@ namespace CVI
 
 				fROPA << std::endl;
 				fROPA << "-------------------------------------------------------------------" << std::endl;
-			//	fROPA << "ROPA at point: " << point << " - coordinate: " << grid_.x()[point] << std::endl;
+				fROPA << " * ROPA at: " << list_points_names[i] << std::endl;
 				fROPA << "-------------------------------------------------------------------" << std::endl;
 				fROPA << std::endl;
 
@@ -3209,4 +3222,118 @@ namespace CVI
 			return std::sqrt(sum_std / volume_total / coefficient);
 		}
 	}
+
+	// Print XML Files
+	void Reactor2D::PrintXMLFile(const std::string file_name, const double t)
+	{
+		const unsigned int n_additional = 5;
+
+		std::ofstream fXML;
+		fXML.open(file_name.c_str(), std::ios::out);
+		fXML.setf(std::ios::scientific);
+
+		fXML << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl;
+		fXML << "<opensmoke version=\"0.1a\">" << std::endl;
+
+		fXML << "<Type> CVI::Reactor2D </Type>" << std::endl;
+
+		fXML << "<additional>" << std::endl;
+		fXML << n_additional << std::endl;
+		fXML << "temperature [K] 2" << std::endl;
+		fXML << "pressure [Pa] 3" << std::endl;
+		fXML << "mol-weight [kg/kmol] 4" << std::endl;
+		fXML << "density [kg/m3] 5" << std::endl;
+		fXML << "epsilon [-] 6" << std::endl;
+		fXML << "</additional>" << std::endl;
+
+		fXML << "<t-p-mw>" << std::endl;
+		fXML << "0 1 2" << std::endl;
+		fXML << "</t-p-mw>" << std::endl;
+
+		fXML << "<time>" << std::endl;
+		fXML << t << std::endl;
+		fXML << "</time>" << std::endl;
+
+		fXML << "<grid-x>" << std::endl;
+		fXML << grid_x_.x().size() << std::endl;
+		for (int i = 0; i < grid_x_.x().size(); i++)
+			fXML << grid_x_.x()(i) << std::endl;
+		fXML << "</grid-x>" << std::endl;
+
+		fXML << "<grid-y>" << std::endl;
+		fXML << grid_y_.x().size() << std::endl;
+		for (int i = 0; i < grid_y_.x().size(); i++)
+			fXML << grid_y_.x()(i) << std::endl;
+		fXML << "</grid-y>" << std::endl;
+
+		fXML << "<mass-fractions>" << std::endl;
+		fXML << thermodynamicsMap_.NumberOfSpecies() << std::endl;
+		for (unsigned int i = 0; i < thermodynamicsMap_.NumberOfSpecies(); i++)
+			fXML << thermodynamicsMap_.NamesOfSpecies()[i] << " " << thermodynamicsMap_.MW()[i + 1] << " " << n_additional + (i + 1) << std::endl;
+		fXML << "</mass-fractions>" << std::endl;
+
+		fXML << "<surface-fractions>" << std::endl;
+		fXML << surf_nc_ << std::endl;
+		for (unsigned int i = 0; i < surf_nc_; i++)
+			fXML << thermodynamicsSurfaceMap_.NamesOfSpecies()[nc_+i] << " " << thermodynamicsSurfaceMap_.MW()[nc_+i+1] << " " << n_additional + nc_ + (i + 1) << std::endl;
+		fXML << "</surface-fractions>" << std::endl;
+
+		fXML << "<surface-phases>" << std::endl;
+		fXML << surf_np_ << std::endl;
+		for (unsigned int i = 0; i < surf_np_; i++)
+			fXML << "Gamma" << i << " " << n_additional + nc_ + surf_nc_ + (i + 1) << std::endl;
+		fXML << "</surface-phases>" << std::endl;
+
+		fXML << "<profiles>" << std::endl;
+		{
+			for (unsigned int k = 0; k < ny_; k++)
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = k*nx_ + i;
+
+					fXML << T_(point) << " ";
+					fXML << P_(point) << " ";
+					fXML << mw_(point) << " ";
+					fXML << rho_gas_(point) << " ";
+					fXML << epsilon_(point) << " ";
+
+					for (unsigned int j = 0; j < nc_; j++)
+						fXML << Y_[i](j) << " ";
+
+					for (unsigned int j = 0; j < surf_nc_; j++)
+						fXML << Z_[i](j) << " ";
+
+					for (unsigned int j = 0; j < surf_np_; j++)
+						fXML << GammaFromEqn_[i](j) << " ";
+
+					fXML << std::endl;
+				}
+		}
+		fXML << "</profiles>" << std::endl;
+
+		fXML << "<profiles-size>" << std::endl;
+		fXML << np_ << " " << nc_ + surf_nc_ + surf_np_ + n_additional << std::endl;
+		fXML << "</profiles-size>" << std::endl;
+		fXML << "</opensmoke>" << std::endl;
+		fXML.close();
+	}
+
+	void Reactor2D::SetInitialConditionsFromBackupFile(const boost::filesystem::path path_to_backup_file)
+	{
+		std::cout << "--------------------------------------------------------------------------" << std::endl;
+		std::cout << "Reading initial conditions from backup file..." << std::endl;
+		std::cout << "--------------------------------------------------------------------------" << std::endl;
+
+		ReadFromBackupFile(	path_to_backup_file, time_starting_point_, 
+							thermodynamicsSurfaceMap_,
+							grid_x_.x(), grid_y_.x(),
+							T_, P_, epsilon_,
+							Y_, Z_, GammaFromEqn_ );
+
+		for (unsigned int i = 0; i < np_; i++)
+			for (unsigned int j = 0; j < surf_np_; j++)
+				if (site_non_conservation_[j] == true)
+					Gamma_[i](j) = GammaFromEqn_[i](j);
+	}
+
 }

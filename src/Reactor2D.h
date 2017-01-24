@@ -48,6 +48,9 @@
 #include "math/multivalue-ode-solvers/parameters/OdeSolver_Parameters.h"
 #include "math/multivalue-dae-solvers/parameters/DaeSolver_Parameters.h"
 
+// Utilities
+#include "Utilities.h"
+
 namespace CVI
 {
 	enum GaseousPhase { GASEOUS_PHASE_FROM_PLUG_FLOW, GASEOUS_PHASE_FROM_CFD };
@@ -114,11 +117,12 @@ namespace CVI
 
 		/**
 		*@brief Sets the initial conditions in the porous medium
-		*@param T_initial		initial temperature [K]
-		*@param P_initial		initial pressure [Pa]
-		*@param omega_initial	initial mass fractions
+		*@param path_to_backup_file		path to backup file (it can be empty)
+		*@param T_initial				initial temperature [K]
+		*@param P_initial				initial pressure [Pa]
+		*@param omega_initial			initial mass fractions
 		*/
-		void SetInitialConditions(const double T_initial, const double P_initial, const Eigen::VectorXd& omega_initial, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0);
+		void SetInitialConditions(const boost::filesystem::path path_to_backup_file, const double T_initial, const double P_initial, const Eigen::VectorXd& omega_initial, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0);
 
 		/**
 		*@brief Sets the total time of integration
@@ -282,7 +286,6 @@ namespace CVI
 		int OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy);
 		int OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y);
 
-
 	private:
 
 		/**
@@ -385,6 +388,11 @@ namespace CVI
 
 		void PrintLabelMonitoringFile();
 
+		void PrintXMLFile(const std::string file_name, const double t);
+
+		void SetInitialConditionsFromBackupFile(const boost::filesystem::path path_to_backup_file);
+
+
 	protected:
 
 		// References
@@ -431,9 +439,9 @@ namespace CVI
 		unsigned int bulk_np_;					//!< total number of bulk phases
 		unsigned int bulk_nc_;					//!< total number of bulk species
 
-		std::vector<bool> site_non_conservation_;	//!< site non conservation (true: non conservation is allowed)
-		std::vector< Eigen::VectorXd >		Gamma_;
-		std::vector< Eigen::VectorXd >		GammaFromEqn_;
+		std::vector<bool> site_non_conservation_;			//!< site non conservation (true: non conservation is allowed)
+		std::vector< Eigen::VectorXd >		Gamma_;			//!< [kmol/m2] (TOCHECK)
+		std::vector< Eigen::VectorXd >		GammaFromEqn_;	//!< [kmol/m2] (TOCHECK)
 
 
 		// Main variables
@@ -465,12 +473,12 @@ namespace CVI
 		std::vector<Eigen::VectorXd>	omega_homogeneous_from_heterogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
 		std::vector<Eigen::VectorXd>	omega_heterogeneous_from_heterogeneous_;	//!< formation rates of surface species [kg/m2/s] (only contribution from heterogeneus reactions)
 
-		Eigen::VectorXd					omega_deposition_per_unit_volume_;	//!< deposition rate [kg/m3/s]
-		Eigen::VectorXd					omega_deposition_per_unit_area_;	//!< deposition rate [kg/m2/s]
-		Eigen::VectorXd					omega_loss_per_unit_volume_;		//!< loss for the homogeneous phase because of heterogeneous reactions [kg/m3/s]
+		Eigen::VectorXd					omega_deposition_per_unit_volume_;			//!< deposition rate [kg/m3/s]
+		Eigen::VectorXd					omega_deposition_per_unit_area_;			//!< deposition rate [kg/m2/s]
+		Eigen::VectorXd					omega_loss_per_unit_volume_;				//!< loss for the homogeneous phase because of heterogeneous reactions [kg/m3/s]
 
 		// Diffusion
-		std::vector<Eigen::VectorXd>	gamma_star_;			//!< mass diffusion coefficients [m2/s]
+		std::vector<Eigen::VectorXd>	gamma_star_;	//!< mass diffusion coefficients [m2/s]
 
 		// Time derivatives
 		std::vector<Eigen::VectorXd>	dY_over_dt_;			//!< time derivatives of mass fractions	[1/s]
@@ -479,24 +487,24 @@ namespace CVI
 		std::vector<Eigen::VectorXd>	dGamma_over_dt_;		//!< time derivatives of surface densities [kmol/m2/s]
 
 		// North gas side data
-		std::vector<Eigen::VectorXd>	Y_gas_north_side_;			//!< mass fractions along the north gas side
-		Eigen::VectorXd					T_gas_north_side_;			//!< temperature along the north gas side [K]
-		Eigen::VectorXd					P_gas_north_side_;			//!< pressure along the north gas side [Pa]
+		std::vector<Eigen::VectorXd>	Y_gas_north_side_;		//!< mass fractions along the north gas side
+		Eigen::VectorXd					T_gas_north_side_;		//!< temperature along the north gas side [K]
+		Eigen::VectorXd					P_gas_north_side_;		//!< pressure along the north gas side [Pa]
 
 		// South gas side data
-		std::vector<Eigen::VectorXd>	Y_gas_south_side_;			//!< mass fractions along the south gas side
-		Eigen::VectorXd					T_gas_south_side_;			//!< temperature along the south gas side [K]
-		Eigen::VectorXd					P_gas_south_side_;			//!< pressure along the south gas side [Pa]
+		std::vector<Eigen::VectorXd>	Y_gas_south_side_;		//!< mass fractions along the south gas side
+		Eigen::VectorXd					T_gas_south_side_;		//!< temperature along the south gas side [K]
+		Eigen::VectorXd					P_gas_south_side_;		//!< pressure along the south gas side [Pa]
 
 		// East gas side data
-		std::vector<Eigen::VectorXd>	Y_gas_east_side_;			//!< mass fractions along the east gas side
-		Eigen::VectorXd					T_gas_east_side_;			//!< temperature along the east gas side [K]
-		Eigen::VectorXd					P_gas_east_side_;			//!< pressure along the east gas side [Pa]
+		std::vector<Eigen::VectorXd>	Y_gas_east_side_;		//!< mass fractions along the east gas side
+		Eigen::VectorXd					T_gas_east_side_;		//!< temperature along the east gas side [K]
+		Eigen::VectorXd					P_gas_east_side_;		//!< pressure along the east gas side [Pa]
 
 		// West gas side data
-		std::vector<Eigen::VectorXd>	Y_gas_west_side_;			//!< mass fractions along the west gas side
-		Eigen::VectorXd					T_gas_west_side_;			//!< temperature along the west gas side [K]
-		Eigen::VectorXd					P_gas_west_side_;			//!< pressure along the west gas side [Pa]
+		std::vector<Eigen::VectorXd>	Y_gas_west_side_;		//!< mass fractions along the west gas side
+		Eigen::VectorXd					T_gas_west_side_;		//!< temperature along the west gas side [K]
+		Eigen::VectorXd					P_gas_west_side_;		//!< pressure along the west gas side [Pa]
 
 		// Algebraic/Differential equations
 		std::vector<bool>	id_equations_;				//!< algebraic/differential equations
@@ -522,15 +530,15 @@ namespace CVI
 		unsigned int count_update_plug_flow_;				//!< counter of steps for updating plug flow
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 
-		boost::filesystem::path output_folder_;				//!< name of output folder
+		boost::filesystem::path output_folder_;					//!< name of output folder
 		boost::filesystem::path output_tecplot_folder_;			//!< name of output folder fot Tecplot files
 		boost::filesystem::path output_plug_flow_folder_;		//!< name of output folder fot Tecplot files
 		boost::filesystem::path output_matlab_folder_;			//!< name of output folder fot Matlab files
 		boost::filesystem::path output_diffusion_folder_;		//!< name of output folder fot diffusion coefficient files
-		boost::filesystem::path output_heterogeneous_folder_;		//!< name of output folder fot heterogeneous reaction files
+		boost::filesystem::path output_heterogeneous_folder_;	//!< name of output folder fot heterogeneous reaction files
 		boost::filesystem::path output_homogeneous_folder_;		//!< name of output folder fot homogeneous reaction files
 		boost::filesystem::path output_ropa_folder_;			//!< name of output folder for ropa (on the fly)
-
+		boost::filesystem::path output_backup_folder_;			//!< name of output folder for backup files (only 2D with detailed kinetics)
 
 		// Post-processing	
 		Eigen::VectorXd					delta_rhobulk_;											//!< total increment of bulk density [kg/m3]
@@ -542,6 +550,8 @@ namespace CVI
 		double dae_time_interval_;
 		double time_smoothing_;
 		double ode_end_time_;
+		double time_starting_point_;
+		bool start_from_backup_;
 
 		// Tecplot
 		int count_tecplot_;

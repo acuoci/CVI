@@ -692,31 +692,24 @@ namespace CVI
 		// Internal points
 		for (int i = 1; i < grid_.Ni(); i++)
 		{
-			//if (epsilon_(i) < porousMedium_.epsilon_threshold())
-			//{
-			//	dY_over_dt_[i].setZero();
-			//}
-			//else
+			for (unsigned int j = 0; j < nc_; j++)
 			{
-				for (unsigned int j = 0; j < nc_; j++)
+				// Explicit derivatives
+				if (planar_symmetry_ == true)
 				{
-					// Explicit derivatives
-					if (planar_symmetry_ == true)
-					{
-						dY_over_dt_[i](j) = 	gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
-									(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j);
-					}
-					else
-					{
-						dY_over_dt_[i](j) = 	gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
-									(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
-									gamma_star_[i](j)*rho_gas_(i)*(Y_[i+1](j)-Y_[i-1](j))/(grid_.x()[i+1]-grid_.x()[i-1]) / grid_.x()[i];
-					}
-
-					dY_over_dt_[i](j) += epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
-
-					dY_over_dt_[i](j) /= (rho_gas_(i)*epsilon_(i));
+					dY_over_dt_[i](j) = 	gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
+								(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j);
 				}
+				else
+				{
+					dY_over_dt_[i](j) = 	gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
+								(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
+								gamma_star_[i](j)*rho_gas_(i)*(Y_[i+1](j)-Y_[i-1](j))/(grid_.x()[i+1]-grid_.x()[i-1]) / grid_.x()[i];
+				}
+
+				dY_over_dt_[i](j) += epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
+
+				dY_over_dt_[i](j) /= (rho_gas_(i)*epsilon_(i));
 			}
 		}
 
@@ -734,40 +727,26 @@ namespace CVI
 			const double smoothing_coefficient = 0.50*(std::tanh(coefficient*(epsilon_(i)-porousMedium_.epsilon_threshold()))+1.);
 			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_*smoothing_coefficient;
 		}
-
-		// In case of porosity very small
-		//for (int i = 0; i < np_; i++)
-		//	if (epsilon_(i) < porousMedium_.epsilon_threshold())
-		//		depsilon_over_dt_(i) = 0.;
-
 	}
 
 	void Reactor1D::SubEquations_SurfaceSpeciesFractions()
 	{
 		for (int i = 0; i < grid_.Np(); i++)
 		{
-			//if (epsilon_(i) < porousMedium_.epsilon_threshold())
-			//{
-			//	dGamma_over_dt_[i].setZero();
-			//	dZ_over_dt_[i].setZero();
-			//}
-			//else
+			for (unsigned int j = 0; j < surf_np_; j++)
 			{
-				for (unsigned int j = 0; j < surf_np_; j++)
-				{
-					if (site_non_conservation_[j] == true)
-						dGamma_over_dt_[i](j) = heterogeneousDetailedMechanism_.Rphases()(j);
-					else
-						dGamma_over_dt_[i](j) = 0.;
-				}
+				if (site_non_conservation_[j] == true)
+					dGamma_over_dt_[i](j) = heterogeneousDetailedMechanism_.Rphases()(j);
+				else
+					dGamma_over_dt_[i](j) = 0.;
+			}
 
-				for (unsigned int j = 0; j < surf_nc_; j++)
-				{
-					const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
-					dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * omega_heterogeneous_from_heterogeneous_[i](j)
-						- Z_[i](j)*dGamma_over_dt_[i](index_phase))
-						/ Gamma_[i](index_phase);
-				}
+			for (unsigned int j = 0; j < surf_nc_; j++)
+			{
+				const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
+				dZ_over_dt_[i](j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * omega_heterogeneous_from_heterogeneous_[i](j)
+					- Z_[i](j)*dGamma_over_dt_[i](index_phase))
+					/ Gamma_[i](index_phase);
 			}
 
 			if (dae_formulation_ == true)

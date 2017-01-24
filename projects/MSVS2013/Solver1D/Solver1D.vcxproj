@@ -104,7 +104,7 @@
     <ClInclude Include="..\..\..\src\Grammar_CVI_HeterogeneousMechanism.h" />
     <ClInclude Include="..\..\..\src\Grammar_CVI_PlugFlowReactorCoupled.h" />
     <ClInclude Include="..\..\..\src\Grammar_CVI_PorousMedium.h" />
-    <ClInclude Include="..\..\..\src\Grammar_CVI_Solver1D.h" />
+    <ClInclude Include="..\..\..\src\Grammar_CVI_Solver.h" />
     <ClInclude Include="..\..\..\src\HeterogeneousDetailedMechanism.h" />
     <ClInclude Include="..\..\..\src\HeterogeneousDetailedMechanism.hpp" />
     <ClInclude Include="..\..\..\src\HeterogeneousMechanism.h" />
@@ -125,6 +125,8 @@
     <ClInclude Include="..\..\..\src\Reactor1D.hpp" />
     <ClInclude Include="..\..\..\src\Reactor2D.h" />
     <ClInclude Include="..\..\..\src\Reactor2D.hpp" />
+    <ClInclude Include="..\..\..\src\Utilities.h" />
+    <ClInclude Include="..\..\..\src\Utilities.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\solver.cpp" />
