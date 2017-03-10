@@ -64,11 +64,11 @@ namespace CVI
 		*@param grid							reference to 1D grid
 		*@param detailed_heterogeneous_kinetics detailed kinetics (true/false)
 		*/
-		Reactor1D(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-					OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-					OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
-					OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>& thermodynamicsSurfaceMap,
-					OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&	kineticsSurfaceMap,
+		Reactor1D(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+					OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+					OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
+					OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN& thermodynamicsSurfaceMap,
+					OpenSMOKE::KineticsMap_Surface_CHEMKIN&	kineticsSurfaceMap,
 					CVI::PorousMedium& porousMedium,
 					CVI::HeterogeneousMechanism& heterogeneousMechanism,
 					CVI::HeterogeneousDetailedMechanism& heterogeneousDetailedMechanism,
@@ -323,11 +323,11 @@ namespace CVI
 	protected:
 
 		// References
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;					//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;						//!< reference to the kinetic map
-		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;						//!< reference to the trasport properties map
-		OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>&	thermodynamicsSurfaceMap_;
-		OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&			kineticsSurfaceMap_;
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN&			thermodynamicsMap_;					//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN&					kineticsMap_;						//!< reference to the kinetic map
+		OpenSMOKE::TransportPropertiesMap_CHEMKIN&		transportMap_;						//!< reference to the trasport properties map
+		OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN&	thermodynamicsSurfaceMap_;
+		OpenSMOKE::KineticsMap_Surface_CHEMKIN&			kineticsSurfaceMap_;
 		CVI::PorousMedium&										porousMedium_;						//!< reference to the porous mmedium
 		CVI::HeterogeneousMechanism&							heterogeneousMechanism_;			//!< reference to the heterogeneous mechanism
 		CVI::HeterogeneousDetailedMechanism&					heterogeneousDetailedMechanism_;	//!< reference to the heterogeneous detailed mechanism

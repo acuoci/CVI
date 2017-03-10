@@ -29,9 +29,9 @@
 
 namespace CVI
 {
-	PlugFlowReactorCoupled::PlugFlowReactorCoupled(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-							OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-							const double v, const double Dh) :
+	PlugFlowReactorCoupled::PlugFlowReactorCoupled(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+													OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+													const double v, const double Dh) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -42,9 +42,9 @@ namespace CVI
 		Initialize();
 	}
 
-	PlugFlowReactorCoupled::PlugFlowReactorCoupled(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-										OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-										OpenSMOKE::OpenSMOKE_Dictionary& dictionary ) :
+	PlugFlowReactorCoupled::PlugFlowReactorCoupled(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+													OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+													OpenSMOKE::OpenSMOKE_Dictionary& dictionary ) :
 
 		thermodynamicsMap_(thermodynamicsMap),
 		kineticsMap_(kineticsMap)

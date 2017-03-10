@@ -249,11 +249,11 @@ int main(int argc, char** argv)
 	}
 
 	// Read thermodynamics and kinetics maps
-	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>*			thermodynamicsMapXML;
-	OpenSMOKE::KineticsMap_CHEMKIN<double>*					kineticsMapXML;
-	OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>*		transportMapXML;
-	OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>*	thermodynamicsSurfaceMapXML;
-	OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>*			kineticsSurfaceMapXML;
+	OpenSMOKE::ThermodynamicsMap_CHEMKIN*			thermodynamicsMapXML;
+	OpenSMOKE::KineticsMap_CHEMKIN*					kineticsMapXML;
+	OpenSMOKE::TransportPropertiesMap_CHEMKIN*		transportMapXML;
+	OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN*	thermodynamicsSurfaceMapXML;
+	OpenSMOKE::KineticsMap_Surface_CHEMKIN*			kineticsSurfaceMapXML;
 
 	// Read the homogeneous kinetic scheme in XML format
 	{
@@ -262,12 +262,12 @@ int main(int argc, char** argv)
 		OpenSMOKE::OpenInputFileXML(doc, xml_string, path_kinetics_output / "kinetics.xml");
 
 		double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
-		thermodynamicsMapXML = new OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>(doc);
-		kineticsMapXML = new OpenSMOKE::KineticsMap_CHEMKIN<double>(*thermodynamicsMapXML, doc);
-		transportMapXML = new OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>(doc);
+		thermodynamicsMapXML = new OpenSMOKE::ThermodynamicsMap_CHEMKIN(doc);
+		kineticsMapXML = new OpenSMOKE::KineticsMap_CHEMKIN(*thermodynamicsMapXML, doc);
+		transportMapXML = new OpenSMOKE::TransportPropertiesMap_CHEMKIN(doc);
 
 		// Transport properties
-		transportMapXML = new OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>(doc);
+		transportMapXML = new OpenSMOKE::TransportPropertiesMap_CHEMKIN(doc);
 
 		double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
@@ -280,8 +280,8 @@ int main(int argc, char** argv)
 		OpenSMOKE::OpenInputFileXML(doc, xml_string, path_kinetics_output / "kinetics.surface.xml");
 
 		double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
-		thermodynamicsSurfaceMapXML = new OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>(doc);
-		kineticsSurfaceMapXML = new OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>(*thermodynamicsSurfaceMapXML, doc);
+		thermodynamicsSurfaceMapXML = new OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN(doc);
+		kineticsSurfaceMapXML = new OpenSMOKE::KineticsMap_Surface_CHEMKIN(*thermodynamicsSurfaceMapXML, doc);
 		double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
 	}
@@ -821,7 +821,7 @@ int main(int argc, char** argv)
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		CVI::PlugFlowReactorCoupled* plug_flow_reactor; // dummy
+		CVI::PlugFlowReactorCoupled* plug_flow_reactor = nullptr; // dummy
 														
 		// Creates the reactor
 		reactor2d = new CVI::Reactor2D(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML,

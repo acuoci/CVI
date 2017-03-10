@@ -56,11 +56,11 @@ namespace CVI
 		*@param homogeneous_reactions		homogeneous reactions on/off
 		*@param heterogeneous_reactions		heterogeneous reactions on/off
 		*/
-		HeterogeneousDetailedMechanism(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-										OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-										OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
-										OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>& thermodynamicsSurfaceMapXML,
-										OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&	kineticsSurfaceMapXML,
+		HeterogeneousDetailedMechanism(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+										OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+										OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
+										OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN& thermodynamicsSurfaceMapXML,
+										OpenSMOKE::KineticsMap_Surface_CHEMKIN&	kineticsSurfaceMapXML,
 										const bool homogeneous_reactions, const bool heterogeneous_reactions);
 
 		/**
@@ -174,11 +174,11 @@ namespace CVI
 
 	private:
 
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;				//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;					//!< reference to the kinetic map
-		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;					//!< reference to the trasport properties map
-		OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>&	thermodynamicsSurfaceMap_;		//!< reference to the surface thermodynamic map
-		OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&			kineticsSurfaceMap_;			//!< reference to the surface kinetic map
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN&			thermodynamicsMap_;				//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN&					kineticsMap_;					//!< reference to the kinetic map
+		OpenSMOKE::TransportPropertiesMap_CHEMKIN&		transportMap_;					//!< reference to the trasport properties map
+		OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN&	thermodynamicsSurfaceMap_;		//!< reference to the surface thermodynamic map
+		OpenSMOKE::KineticsMap_Surface_CHEMKIN&			kineticsSurfaceMap_;			//!< reference to the surface kinetic map
 
 		unsigned int nc_;	//!< total number of gaseous species
 		unsigned int nr_;	//!< total number of homogeneous reactions

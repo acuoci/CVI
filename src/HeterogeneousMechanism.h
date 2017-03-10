@@ -57,16 +57,16 @@ namespace CVI
 		*@param heterogeneous_mechanism_type	heterogeneous mechanism type
 		*@param hydrogen_inhibition_type	hydrogen mechanism type
 		*/
-		HeterogeneousMechanism(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-						OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-						OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+		HeterogeneousMechanism(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+						OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+						OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
 						const bool homogeneous_reactions, const bool heterogeneous_reactions, 
 						const HeterogeneousMechanismType heterogeneous_mechanism_type,
 						const HydrogenInhibitionType hydrogen_inhibition_type);
 
-		HeterogeneousMechanism(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-						OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-						OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+		HeterogeneousMechanism(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+						OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+						OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
 						OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
 
 		/**
@@ -242,9 +242,9 @@ namespace CVI
 
 	private:
 
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;	//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;		//!< reference to the kinetic map
-		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;		//!< reference to the trasport properties map
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN&			thermodynamicsMap_;	//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN&					kineticsMap_;		//!< reference to the kinetic map
+		OpenSMOKE::TransportPropertiesMap_CHEMKIN&		transportMap_;		//!< reference to the trasport properties map
 
 		unsigned int ns_;	//!< total number of gaseous species
 		unsigned int nr_;	//!< total number of heterogeneous reactions

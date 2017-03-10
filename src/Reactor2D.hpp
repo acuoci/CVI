@@ -52,11 +52,11 @@ CVI::Reactor2D* reactor2d;
 
 namespace CVI
 {
-	Reactor2D::Reactor2D(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-							OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-							OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
-							OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>& thermodynamicsSurfaceMap,
-							OpenSMOKE::KineticsMap_Surface_CHEMKIN<double>&	kineticsSurfaceMap,
+	Reactor2D::Reactor2D(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+							OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+							OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
+							OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN& thermodynamicsSurfaceMap,
+							OpenSMOKE::KineticsMap_Surface_CHEMKIN&	kineticsSurfaceMap,
 							CVI::PorousMedium& porousMedium,
 							CVI::PorosityDefect& porosityDefect,
 							CVI::HeterogeneousMechanism& heterogeneousMechanism,

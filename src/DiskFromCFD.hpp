@@ -31,8 +31,8 @@ namespace CVI
 		const std::vector<double>& temperature_from_cfd,
 		const std::vector< std::vector<double> >& mass_fractions_from_cfd);
 
-	DiskFromCFD::DiskFromCFD(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-								OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
+	DiskFromCFD::DiskFromCFD(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+								OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
 								OpenSMOKE::Grid1D& grid_x,
 								OpenSMOKE::Grid1D& grid_y) :
 	thermodynamicsMap_(thermodynamicsMap),

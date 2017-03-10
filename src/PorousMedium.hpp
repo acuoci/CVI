@@ -26,9 +26,9 @@
 
 namespace CVI
 {
-	PorousMedium::PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-								OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-								OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+	PorousMedium::PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+								OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+								OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
 								PorousSubstrateType porous_substrate_type, const double rf, const double rho_fiber, const double epsilon0) :
 
 	thermodynamicsMap_(thermodynamicsMap),
@@ -42,9 +42,9 @@ namespace CVI
 		Initialize();
 	}
 
-	PorousMedium::PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-								OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-								OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+	PorousMedium::PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+								OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+								OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
 								OpenSMOKE::OpenSMOKE_Dictionary& dictionary ) :
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),

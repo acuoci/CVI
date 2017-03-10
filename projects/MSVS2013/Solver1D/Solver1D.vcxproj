@@ -45,13 +45,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3.2;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
     <OutDir>..\..\..\exe\Win32-Debug\</OutDir>
     <TargetName>CVISMOKE++</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3.2;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
     <OutDir>..\..\..\exe\Win32-Release\</OutDir>
     <TargetName>CVISMOKE++</TargetName>
   </PropertyGroup>

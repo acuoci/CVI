@@ -54,8 +54,8 @@ namespace CVI
 		*@param grid_x				reference to 1D grid along x
 		*@param grid_y				reference to 1D grid along y
 		*/
-		DiskFromCFD(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-						OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
+		DiskFromCFD(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+						OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
 						OpenSMOKE::Grid1D& grid_x, 
 						OpenSMOKE::Grid1D& grid_y);
 
@@ -76,10 +76,10 @@ namespace CVI
 	protected:
 
 		// References
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;			//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;				//!< reference to the kinetic map
-		OpenSMOKE::Grid1D&										grid_x_;					//!< reference to the 1D grid along the x direction
-		OpenSMOKE::Grid1D&										grid_y_;					//!< reference to the 1D grid along the y direction
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN&			thermodynamicsMap_;			//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN&					kineticsMap_;				//!< reference to the kinetic map
+		OpenSMOKE::Grid1D&								grid_x_;					//!< reference to the 1D grid along the x direction
+		OpenSMOKE::Grid1D&								grid_y_;					//!< reference to the 1D grid along the y direction
 
 		void PrepareOutputFile(const boost::filesystem::path file_name, std::ofstream& fOutput);
 

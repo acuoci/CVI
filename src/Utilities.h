@@ -78,7 +78,7 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 */
 void ReadFromBackupFile(const boost::filesystem::path path_file,
 						double& t,
-						OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN<double>& thermodynamicsSurfaceMap,
+						OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN& thermodynamicsSurfaceMap,
 						const Eigen::VectorXd& x, const Eigen::VectorXd& y,
 						Eigen::VectorXd& T, Eigen::VectorXd& P, Eigen::VectorXd& epsilon,
 						std::vector< Eigen::VectorXd >& omega,

@@ -56,14 +56,14 @@ namespace CVI
 		*@param rho_fiber			fiber density [kg/m3]
 		*@param epsilon0			initial porosity
 		*/
-		PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-						OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-						OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+		PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+						OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+						OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
 						PorousSubstrateType porous_substrate_type, const double rf, const double rho_fiber, const double epsilon0);
 
-		PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap,
-						OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap,
-						OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>& transportMap,
+		PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
+						OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+						OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
 						OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
 
 		/**
@@ -201,9 +201,9 @@ namespace CVI
 
 	private:
 
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;			//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;				//!< reference to the kinetic map
-		OpenSMOKE::TransportPropertiesMap_CHEMKIN<double>&		transportMap_;				//!< reference to the trasport properties map
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN&			thermodynamicsMap_;			//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN&					kineticsMap_;				//!< reference to the kinetic map
+		OpenSMOKE::TransportPropertiesMap_CHEMKIN&		transportMap_;				//!< reference to the trasport properties map
 
 		unsigned int ns_;
 

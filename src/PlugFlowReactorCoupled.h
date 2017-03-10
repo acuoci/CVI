@@ -111,14 +111,14 @@ namespace CVI
 		*@param v					the axial velocity [m/s]
 		*@param Dh					the hydraulic diameter [m]
 		*/
-		PlugFlowReactorCoupled(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap, const double v, const double Dh);
+		PlugFlowReactorCoupled(OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap, const double v, const double Dh);
 
 		/**
 		*@brief Default constructor
 		*@param thermodynamicsMap	reference to the thermodynamic map
 		*@param kineticsMap			reference to the kinetic map
 		*/
-		PlugFlowReactorCoupled(OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN<double>& kineticsMap, OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
+		PlugFlowReactorCoupled(OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap, OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
 
 		/**
 		*@brief Sets the inlet/initial conditions
@@ -364,29 +364,29 @@ namespace CVI
 
 	private:
 
-		OpenSMOKE::ThermodynamicsMap_CHEMKIN<double>&			thermodynamicsMap_;	//!< reference to the thermodynamic map
-		OpenSMOKE::KineticsMap_CHEMKIN<double>&					kineticsMap_;		//!< reference to the kinetic map
+		OpenSMOKE::ThermodynamicsMap_CHEMKIN&			thermodynamicsMap_;	//!< reference to the thermodynamic map
+		OpenSMOKE::KineticsMap_CHEMKIN&					kineticsMap_;		//!< reference to the kinetic map
 
-		bool coupling_;						//!< coupling with the carbon felt
-		double T_;						//!< current temperature [K]
-		double P_;						//!< current pressure [Pa]
-		double csi_;						//!< axial coordinate [m]
-		double v_;						//!< axial velocity [m/s]
-		double Dh_;						//!< hydraulic diameter [m]
-		double NuInf_;						//!< asymptotic Nusselt number [-]
-		double inert_length_;					//!< length of inert zone [m]
-		double channel_width_;					//!< width of the channel [m]
+		bool coupling_;									//!< coupling with the carbon felt
+		double T_;										//!< current temperature [K]
+		double P_;										//!< current pressure [Pa]
+		double csi_;									//!< axial coordinate [m]
+		double v_;										//!< axial velocity [m/s]
+		double Dh_;										//!< hydraulic diameter [m]
+		double NuInf_;									//!< asymptotic Nusselt number [-]
+		double inert_length_;							//!< length of inert zone [m]
+		double channel_width_;							//!< width of the channel [m]
 		bool internal_boundary_layer_correction_;		//!< true if the boundary layer limitations have to be accounted for
 		GeometricPattern geometric_pattern_;			//!< geometric pattern: ONE_SIDE | THREE_SIDES
-		double last_residence_time_;				//!< last residence time simulated [s]
+		double last_residence_time_;					//!< last residence time simulated [s]
 
 		double inlet_temperature_;
 		double inlet_pressure_;
 		Eigen::VectorXd inlet_omega_;
 
-		double rho_;				//!< current density [kg/m3]
-		Eigen::VectorXd Y_;			//!< current mass fractions [-]
-		Eigen::VectorXd dY_over_dt_;		//!< current time derivatives of mass fractions [1/s]
+		double rho_;					//!< current density [kg/m3]
+		Eigen::VectorXd Y_;				//!< current mass fractions [-]
+		Eigen::VectorXd dY_over_dt_;	//!< current time derivatives of mass fractions [1/s]
 		double dcsi_over_dt_;			//!< current time derivative of space [m/s]
 
 		std::vector<LinearProfile>	Y_external_;		//!< external mass fraction profiles 
