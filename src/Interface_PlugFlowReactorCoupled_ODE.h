@@ -24,7 +24,7 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#include "math/multivalue-ode-solvers/MultiValueSolver"
+#include "math/native-ode-solvers/MultiValueSolver"
 
 class OpenSMOKE_PlugFlowReactorCoupled_OdeSystem
 {

@@ -37,11 +37,11 @@
 #include "PorousMedium.h"
 
 // 1D grid
-#include "grids/adaptive/Grid1D.h"
+#include "utilities/grids/adaptive/Grid1D.h"
 
 // Numerical parameters
-#include "math/multivalue-ode-solvers/parameters/OdeSolver_Parameters.h"
-#include "math/multivalue-dae-solvers/parameters/DaeSolver_Parameters.h"
+#include "math/native-ode-solvers/parameters/OdeSolver_Parameters.h"
+#include "math/native-dae-solvers/parameters/DaeSolver_Parameters.h"
 
 namespace CVI
 {

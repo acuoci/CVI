@@ -57,4 +57,4 @@ static void DaspkPrintSolution(double *x, double *y)
 	reactor2d->Print(*x, y);
 }
 
-#include "math\multivalue-dae-solvers\interfaces\Band_Daspk.h"
+#include "math\native-dae-solvers\interfaces\Band_Daspk.h"

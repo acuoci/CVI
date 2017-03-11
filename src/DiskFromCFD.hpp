@@ -152,7 +152,7 @@ namespace CVI
 				for (unsigned int i = 0; i < np; i++)
 					coordinates_from_cfd_unsorted[i] = coordinates[relevant_coordinate](i);
 
-				indices_increasing = OpenSMOKE::sort_and_track_indices_increasing(coordinates_from_cfd_unsorted);
+				indices_increasing = OpenSMOKE::SortAndTrackIndicesIncreasing(coordinates_from_cfd_unsorted);
 
 				for (unsigned int i = 0; i < np; i++)
 					coordinates_from_cfd[i] = coordinates_from_cfd_unsorted[indices_increasing[i]];

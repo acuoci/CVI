@@ -34,7 +34,7 @@
 #include "maps/Maps_CHEMKIN"
 
 // 1D grid
-#include "grids/adaptive/Grid1D.h"
+#include "utilities/grids/adaptive/Grid1D.h"
 
 namespace CVI
 {

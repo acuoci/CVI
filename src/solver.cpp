@@ -31,11 +31,12 @@
 #include "maps/Maps_CHEMKIN"
 
 // Reactor utilities
-#include "reactors/utilities/Utilities"
+#include "idealreactors/utilities/Utilities"
 #include "surfacereactors/utilities/Utilities"
+#include "utilities/ropa/OnTheFlyROPA.h"
 
 // 1D grid
-#include "grids/adaptive/Grid1D.h"
+#include "utilities/grids/adaptive/Grid1D.h"
 
 // Grammars
 #include "Grammar_CVI_Solver.h"
@@ -69,10 +70,10 @@
 #include "Reactor2D.h"
 
 // Numerical parameters
-#include "math/multivalue-dae-solvers/parameters/DaeSolver_Parameters.h"
+#include "math/native-dae-solvers/parameters/DaeSolver_Parameters.h"
 
-#include "math/nls-solvers/NonLinearSolver.h"
-#include "math/nls-solvers/KernelSparse.h"
+#include "math/native-nls-solvers/NonLinearSolver.h"
+#include "math/native-nls-solvers/KernelSparse.h"
 
 int main(int argc, char** argv)
 {

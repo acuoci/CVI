@@ -24,7 +24,7 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#include "math/multivalue-dae-solvers/MultiValueSolver"
+#include "math/native-dae-solvers/MultiValueSolver"
 
 class OpenSMOKE_Reactor1D_DaeSystem
 {
@@ -66,5 +66,5 @@ void OpenSMOKE_Reactor1D_DaeSystem::assign(CVI::Reactor1D *reactor)
 	ptReactor = reactor;
 }
 
-#include "math/multivalue-dae-solvers/interfaces/Band_OpenSMOKEppDae.h"
+#include "math/native-dae-solvers/interfaces/Band_OpenSMOKEppDae.h"
 

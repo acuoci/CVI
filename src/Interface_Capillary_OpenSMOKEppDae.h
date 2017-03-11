@@ -24,7 +24,7 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#include "math/multivalue-dae-solvers/MultiValueSolver"
+#include "math/native-dae-solvers/MultiValueSolver"
 
 class OpenSMOKE_Capillary_DaeSystem
 {
@@ -66,5 +66,5 @@ void OpenSMOKE_Capillary_DaeSystem::assign(CVI::Capillary *reactor)
 	ptCapillary = reactor;
 }
 
-#include "math/multivalue-dae-solvers/interfaces/Band_OpenSMOKEppDae.h"
+#include "math/native-dae-solvers/interfaces/Band_OpenSMOKEppDae.h"
 
