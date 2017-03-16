@@ -462,7 +462,7 @@ namespace CVI
 
 				for (unsigned int j = 0; j < nc_; j++)
 					aux_Y[j + 1] = Y_[i](j);
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
+				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
 				for (unsigned int j = 0; j < nc_; j++)
 					X_[i](j) = aux_X[j + 1];
 
@@ -481,7 +481,7 @@ namespace CVI
 
 				// Mixture diffusion coefficients
 				{
-					transportMap_.MassDiffusionCoefficients(aux_gamma, aux_X, false);
+					transportMap_.MassDiffusionCoefficients(aux_gamma.GetHandle(), aux_X.GetHandle(), false);
 					for (unsigned int j = 0; j < nc_; j++)
 						gamma_star_[i](j) = aux_gamma[j + 1];
 				}
@@ -498,9 +498,9 @@ namespace CVI
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
-					kineticsMap_.ReactionRates(aux_C);
-					kineticsMap_.FormationRates(&aux_R);
-					ElementByElementProduct(aux_R, thermodynamicsMap_.MW(), &aux_R); // [kg/m3/s]
+					kineticsMap_.ReactionRates(aux_C.GetHandle());
+					kineticsMap_.FormationRates(aux_R.GetHandle());
+					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
 					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
 				}
 
@@ -512,14 +512,14 @@ namespace CVI
 					heterogeneousMechanism_.FormationRates(4./diameter_(i), aux_eigen);
 					
 					for (unsigned int j = 0; j < nc_; j++)
-						omega_homogeneous_from_heterogeneous_[i](j) = heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j+1];				// [kg/m3/s]
+						omega_homogeneous_from_heterogeneous_[i](j) = heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j);				// [kg/m3/s]
 					
 					omega_deposition_per_unit_area_(i) = heterogeneousMechanism_.r_deposition_per_unit_area()*heterogeneousMechanism_.mw_carbon();		// [kg/m2/s]
 					omega_deposition_per_unit_volume_(i) = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
 
 					omega_loss_per_unit_volume_(i) = 0.;
 					for (unsigned int j = 0; j < nc_; j++)
-						omega_loss_per_unit_volume_(i) += heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j + 1];					// [kg/m3/s]
+						omega_loss_per_unit_volume_(i) += heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j);					// [kg/m3/s]
 				}
 			}
 			else
@@ -532,9 +532,9 @@ namespace CVI
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
-					kineticsMap_.ReactionRates(aux_C);
-					kineticsMap_.FormationRates(&aux_R);
-					ElementByElementProduct(aux_R, thermodynamicsMap_.MW(), &aux_R); // [kg/m3/s]
+					kineticsMap_.ReactionRates(aux_C.GetHandle());
+					kineticsMap_.FormationRates(aux_R.GetHandle());
+					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
 					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
 				}
 
@@ -559,7 +559,7 @@ namespace CVI
 					heterogeneousDetailedMechanism_.FormationRates(4. / diameter_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
 
 					for (unsigned int j = 0; j < nc_; j++)
-						omega_homogeneous_from_heterogeneous_[i](j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j + 1];				// [kg/m3/s]
+						omega_homogeneous_from_heterogeneous_[i](j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j);				// [kg/m3/s]
 
 					for (unsigned int j = 0; j < surf_nc_; j++)
 						omega_heterogeneous_from_heterogeneous_[i](j) = heterogeneousDetailedMechanism_.Rsurface()(j);	// [kmol/m2/s]
@@ -569,7 +569,7 @@ namespace CVI
 
 					omega_loss_per_unit_volume_(i) = 0.;
 					for (unsigned int j = 0; j < nc_; j++)
-						omega_loss_per_unit_volume_(i) += heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW()[j + 1];					// [kg/m3/s]
+						omega_loss_per_unit_volume_(i) += heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j);					// [kg/m3/s]
 				}
 			}
 		}
@@ -698,7 +698,7 @@ namespace CVI
 		// Molar fractions
 		for (unsigned int j = 0; j < nc_; j++)
 			aux_Y[j + 1] = Y_[i_current](j);
-		thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i_current), aux_Y);
+		thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i_current), aux_Y.GetHandle());
 
 		// Calculates the volume and the concentrations of species
 		const double cTot = P_(i_current) / (PhysicalConstants::R_J_kmol * T_(i_current));
@@ -1136,7 +1136,7 @@ namespace CVI
 
 			thermodynamicsMap_.SetPressure(P_(i));
 			thermodynamicsMap_.SetTemperature(T_(i));
-			thermodynamicsMap_.MoleFractions_From_MassFractions(xx, mw_(i), yy);
+			thermodynamicsMap_.MoleFractions_From_MassFractions(xx.GetHandle(), mw_(i), yy.GetHandle());
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
 			fOutput << std::setprecision(9) << std::setw(20) << grid_.x()[i] * 1000.;
@@ -1204,9 +1204,9 @@ namespace CVI
 				transportMap_.SetTemperature(T_(i));
 
 				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
+				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
 				aux_X.CopyTo(X_[i].data());
-				transportMap_.MassDiffusionCoefficients(aux_gamma, aux_X, false);
+				transportMap_.MassDiffusionCoefficients(aux_gamma.GetHandle(), aux_X.GetHandle(), false);
 			}
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
@@ -1250,14 +1250,14 @@ namespace CVI
 				thermodynamicsMap_.SetTemperature(T_(i));
 				thermodynamicsMap_.SetPressure(P_(i));
 				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
+				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
 				aux_X.CopyTo(X_[i].data());
 				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
 				Product(cTot, aux_X, &aux_C);
 				kineticsMap_.SetTemperature(T_(i));
 				kineticsMap_.SetPressure(P_(i));
-				kineticsMap_.ReactionRates(aux_C);
-				kineticsMap_.FormationRates(&aux_R);
+				kineticsMap_.ReactionRates(aux_C.GetHandle());
+				kineticsMap_.FormationRates(aux_R.GetHandle());
 			}
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
@@ -1335,7 +1335,7 @@ namespace CVI
 				thermodynamicsMap_.SetPressure(P_(i));
 				thermodynamicsMap_.SetTemperature(T_(i));
 				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
+				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
 				aux_X.CopyTo(X_[i].data());
 				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
 				Product(cTot, aux_X, &aux_C);
@@ -1430,7 +1430,7 @@ namespace CVI
 					thermodynamicsMap_.SetPressure(P_(i));
 					thermodynamicsMap_.SetTemperature(T_(i));
 					aux_Y.CopyFrom(Y_[i].data());
-					thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_(i), aux_Y);
+					thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
 					aux_X.CopyTo(X_[i].data());
 					const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
 					Product(cTot, aux_X, &aux_C);
@@ -1507,7 +1507,7 @@ namespace CVI
 			double mw;
 			for (unsigned int j = 0; j < nc_; j++)
 				omega[j + 1] = Y_[point](j);
-			thermodynamicsMap_.MoleFractions_From_MassFractions(x, mw, omega);
+			thermodynamicsMap_.MoleFractions_From_MassFractions(x.GetHandle(), mw, omega.GetHandle());
 
 			// Concentrations
 			const double cTot = rho_gas_(point) / mw_(point);
