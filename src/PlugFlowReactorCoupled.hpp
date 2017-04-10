@@ -276,7 +276,7 @@ namespace CVI
 		// Mole fractions
 		double mw_;
 		aux_Y.CopyFrom(Y_.data());
-		thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_, aux_Y);
+		thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_, aux_Y.GetHandle());
 
 		// Concentrations [kmol/m3]
 		const double cTot = P_ / PhysicalConstants::R_J_kmol / T_; // [kmol/m3]
@@ -288,9 +288,9 @@ namespace CVI
 		// Homogeneous phase
 		kineticsMap_.SetTemperature(T_);
 		kineticsMap_.SetPressure(P_);
-		kineticsMap_.ReactionRates(aux_C);
-		kineticsMap_.FormationRates(&aux_R);
-		ElementByElementProduct(aux_R, thermodynamicsMap_.MW(), &aux_R); // [kg/m3/s]
+		kineticsMap_.ReactionRates(aux_C.GetHandle());
+		kineticsMap_.FormationRates(aux_R.GetHandle());
+		OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
 	}
 
 	void PlugFlowReactorCoupled::SubEquations_MassFractions()
@@ -448,7 +448,7 @@ namespace CVI
 			// Mole fractions
 			double mw_;
 			aux_Y.CopyFrom(history_Y_[i].data());
-			thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X, mw_, aux_Y);
+			thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_, aux_Y.GetHandle());
 		
 			// Write on file
 			fOutput << std::setprecision(9) << std::setw(20) << (history_csi_[i]-inert_length_)*1e3;

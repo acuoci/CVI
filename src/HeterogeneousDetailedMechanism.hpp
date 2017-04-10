@@ -122,8 +122,8 @@ namespace CVI
 			kineticsSurfaceMap_.SetTemperature(T_);
 
 			kineticsSurfaceMap_.KineticConstants();
-			kineticsSurfaceMap_.ReactionRates(os_C, os_Z, os_a, os_Gamma);
-			kineticsSurfaceMap_.FormationRates(&Rgas_from_surface_, &Rsurface_from_surface_, &Rbulk_from_surface_, &Rphases_from_surface_);
+			kineticsSurfaceMap_.ReactionRates(os_C.GetHandle(), os_Z.GetHandle(), os_a.GetHandle(), os_Gamma.GetHandle());
+			kineticsSurfaceMap_.FormationRates(Rgas_from_surface_.GetHandle(), Rsurface_from_surface_.GetHandle(), Rbulk_from_surface_.GetHandle(), Rphases_from_surface_.GetHandle());
 		}
 
 		// Formation rate of homogeneous species [kmol/m3/s]

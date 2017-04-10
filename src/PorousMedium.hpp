@@ -254,7 +254,7 @@ namespace CVI
 		const double coefficient = 2. / 3.*rp()*std::sqrt(8.*PhysicalConstants::R_J_kmol*T_ / PhysicalConstants::pi);
 		
 		for (unsigned int i = 0; i < ns_; i++)
-			gamma_knudsen_(i) = coefficient/std::sqrt(thermodynamicsMap_.MW()[i+1]);
+			gamma_knudsen_(i) = coefficient/std::sqrt(thermodynamicsMap_.MW(i));
 	}
 
 	void PorousMedium::KnudsenEffectiveDiffusionCoefficients()
@@ -278,7 +278,7 @@ namespace CVI
 
 			for (unsigned int i = 0; i < ns_; i++)
 				mole_fractions_os[i + 1] = mole_fractions(i);
-			transportMap_.MassDiffusionCoefficients(gamma_fick_os, mole_fractions_os, false);
+			transportMap_.MassDiffusionCoefficients(gamma_fick_os.GetHandle(), mole_fractions_os.GetHandle(), false);
 			for (unsigned int i = 0; i < ns_; i++)
 				gamma_fick_(i) = gamma_fick_os[i + 1];
 		}
