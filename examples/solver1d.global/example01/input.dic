@@ -12,10 +12,14 @@
 //             http://creckmodeling.chem.polimi.it/                //
 //-----------------------------------------------------------------//
 
-Dictionary CVI_Solver1D
+Dictionary CVI_Solver
 {
-	@KineticsFolder		../../kinetics/kinetics-Polimi4BremboRevised;
+	@KineticsFolder		../../kinetics\Mechanisms\Lacroix.corrected.2000-POLIMI4BremboRevised\kinetics;
 	@Output				Output;
+	
+	@DetailedSurfaceChemistry	false;		// if true, semi-empirical mechanisms are used
+	@GasDaeSpecies				CH4;		// used only for detailed chemistry
+	@SurfaceDaeSpecies			Hz(S);		// used only for detailed chemistry
 
 	@Type				1D;
 	@Symmetry			Planar;
@@ -30,24 +34,31 @@ Dictionary CVI_Solver1D
 	@ResidenceTime		0.01 s;
 		
 	@XPoints			36;
-	@YPoints			36;
 	@XLength			21 mm;
-	@YLength			40 mm;
 	@XStretchingFactor	0.98;
-	@YStretchingFactor	1.;
 	
 	@TimeTotal				120 h;
 	@DaeTimeInterval		2.5 h;
 	@TecplotTimeInterval	  1 h;
 	
 	@DaeParameters		dae-parameters;
+	
+	// Unused variables (needed by 2D reactors)
+	@YPoints			36;
+	@YLength			40 mm;
+	@YStretchingFactor	1.;
+}
+
+Dictionary Surface-CARBON
+{
+	@SurfaceFractions 		Hz(S) 0.75 H(S) 0.25; 
+	@SiteNonConservation	false;
 }
 
 Dictionary porous-medium
 {
 	@FiberRadius				4 micron;
 	@FiberDensity				1720 kg/m3;
-	@GraphiteDensity			2200 kg/m3;
 	@InitialPorosity			0.929;
 	@PorousSubstrate			random_hardcore;
 }
