@@ -1241,8 +1241,8 @@ namespace CVI
 			for (unsigned int j = 0; j < bulk_nc_; j++)
 				aux_a[j + 1] = 1.;
 
-			kineticsSurfaceMap_.ReactionRates(aux_C, Z, aux_a, Gamma);
-			kineticsSurfaceMap_.FormationRates(&RfromSurface, &Rsurface, &Rbulk, &RsurfacePhases);
+			kineticsSurfaceMap_.ReactionRates(aux_C.GetHandle(), Z.GetHandle(), aux_a.GetHandle(), Gamma.GetHandle());
+			kineticsSurfaceMap_.FormationRates(RfromSurface.GetHandle(), Rsurface.GetHandle(), Rbulk.GetHandle(), RsurfacePhases.GetHandle());
 		}
 
 		// Equations
