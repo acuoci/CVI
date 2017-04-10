@@ -1536,8 +1536,8 @@ namespace CVI
 			if (count_dae_video_ % (n_steps_video_*50) == 1)
 			{
 				std::cout << std::endl;
-				std::cout << std::left << std::setw(12) << "Time[s]";		// [s]
-				std::cout << std::left << std::setw(12) << "Time[h]";		// [h]
+				std::cout << std::left << std::setw(16) << "Time[s]";		// [s]
+				std::cout << std::left << std::setw(16) << "Time[h]";		// [h]
 				std::cout << std::left << std::setw(16) << "Thickn(M)[mu]";	// [micron]
 				std::cout << std::left << std::setw(16) << "Thickn(D)[mu]";	// [micron]
 				std::cout << std::left << std::setw(16) << "Rdep[mu/h]";	// [micron/h]
@@ -1562,8 +1562,8 @@ namespace CVI
 			const double thickness_mouth = thickness(0);														// [m]
 			const double thickness_depth = thickness(np_-1);													// [m]
 
-			std::cout << std::left << std::setw(12) << std::scientific << t;										// [s]
-			std::cout << std::left << std::setw(12) << std::scientific << t/3600.;									// [h]
+			std::cout << std::left << std::setw(16) << std::scientific << t;										// [s]
+			std::cout << std::left << std::setw(16) << std::scientific << t/3600.;									// [h]
 			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << thickness_mouth*1e6;	// [micron]
 			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << thickness_depth*1e6;	// [micron]
 			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1e6*3600.;	// [micron/h]
