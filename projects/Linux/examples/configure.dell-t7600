@@ -1,0 +1,49 @@
+./configure \
+CXX=g++ \
+--enable-openmp=yes \
+--prefix=$HOME/Development/MyCodes/CVI/exe/linux/gnu64-serial-mkl \
+--with-opensmoke=$HOME/Development/MyCodes/OpenSMOKEpp \
+--with-eigen=$HOME/Development/ExternalNumericalLibraries/Eigen/eigen-3.3/ \
+--with-rapidxml=$HOME/Development/ExternalNumericalLibraries/RapidXML/rapidxml-1.13/ \
+--with-boost-include=$HOME/Development/ExternalNumericalLibraries/Boost/boost_1_63_0/include/ \
+--with-boost-lib=$HOME/Development/ExternalNumericalLibraries/Boost/boost_1_63_0/lib/ \
+--with-libconfig-include=$HOME/Development/ExternalNumericalLibraries/LibConfig/libconfig-1.5/lib/include/ \
+--with-libconfig-lib=$HOME/Development/ExternalNumericalLibraries/LibConfig/libconfig-1.5/lib/lib/libconfig++.a \
+--with-mkl=/opt/intel/mkl/ \
+--with-intel-compiler=/opt/intel/ \
+--with-linpack=$HOME/Development/ExternalNumericalLibraries/LINPACK/lib/linux/libLINPACK_gcc_64bit.a \
+--with-bzzmath-include=$HOME/Development/ExternalNumericalLibraries/BzzMath/BzzMath6-dev/hpp \
+--with-bzzmath-lib=$HOME/Development/ExternalNumericalLibraries/BzzMath/BzzMath6-dev/lib/linux/libBzzMath6_GNU.a \
+--with-umfpack-include=$HOME/Development/ExternalNumericalLibraries/SuiteSparse/SuiteSparse-4.5.2/lib/include/ \
+--with-umfpack-lib=$HOME/Development/ExternalNumericalLibraries/SuiteSparse/SuiteSparse-4.5.2/lib/lib/ \
+--with-superlu-include=$HOME/Development/ExternalNumericalLibraries/SuperLU/Serial/SuperLU_5.2/src/SRC/ \
+--with-superlu-lib=$HOME/Development/ExternalNumericalLibraries/SuperLU/Serial/SuperLU_5.2/lib/linux/libSuperLU52_gcc_64bit.a
+
+./configure \
+CXX=icpc \
+--enable-openmp=yes \
+--prefix=$HOME/Development/MyCodes/CVI/exe/linux/intel64-serial-mkl \
+--with-opensmoke=$HOME/Development/MyCodes/OpenSMOKEpp \
+--with-eigen=$HOME/Development/ExternalNumericalLibraries/Eigen/eigen-3.3/ \
+--with-rapidxml=$HOME/Development/ExternalNumericalLibraries/RapidXML/rapidxml-1.13/ \
+--with-boost-include=$HOME/Development/ExternalNumericalLibraries/Boost/boost_1_63_0/include/ \
+--with-boost-lib=$HOME/Development/ExternalNumericalLibraries/Boost/boost_1_63_0/lib/ \
+--with-libconfig-include=$HOME/Development/ExternalNumericalLibraries/LibConfig/libconfig-1.5/lib/include/ \
+--with-libconfig-lib=$HOME/Development/ExternalNumericalLibraries/LibConfig/libconfig-1.5/lib/lib/libconfig++.a \
+--with-mkl=/opt/intel/mkl/ \
+--with-intel-compiler=/opt/intel/ \
+--with-linpack=$HOME/Development/ExternalNumericalLibraries/LINPACK/lib/linux/libLINPACK_intel_64bit.a \
+--with-bzzmath-include=$HOME/Development/ExternalNumericalLibraries/BzzMath/BzzMath6-dev/hpp \
+--with-bzzmath-lib=$HOME/Development/ExternalNumericalLibraries/BzzMath/BzzMath6-dev/lib/linux/libBzzMath6_INTEL.a \
+--with-umfpack-include=$HOME/Development/ExternalNumericalLibraries/SuiteSparse/SuiteSparse-4.5.2/lib/include/ \
+--with-umfpack-lib=$HOME/Development/ExternalNumericalLibraries/SuiteSparse/SuiteSparse-4.5.2/lib/lib/ \
+--with-superlu-include=$HOME/Development/ExternalNumericalLibraries/SuperLU/Serial/SuperLU_5.2/src/SRC/ \
+--with-superlu-lib=$HOME/Development/ExternalNumericalLibraries/SuperLU/Serial/SuperLU_5.2/lib/linux/libSuperLU52_intel_64bit.a 
+
+
+
+
+
+
+
+
