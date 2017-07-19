@@ -267,7 +267,7 @@ namespace CVI
 
 	void PorousMedium::FickDiffusionCoefficients(const Eigen::VectorXd& mole_fractions)
 	{
-		// Set temperature and pressure of transort map
+		// Set temperature and pressure of transport map
 		transportMap_.SetTemperature(T_);
 		transportMap_.SetPressure(P_Pa_);
 
@@ -306,5 +306,50 @@ namespace CVI
 
 		for (unsigned int i = 0; i < ns_; i++)
 			gamma_effective_(i) *= mass_diffusion_multiplier_; 
+	}
+
+	double PorousMedium::lambda_gas()
+	{
+		return 1.5207e-11*T_*T_*T_-4.8574e-08*T_*T_+1.0184e-04*T_-3.9333e-04;	// [W/m/K]
+	}
+
+	double PorousMedium::lambda_fiber()
+	{
+		return 1.1176 - 6.217e-4*T_ + 8.3e-7*T_*T_;	// [W/m/K]
+	}
+
+	double PorousMedium::lambda_graphite()
+	{
+		return -3.466 + 0.0271*T_ - 2.05e-5*T_*T_ + 5.3e-9*T_*T_*T_;	// [W/m/K]
+	}
+
+	double PorousMedium::lambda()
+	{
+		return	epsilon_*lambda_gas()			+ 
+				(1.-epsilon0_)*lambda_fiber()	+ 
+				(epsilon0_-epsilon_)*lambda_graphite();	// [W/m/K]
+	}
+
+	double PorousMedium::cp_gas()
+	{
+		return 1.9327e-10*T_*T_*T_*T_-7.9999e-07*T_*T_*T_
+				+1.1407e-03*T_*T_-4.4890e-01*T_ + 1.0575e+03;	// [J/kg/K]
+	}
+
+	double PorousMedium::cp_fiber()
+	{
+		return cp_graphite();	// [W/m/K]
+	}
+
+	double PorousMedium::cp_graphite()
+	{
+		return -42.4678 + 2.8516*T_ - 0.001*T_*T_;	// [W/m/K]
+	}
+
+	double PorousMedium::cp_times_rho(const double rho_gas, const double rho_graphite)
+	{
+		return	epsilon_*rho_gas*cp_gas() +
+				(1. - epsilon0_)*rho_fiber_*cp_fiber() +
+				(epsilon0_ - epsilon_)*rho_graphite*cp_graphite();	// [J/m3/K]
 	}
 }

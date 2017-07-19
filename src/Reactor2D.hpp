@@ -89,6 +89,7 @@ namespace CVI
 		time_smoothing_ = 10.;
 
 		gaseous_phase_ = GASEOUS_PHASE_FROM_PLUG_FLOW;
+		equations_set_ = EQUATIONS_SET_COMPLETE;
 
 		n_steps_video_ = 10;
 		count_dae_video_ = 1;
@@ -293,6 +294,9 @@ namespace CVI
 		for (unsigned int i = 0; i < np_; i++)
 			gamma_star_[i].resize(nc_);
 
+		// Time derivatives: temperature [K/s]
+		dT_over_dt_.resize(np_);
+
 		// Time derivatives: mass fractions [1/s]
 		dY_over_dt_.resize(np_);
 		for (unsigned int i = 0; i < np_; i++)
@@ -417,40 +421,10 @@ namespace CVI
 
 		unsigned int count = 0;
 
-		// South side
-		for (unsigned int i = 0; i < nx_; i++)
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
 		{
-			// Species
-			for (unsigned int j = 0; j < nc_; j++)
-				id_equations_[count++] = false;
-
-			// Porosity
-			id_equations_[count++] = true;
-
-			// Surface species
-			for (unsigned int j = 0; j < surf_np_; j++)
-				id_equations_[count++] = true;
-
-			if (dae_formulation_ == false)
-			{
-				for (unsigned int j = 0; j < surf_nc_; j++)
-					id_equations_[count++] = true;
-			}
-			else
-			{
-				for (unsigned int j = 0; j < surface_dae_species_index_; j++)
-					id_equations_[count++] = true;
-				id_equations_[count++] = false;
-				for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
-					id_equations_[count++] = true;
-			}
-		}
-			
-
-		// Internal strips
-		for (unsigned int j = 1; j < ny_ - 1; j++)
-		{
-			// West side
+			// South side
+			for (unsigned int i = 0; i < nx_; i++)
 			{
 				// Species
 				for (unsigned int j = 0; j < nc_; j++)
@@ -478,39 +452,101 @@ namespace CVI
 				}
 			}
 
-			// Internal point
-			for (unsigned int i = 1; i < nx_-1; i++)
+
+			// Internal strips
+			for (unsigned int j = 1; j < ny_ - 1; j++)
 			{
-				// Species
-				for (unsigned int j = 0; j < gas_dae_species_index_; j++)
-					id_equations_[count++] = true;
-				id_equations_[count++] = false;
-				for (unsigned int j = gas_dae_species_index_ + 1; j < nc_; j++)
-					id_equations_[count++] = true;
-
-				// Porosity
-				id_equations_[count++] = true;
-
-				// Surface species
-				for (unsigned int j = 0; j < surf_np_; j++)
-					id_equations_[count++] = true;
-
-				if (dae_formulation_ == false)
+				// West side
 				{
-					for (unsigned int j = 0; j < surf_nc_; j++)
+					// Species
+					for (unsigned int j = 0; j < nc_; j++)
+						id_equations_[count++] = false;
+
+					// Porosity
+					id_equations_[count++] = true;
+
+					// Surface species
+					for (unsigned int j = 0; j < surf_np_; j++)
 						id_equations_[count++] = true;
+
+					if (dae_formulation_ == false)
+					{
+						for (unsigned int j = 0; j < surf_nc_; j++)
+							id_equations_[count++] = true;
+					}
+					else
+					{
+						for (unsigned int j = 0; j < surface_dae_species_index_; j++)
+							id_equations_[count++] = true;
+						id_equations_[count++] = false;
+						for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
+							id_equations_[count++] = true;
+					}
 				}
-				else
+
+				// Internal point
+				for (unsigned int i = 1; i < nx_ - 1; i++)
 				{
-					for (unsigned int j = 0; j < surface_dae_species_index_; j++)
+					// Species
+					for (unsigned int j = 0; j < gas_dae_species_index_; j++)
 						id_equations_[count++] = true;
 					id_equations_[count++] = false;
-					for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
+					for (unsigned int j = gas_dae_species_index_ + 1; j < nc_; j++)
 						id_equations_[count++] = true;
+
+					// Porosity
+					id_equations_[count++] = true;
+
+					// Surface species
+					for (unsigned int j = 0; j < surf_np_; j++)
+						id_equations_[count++] = true;
+
+					if (dae_formulation_ == false)
+					{
+						for (unsigned int j = 0; j < surf_nc_; j++)
+							id_equations_[count++] = true;
+					}
+					else
+					{
+						for (unsigned int j = 0; j < surface_dae_species_index_; j++)
+							id_equations_[count++] = true;
+						id_equations_[count++] = false;
+						for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
+							id_equations_[count++] = true;
+					}
+				}
+
+				// East side (gas side)
+				{
+					// Species
+					for (unsigned int j = 0; j < nc_; j++)
+						id_equations_[count++] = false;
+
+					// Porosity
+					id_equations_[count++] = true;
+
+					// Surface species
+					for (unsigned int j = 0; j < surf_np_; j++)
+						id_equations_[count++] = true;
+
+					if (dae_formulation_ == false)
+					{
+						for (unsigned int j = 0; j < surf_nc_; j++)
+							id_equations_[count++] = true;
+					}
+					else
+					{
+						for (unsigned int j = 0; j < surface_dae_species_index_; j++)
+							id_equations_[count++] = true;
+						id_equations_[count++] = false;
+						for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
+							id_equations_[count++] = true;
+					}
 				}
 			}
 
-			// East side (gas side)
+			// North side
+			for (unsigned int i = 0; i < nx_; i++)
 			{
 				// Species
 				for (unsigned int j = 0; j < nc_; j++)
@@ -538,34 +574,29 @@ namespace CVI
 				}
 			}
 		}
-
-		// North side
-		for (unsigned int i = 0; i < nx_; i++)
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
 		{
-			// Species
-			for (unsigned int j = 0; j < nc_; j++)
+			// South side
+			for (unsigned int i = 0; i < nx_; i++)
 				id_equations_[count++] = false;
 
-			// Porosity
-			id_equations_[count++] = true;
-
-			// Surface species
-			for (unsigned int j = 0; j < surf_np_; j++)
-				id_equations_[count++] = true;
-
-			if (dae_formulation_ == false)
+			// Internal strips
+			for (unsigned int j = 1; j < ny_ - 1; j++)
 			{
-				for (unsigned int j = 0; j < surf_nc_; j++)
-					id_equations_[count++] = true;
-			}
-			else
-			{
-				for (unsigned int j = 0; j < surface_dae_species_index_; j++)
-					id_equations_[count++] = true;
+				// West side
 				id_equations_[count++] = false;
-				for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
+
+				// Internal point
+				for (unsigned int i = 1; i < nx_ - 1; i++)
 					id_equations_[count++] = true;
+
+				// East side (gas side)
+				id_equations_[count++] = false;
 			}
+
+			// North side
+			for (unsigned int i = 0; i < nx_; i++)
+				id_equations_[count++] = false;
 		}
 
 		// Data needed by Sundials Ida
@@ -686,7 +717,7 @@ namespace CVI
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_west_side_[i](j) = disk_from_cfd.west_mass_fractions()[i][j];
 				P_gas_west_side_(i) = P_gas;
-				T_gas_west_side_(i) = T_gas;
+				T_gas_west_side_(i) = disk_from_cfd.west_temperature()[i];
 			}
 		}
 
@@ -702,7 +733,7 @@ namespace CVI
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_east_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
 				P_gas_east_side_(i) = P_gas;
-				T_gas_east_side_(i) = T_gas;
+				T_gas_east_side_(i) = disk_from_cfd.east_temperature()[i];
 			}
 		}
 
@@ -718,7 +749,7 @@ namespace CVI
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_south_side_[i](j) = disk_from_cfd.south_mass_fractions()[i][j];
 				P_gas_south_side_(i) = P_gas;
-				T_gas_south_side_(i) = T_gas;
+				T_gas_south_side_(i) = disk_from_cfd.south_temperature()[i];
 			}
 		}
 
@@ -734,7 +765,7 @@ namespace CVI
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_north_side_[i](j) = disk_from_cfd.north_mass_fractions()[i][j];
 				P_gas_north_side_(i) = P_gas;
-				T_gas_north_side_(i) = T_gas;
+				T_gas_north_side_(i) = disk_from_cfd.north_temperature()[i];
 			}
 		}
 	}
@@ -756,9 +787,10 @@ namespace CVI
 				GammaFromEqn_[i](j) = Gamma0(j);
 			}
 
-		P_.setConstant(P_gas);
-		T_.setConstant(T_gas);
 		epsilon_.setConstant(porousMedium_.porosity());
+		P_.setConstant(P_gas);
+		//if (gaseous_phase_ != GASEOUS_PHASE_FROM_CFD)
+			T_.setConstant(T_gas);
 
 		// Set porosity defect
 		if (porosityDefect_.is_active() == true)
@@ -1202,6 +1234,123 @@ namespace CVI
 		}
 	}
 
+	void Reactor2D::SubEquations_Temperature_BoundaryConditions(const double t)
+	{
+		// South (Dirichlet condition)
+		SubEquations_Temperature_BoundaryConditions_SouthSide(t);
+
+		// North (Dirichlet condition)
+		SubEquations_Temperature_BoundaryConditions_NorthSide(t);
+
+		// West (Dirichlet condition)
+		SubEquations_Temperature_BoundaryConditions_WestSide(t);
+
+		// East (Dirichlet condition)
+		SubEquations_Temperature_BoundaryConditions_EastSide(t);
+	}
+
+	void Reactor2D::SubEquations_Temperature_BoundaryConditions_WestSide(const double t)
+	{
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
+		{
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				const int point = list_points_west_(i);
+				dT_over_dt_(point) = T_(point) - T_gas_west_side_(i);
+			}
+		}
+	}
+
+	void Reactor2D::SubEquations_Temperature_BoundaryConditions_EastSide(const double t)
+	{
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
+		{
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				const int point = list_points_east_(i);
+				dT_over_dt_(point) = T_(point) - T_gas_east_side_(i);
+			}
+		}
+	}
+
+	void Reactor2D::SubEquations_Temperature_BoundaryConditions_NorthSide(const double t)
+	{
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
+		{
+			for (unsigned int i = 0; i < nx_; i++)
+			{
+				const int point = list_points_north_(i);
+				dT_over_dt_(point) = T_(point) - T_gas_north_side_(i);
+			}
+		}
+	}
+
+	void Reactor2D::SubEquations_Temperature_BoundaryConditions_SouthSide(const double t)
+	{
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
+		{
+			for (unsigned int i = 0; i < nx_; i++)
+			{
+				const int point = list_points_south_(i);
+				dT_over_dt_(point) = T_(point) - T_gas_south_side_(i);
+			}
+		}
+	}
+
+	void Reactor2D::SubEquations_Temperature(const double t)
+	{
+		// Properties
+		Eigen::VectorXd rho_times_cp(np_);
+		Eigen::VectorXd lambda(np_);
+
+		for (unsigned int i = 0; i < np_; i++)
+		{
+			porousMedium_.SetPorosity(epsilon_(i));
+			porousMedium_.SetTemperature(T_(i));
+			porousMedium_.SetPressure(P_(i));
+
+			// Properties
+			rho_times_cp(i) = porousMedium_.cp_times_rho(rho_gas_(i), rho_graphite_);
+			lambda(i) = porousMedium_.lambda();
+		}
+
+		// Boundary conditions (according to the geometric pattern)
+		SubEquations_Temperature_BoundaryConditions(t);
+
+		// Internal
+		for (unsigned int k = 1; k < ny_ - 1; k++)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const int center = k*nx_ + i;
+				const int east   = center + 1;
+				const int west   = center - 1;
+				const int north  = center + nx_;
+				const int south  = center - nx_;
+
+				{
+					const double kappa_east = 0.50* (lambda(east) + lambda(center));
+					const double kappa_west = 0.50* (lambda(west) + lambda(center));
+					const double kappa_north = 0.50* (lambda(north) + lambda(center));
+					const double kappa_south = 0.50* (lambda(south) + lambda(center));
+
+					double conduction_x = (kappa_east*(T_(east) - T_(center)) / grid_x_.dxe()(i) - kappa_west*(T_(center) - T_(west)) / grid_x_.dxw()(i)) / grid_x_.dxc_over_2()(i);
+					const double conduction_y = (kappa_north*(T_(north) - T_(center)) / grid_y_.dxe()(k) - kappa_south*(T_(center) - T_(south)) / grid_y_.dxw()(k)) / grid_y_.dxc_over_2()(k);
+
+					if (planar_symmetry_ == false)
+					{
+						const double dT_over_dr = (T_(east) - T_(west)) / (grid_x_.x()[i + 1] - grid_x_.x()[i - 1]);
+						const double conduction_radial = lambda(center) * dT_over_dr / grid_x_.x()[i];
+						conduction_x += conduction_radial;
+					}
+
+					const double conduction = conduction_x + conduction_y;
+
+					dT_over_dt_(center) = conduction;
+					dT_over_dt_(center) /= rho_times_cp(center);
+				}
+			}
+	}
+
 	int Reactor2D::OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy)
 	{
 		OpenSMOKE::OpenSMOKEVectorDouble Gamma(surf_np_);
@@ -1303,50 +1452,66 @@ namespace CVI
 
 	void Reactor2D::Recover_Unknowns(const double* y)
 	{
-		unsigned int count = 0;
-		for (unsigned int i = 0; i < np_; i++)
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
 		{
-			// Species
-			for (unsigned int j = 0; j < nc_; j++)
-				Y_[i](j) = y[count++];
+			unsigned int count = 0;
+			for (unsigned int i = 0; i < np_; i++)
+			{
+				// Species
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_[i](j) = y[count++];
 
-			// Porosity
-			epsilon_(i) = y[count++];
+				// Porosity
+				epsilon_(i) = y[count++];
 
-			// Surface densities
-			for (unsigned int j = 0; j < surf_np_; j++)
-				GammaFromEqn_[i](j) = y[count++];
+				// Surface densities
+				for (unsigned int j = 0; j < surf_np_; j++)
+					GammaFromEqn_[i](j) = y[count++];
 
-			// Surface species
-			for (unsigned int j = 0; j < surf_nc_; j++)
-				Z_[i](j) = y[count++];
+				// Surface species
+				for (unsigned int j = 0; j < surf_nc_; j++)
+					Z_[i](j) = y[count++];
 
-			// Non conservation of sites
-			for (unsigned int j = 0; j < surf_np_; j++)
-				if (site_non_conservation_[j] == true)
-					Gamma_[i](j) = GammaFromEqn_[i](j);
+				// Non conservation of sites
+				for (unsigned int j = 0; j < surf_np_; j++)
+					if (site_non_conservation_[j] == true)
+						Gamma_[i](j) = GammaFromEqn_[i](j);
+			}
+		}
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
+		{
+			for (unsigned int i = 0; i < np_; i++)
+				T_(i) = y[i];
 		}
 	}
 
 	void Reactor2D::Recover_Residuals(double* dy)
 	{
-		unsigned int count = 0;
-		for (unsigned int i = 0; i < np_; i++)
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
 		{
-			// Species
-			for (unsigned int j = 0; j < nc_; j++)
-				dy[count++] = dY_over_dt_[i](j);
-			
-			// Porosity
-			dy[count++] = depsilon_over_dt_(i);
+			unsigned int count = 0;
+			for (unsigned int i = 0; i < np_; i++)
+			{
+				// Species
+				for (unsigned int j = 0; j < nc_; j++)
+					dy[count++] = dY_over_dt_[i](j);
 
-			// Surface densities
-			for (unsigned int j = 0; j < surf_np_; j++)
-				dy[count++] = dGamma_over_dt_[i](j);
+				// Porosity
+				dy[count++] = depsilon_over_dt_(i);
 
-			// Surface species
-			for (unsigned int j = 0; j < surf_nc_; j++)
-				dy[count++] = dZ_over_dt_[i](j);
+				// Surface densities
+				for (unsigned int j = 0; j < surf_np_; j++)
+					dy[count++] = dGamma_over_dt_[i](j);
+
+				// Surface species
+				for (unsigned int j = 0; j < surf_nc_; j++)
+					dy[count++] = dZ_over_dt_[i](j);
+			}
+		}
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
+		{
+			for (unsigned int i = 0; i < np_; i++)
+				dy[i] = dT_over_dt_(i);
 		}
 	}
 
@@ -1362,47 +1527,63 @@ namespace CVI
 
 	void Reactor2D::UnknownsVector(double* v)
 	{
-		unsigned int count = 0;
-		for (unsigned int i = 0; i < np_; i++)
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
 		{
-			for (unsigned int j = 0; j < nc_; j++)
-				v[count++] = Y_[i](j);
+			unsigned int count = 0;
+			for (unsigned int i = 0; i < np_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					v[count++] = Y_[i](j);
 
-			v[count++] = epsilon_[i];
+				v[count++] = epsilon_[i];
 
-			for (unsigned int j = 0; j < surf_np_; j++)
-				v[count++] = GammaFromEqn_[i](j);
+				for (unsigned int j = 0; j < surf_np_; j++)
+					v[count++] = GammaFromEqn_[i](j);
 
-			for (unsigned int j = 0; j < surf_nc_; j++)
-				v[count++] = Z_[i](j);
+				for (unsigned int j = 0; j < surf_nc_; j++)
+					v[count++] = Z_[i](j);
+			}
+		}
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
+		{
+			for (unsigned int i = 0; i < np_; i++)
+					v[i] = T_(i);
 		}
 	}
 
 	void Reactor2D::CorrectedUnknownsVector(double* v)
 	{
-		unsigned int count = 0;
-		for (unsigned int i = 0; i < np_; i++)
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
 		{
-			for (unsigned int j = 0; j < nc_; j++)
-				Y_[i](j) = v[count++];
+			unsigned int count = 0;
+			for (unsigned int i = 0; i < np_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_[i](j) = v[count++];
 
-			epsilon_(i) = v[count++];
+				epsilon_(i) = v[count++];
 
-			for (unsigned int j = 0; j < surf_np_; j++)
-				GammaFromEqn_[i](j) = v[count++];
+				for (unsigned int j = 0; j < surf_np_; j++)
+					GammaFromEqn_[i](j) = v[count++];
 
-			for (unsigned int j = 0; j < surf_nc_; j++)
-				Z_[i](j) = v[count++];
+				for (unsigned int j = 0; j < surf_nc_; j++)
+					Z_[i](j) = v[count++];
 
-			// Non conservation of sites
-			for (unsigned int j = 0; j < surf_np_; j++)
-				if (site_non_conservation_[j] == true)
-					Gamma_[i](j) = GammaFromEqn_[i](j);
+				// Non conservation of sites
+				for (unsigned int j = 0; j < surf_np_; j++)
+					if (site_non_conservation_[j] == true)
+						Gamma_[i](j) = GammaFromEqn_[i](j);
 
-			// Normalize
-			//const double sum = Y_[i].sum();
-			//for (unsigned int j = 0; j < nc_; j++)
-			//	Y_[i](j) /= sum;
+				// Normalize
+				//const double sum = Y_[i].sum();
+				//for (unsigned int j = 0; j < nc_; j++)
+				//	Y_[i](j) /= sum;
+			}
+		}
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
+		{
+			for (unsigned int i = 0; i < np_; i++)
+				T_(i) = v[i];
 		}
 
 		Properties();
@@ -1411,44 +1592,70 @@ namespace CVI
 	void Reactor2D::MinimumUnknownsVector(double* v)
 	{
 		const double zero = 0.;
+		const double minimum_temperature = 200.;
 
-		unsigned int count = 0;
-		for (unsigned int i = 0; i < np_; i++)
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
 		{
-			for (unsigned int j = 0; j < nc_; j++)
+			unsigned int count = 0;
+			for (unsigned int i = 0; i < np_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					v[count++] = zero;
+
 				v[count++] = zero;
 
-			v[count++] = zero;
+				for (unsigned int j = 0; j < surf_np_; j++)
+					v[count++] = zero;
 
-			for (unsigned int j = 0; j < surf_np_; j++)
-				v[count++] = zero;
-
-			for (unsigned int j = 0; j < surf_nc_; j++)
-				v[count++] = zero;
+				for (unsigned int j = 0; j < surf_nc_; j++)
+					v[count++] = zero;
+			}
+		}
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
+		{
+			for (unsigned int i = 0; i < np_; i++)
+				v[i] = minimum_temperature;
 		}
 	}
 
 	void Reactor2D::MaximumUnknownsVector(double* v)
 	{
 		const double one = 1.;
+		const double maximum_temperature = 2500.;
 
-		unsigned int count = 0;
-		for (unsigned int i = 0; i < np_; i++)
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
 		{
-			for (unsigned int j = 0; j < nc_; j++)
+			unsigned int count = 0;
+			for (unsigned int i = 0; i < np_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					v[count++] = one;
+
 				v[count++] = one;
 
-			v[count++] = one;
+				for (unsigned int j = 0; j < surf_np_; j++)
+					v[count++] = one;
 
-			for (unsigned int j = 0; j < surf_np_; j++)
-				v[count++] = one;
-
-			for (unsigned int j = 0; j < surf_nc_; j++)
-				v[count++] = one;
+				for (unsigned int j = 0; j < surf_nc_; j++)
+					v[count++] = one;
+			}
+		}
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
+		{
+			for (unsigned int i = 0; i < np_; i++)
+				v[i] = maximum_temperature;
 		}
 	}
 
 	void Reactor2D::Equations(const double t, const double* y, double* dy)
+	{
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
+			EquationsComplete(t, y, dy);
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
+			EquationsOnlyTemperature(t, y, dy);
+	}
+
+	void Reactor2D::EquationsComplete(const double t, const double* y, double* dy)
 	{
 		// Recover unknowns
 		Recover_Unknowns(y);
@@ -1465,8 +1672,50 @@ namespace CVI
 		Recover_Residuals(dy);
 	}
 
+	void Reactor2D::EquationsOnlyTemperature(const double t, const double* y, double* dy)
+	{
+		// Recover unknowns
+		Recover_Unknowns(y);
+
+		// Properties
+		Properties();
+
+		// Equations
+		SubEquations_Temperature(t);
+
+		// Recover residuals
+		Recover_Residuals(dy);
+	}
+
 	int Reactor2D::SolveFromScratch(DaeSMOKE::DaeSolver_Parameters& dae_parameters, OdeSMOKE::OdeSolver_Parameters& ode_parameters)
 	{
+		// If the boundary conditions are taken from the CFD,
+		// the temperature is solved
+		if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
+		{
+			equations_set_ = EQUATIONS_SET_ONLYTEMPERATURE;
+			ne_ = np_;
+			unsigned int previous_block = block_;
+			block_ = 1;
+			band_size_ = (nx_ + 1) - 1;
+			SetAlgebraicDifferentialEquations();
+
+			std::cout << std::endl;
+			std::cout << "--------------------------------------------------------------------------" << std::endl;
+			std::cout << "Solving the temperature equation..." << std::endl;
+			std::cout << "--------------------------------------------------------------------------" << std::endl;
+
+			// Solve
+			Properties();
+			int flag = Solve(dae_parameters, 0, 1000.);
+			
+			equations_set_ = EQUATIONS_SET_COMPLETE;
+			block_ = previous_block;
+			ne_ = block_*np_;
+			band_size_ = block_*(nx_ + 1) - 1;
+			SetAlgebraicDifferentialEquations();
+		}
+
 		// Print initial solution
 		Properties();
 		PrintTecplot(0., (output_tecplot_folder_ / "Solution.tec.0").string().c_str());
@@ -2438,296 +2687,303 @@ namespace CVI
 
 	void Reactor2D::Print(const double t, const double* y)
 	{
-		if (count_dae_video_%n_steps_video_ == 1)
+		if (equations_set_ == EQUATIONS_SET_COMPLETE)
 		{
-			if (count_dae_video_ % (n_steps_video_ * 50) == 1)
+			if (count_dae_video_%n_steps_video_ == 1)
 			{
-				std::cout << std::endl;
-				std::cout << std::left << std::setw(14) << "Time[s]";		// [s]
-				std::cout << std::left << std::setw(14) << "Time[h]";		// [h]
-				std::cout << std::left << std::setw(14) << "Rho(M)[kg/m3]";	// [kg/m3]
-				std::cout << std::left << std::setw(14) << "Rho(Std)[kg/m3]";	// [kg/m3]
-				std::cout << std::left << std::setw(14) << "Rdep[mu/h]";	// [micron/h]
-				std::cout << std::left << std::setw(16) << "Rdep[kg/m3/h]";	// [kg/m3/h]
-				std::cout << std::left << std::setw(16) << "epsMin[-]";		// [-]
-				std::cout << std::left << std::setw(16) << "epsMax[-]";		// [-]
+				if (count_dae_video_ % (n_steps_video_ * 50) == 1)
+				{
+					std::cout << std::endl;
+					std::cout << std::left << std::setw(14) << "Time[s]";		// [s]
+					std::cout << std::left << std::setw(14) << "Time[h]";		// [h]
+					std::cout << std::left << std::setw(14) << "Rho(M)[kg/m3]";	// [kg/m3]
+					std::cout << std::left << std::setw(14) << "Rho(Std)[kg/m3]";	// [kg/m3]
+					std::cout << std::left << std::setw(14) << "Rdep[mu/h]";	// [micron/h]
+					std::cout << std::left << std::setw(16) << "Rdep[kg/m3/h]";	// [kg/m3/h]
+					std::cout << std::left << std::setw(16) << "epsMin[-]";		// [-]
+					std::cout << std::left << std::setw(16) << "epsMax[-]";		// [-]
+
+					if (detailed_heterogeneous_kinetics_ == true)
+					{
+						for (unsigned int i = 0; i < surf_np_; i++)
+							std::cout << std::left << std::setw(16) << "Gamma[kmol/m2]";
+						std::cout << std::left << std::setw(14) << "Error";
+					}
+
+					std::cout << std::endl;
+				}
+
+
+				const double rho_bulk_mean = AreaAveraged(rho_bulk_);
+				const double rho_bulk_std = AreaStandardDeviation(rho_bulk_mean, rho_bulk_);
+				const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);		// [kg/m2/s]
+				const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);	// [kg/m3/s]
+
+				std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t;		// [s]
+				std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t / 3600.;
+				std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_mean;
+				std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_std;
+				std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1e6*3600.;	// [micron/h]
+				std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << r_deposition_per_unit_volume_mean *3600.;			// [kg/m3/h]
+				std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << epsilon_.minCoeff();
+				std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << epsilon_.maxCoeff();
 
 				if (detailed_heterogeneous_kinetics_ == true)
 				{
 					for (unsigned int i = 0; i < surf_np_; i++)
-						std::cout << std::left << std::setw(16) << "Gamma[kmol/m2]";
-					std::cout << std::left << std::setw(14) << "Error";
+						std::cout << std::left << std::setw(16) << std::scientific << Gamma_[0](i);
+
+					Eigen::VectorXd error_z_sum(np_);
+					for (unsigned int i = 0; i < np_; i++)
+						error_z_sum(i) = std::fabs(Z_[i].sum() - 1.);
+
+					std::cout << std::left << std::setw(14) << std::setprecision(2) << std::scientific << error_z_sum.maxCoeff();
 				}
 
 				std::cout << std::endl;
 			}
 
-
-			const double rho_bulk_mean = AreaAveraged(rho_bulk_);
-			const double rho_bulk_std = AreaStandardDeviation(rho_bulk_mean, rho_bulk_);
-			const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);		// [kg/m2/s]
-			const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);	// [kg/m3/s]
-
-			std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t;		// [s]
-			std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t / 3600.;
-			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_mean;
-			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_std;
-			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1e6*3600.;	// [micron/h]
-			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << r_deposition_per_unit_volume_mean *3600.;			// [kg/m3/h]
-			std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << epsilon_.minCoeff();
-			std::cout << std::left << std::setw(16) << std::fixed << std::setprecision(6) << epsilon_.maxCoeff();
-
-			if (detailed_heterogeneous_kinetics_ == true)
+			if (count_file_ == n_steps_file_)
 			{
-				for (unsigned int i = 0; i < surf_np_; i++)
-					std::cout << std::left << std::setw(16) << std::scientific << Gamma_[0](i);
+				const int width = 20;
+				const int width_increased = 26;
 
-				Eigen::VectorXd error_z_sum(np_);
+				const double T_mean = AreaAveraged(T_);
+				const double T_std = AreaStandardDeviation(T_mean, T_);
+
+				const double P_mean = AreaAveraged(P_);
+				const double P_std = AreaStandardDeviation(P_mean, P_);
+
+				const double epsilon_mean = AreaAveraged(epsilon_);
+				const double epsilon_std = AreaStandardDeviation(epsilon_mean, epsilon_);
+
+				const double rho_bulk_mean = AreaAveraged(rho_bulk_);
+				const double rho_bulk_std = AreaStandardDeviation(rho_bulk_mean, rho_bulk_);
+
+				const double Sv_mean = AreaAveraged(Sv_);
+				const double Sv_std = AreaStandardDeviation(Sv_mean, Sv_);
+
+				const double rp_mean = AreaAveraged(rp_);
+				const double rp_std = AreaStandardDeviation(rp_mean, rp_);
+
+				const double permeability_mean = AreaAveraged(permeability_);
+				const double permeability_std = AreaStandardDeviation(permeability_mean, permeability_);
+
+				const double eta_bulk_mean = AreaAveraged(eta_bulk_);
+				const double eta_bulk_std = AreaStandardDeviation(eta_bulk_mean, eta_bulk_);
+
+				const double eta_knudsen_mean = AreaAveraged(eta_knudsen_);
+				const double eta_knudsen_std = AreaStandardDeviation(eta_knudsen_mean, eta_knudsen_);
+
+				const double eta_viscous_mean = AreaAveraged(eta_viscous_);
+				const double eta_viscous_std = AreaStandardDeviation(eta_viscous_mean, eta_viscous_);
+
+				const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);
+				const double r_deposition_per_unit_area_std = AreaStandardDeviation(r_deposition_per_unit_area_mean, omega_deposition_per_unit_area_);
+
+				const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);
+				const double r_deposition_per_unit_volume_std = AreaStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
+
+				const double delta_rhobulk_mean = AreaAveraged(delta_rhobulk_);
+				Eigen::VectorXd delta_rhobulk_due_to_single_reaction_mean(heterogeneousMechanism_.r().size());
+				for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
+					delta_rhobulk_due_to_single_reaction_mean(j) = AreaAveraged(delta_rhobulk_due_to_single_reaction_[j]);
+
+				fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t / 3600.;	// [h]
+				fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t;			// [s]
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << T_mean;		// [K]
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << T_std;		// [K]
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << P_mean;		// [Pa]
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << P_std;		// [Pa]
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << epsilon_mean;
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << epsilon_std;
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rho_bulk_mean;		// [kg/m3]
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rho_bulk_std;		// [kg/m3]
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << Sv_mean;	// [1/m]
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << Sv_std;		// [1/m]
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rp_mean*1e6;	// [micron]
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rp_std*1e6;		// [micron]
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << permeability_mean;	// [m2]
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << permeability_std;	// [m2]
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_bulk_mean;
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_bulk_std;
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_knudsen_mean;
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_knudsen_std;
+
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_mean;
+				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_std;
+
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1000.;		// [mm/s]
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / rho_graphite_*1000.;	// [mm/s]
+
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean *1000.*3600.;	// [g/m2/h]
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std *1000.*3600.;		// [g/m2/h]
+
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_mean *1000.*3600.;	// [g/m3/h]
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_std *1000.*3600.;	// [g/m3/h]
+
+				// Heterogeneous reaction rates: contributions to the bulk density
+				fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_mean;	// [kg/m3]
+				for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
+					fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_due_to_single_reaction_mean(j);	// [kg/m3]
+
+				fMonitoring_ << std::endl;
+
+				count_file_ = 0;
+			}
+
+			// Post-processing
+			{
+				const double delta_time = t - t_old_;
+				const double coefficient = heterogeneousMechanism_.mw_carbon()*delta_time;
+
 				for (unsigned int i = 0; i < np_; i++)
-					error_z_sum(i) = std::fabs(Z_[i].sum() - 1.);
-
-				std::cout << std::left << std::setw(14) << std::setprecision(2) << std::scientific << error_z_sum.maxCoeff();
-			}
-
-			std::cout << std::endl;
-		}
-
-		if (count_file_ == n_steps_file_)
-		{
-			const int width = 20;
-			const int width_increased = 26;
-
-			const double T_mean = AreaAveraged(T_);
-			const double T_std = AreaStandardDeviation(T_mean, T_);
-
-			const double P_mean = AreaAveraged(P_);
-			const double P_std = AreaStandardDeviation(P_mean, P_);
-
-			const double epsilon_mean = AreaAveraged(epsilon_);
-			const double epsilon_std = AreaStandardDeviation(epsilon_mean, epsilon_);
-
-			const double rho_bulk_mean = AreaAveraged(rho_bulk_);
-			const double rho_bulk_std = AreaStandardDeviation(rho_bulk_mean, rho_bulk_);
-
-			const double Sv_mean = AreaAveraged(Sv_);
-			const double Sv_std = AreaStandardDeviation(Sv_mean, Sv_);
-
-			const double rp_mean = AreaAveraged(rp_);
-			const double rp_std = AreaStandardDeviation(rp_mean, rp_);
-
-			const double permeability_mean = AreaAveraged(permeability_);
-			const double permeability_std = AreaStandardDeviation(permeability_mean, permeability_);
-
-			const double eta_bulk_mean = AreaAveraged(eta_bulk_);
-			const double eta_bulk_std = AreaStandardDeviation(eta_bulk_mean, eta_bulk_);
-
-			const double eta_knudsen_mean = AreaAveraged(eta_knudsen_);
-			const double eta_knudsen_std = AreaStandardDeviation(eta_knudsen_mean, eta_knudsen_);
-
-			const double eta_viscous_mean = AreaAveraged(eta_viscous_);
-			const double eta_viscous_std = AreaStandardDeviation(eta_viscous_mean, eta_viscous_);
-
-			const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);
-			const double r_deposition_per_unit_area_std = AreaStandardDeviation(r_deposition_per_unit_area_mean, omega_deposition_per_unit_area_);
-
-			const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);
-			const double r_deposition_per_unit_volume_std = AreaStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
-
-			const double delta_rhobulk_mean = AreaAveraged(delta_rhobulk_);
-			Eigen::VectorXd delta_rhobulk_due_to_single_reaction_mean(heterogeneousMechanism_.r().size());
-			for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
-				delta_rhobulk_due_to_single_reaction_mean(j) = AreaAveraged(delta_rhobulk_due_to_single_reaction_[j]);
-
-			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t / 3600.;	// [h]
-			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t;			// [s]
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << T_mean;		// [K]
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << T_std;		// [K]
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << P_mean;		// [Pa]
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << P_std;		// [Pa]
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << epsilon_mean;	
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << epsilon_std;
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rho_bulk_mean;		// [kg/m3]
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rho_bulk_std;		// [kg/m3]
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << Sv_mean;	// [1/m]
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << Sv_std;		// [1/m]
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rp_mean*1e6;	// [micron]
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << rp_std*1e6;		// [micron]
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << permeability_mean;	// [m2]
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << permeability_std;	// [m2]
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_bulk_mean;
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_bulk_std;
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_knudsen_mean;
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_knudsen_std;
-
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_mean;
-			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_std;
-
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean/ rho_graphite_*1000.;		// [mm/s]
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / rho_graphite_*1000.;	// [mm/s]
-
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean *1000.*3600.;	// [g/m2/h]
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std *1000.*3600.;		// [g/m2/h]
-
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_mean *1000.*3600.;	// [g/m3/h]
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_std *1000.*3600.;	// [g/m3/h]
-
-			// Heterogeneous reaction rates: contributions to the bulk density
-			fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_mean;	// [kg/m3]
-			for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
-				fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_due_to_single_reaction_mean(j);	// [kg/m3]
-
-			fMonitoring_ << std::endl;
-
-			count_file_ = 0;
-		}
-
-		// Post-processing
-		{
-			const double delta_time = t - t_old_;
-			const double coefficient = heterogeneousMechanism_.mw_carbon()*delta_time;
-
-			for (unsigned int i = 0; i < np_; i++)
-			{
-				// Porous medium
-				porousMedium_.SetPorosity(epsilon_(i));
-				porousMedium_.SetTemperature(T_(i));
-				porousMedium_.SetPressure(P_(i));
-
-				// Thermodynamics
-				thermodynamicsMap_.SetPressure(P_(i));
-				thermodynamicsMap_.SetTemperature(T_(i));
-
-				// Concentrations
-				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
-				aux_X.CopyTo(X_[i].data());
-				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
-				Product(cTot, aux_X, &aux_C);
-
-				// Heterogeneous reactions
-				heterogeneousMechanism_.SetTemperature(T_(i));
-				heterogeneousMechanism_.SetPressure(P_(i));
-				for (unsigned int j = 0; j < nc_; j++)
-					aux_eigen(j) = aux_C[j + 1];
-				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
-
-				// Single contributions
-				delta_rhobulk_(i) = 0.;
-				for (int k = 0; k < heterogeneousMechanism_.r().size(); k++)
 				{
-					delta_rhobulk_due_to_single_reaction_[k](i) += heterogeneousMechanism_.r_deposition_per_unit_volume_per_single_reaction()(k)*coefficient;
-					delta_rhobulk_(i) += delta_rhobulk_due_to_single_reaction_[k](i);
+					// Porous medium
+					porousMedium_.SetPorosity(epsilon_(i));
+					porousMedium_.SetTemperature(T_(i));
+					porousMedium_.SetPressure(P_(i));
+
+					// Thermodynamics
+					thermodynamicsMap_.SetPressure(P_(i));
+					thermodynamicsMap_.SetTemperature(T_(i));
+
+					// Concentrations
+					aux_Y.CopyFrom(Y_[i].data());
+					thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
+					aux_X.CopyTo(X_[i].data());
+					const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
+					Product(cTot, aux_X, &aux_C);
+
+					// Heterogeneous reactions
+					heterogeneousMechanism_.SetTemperature(T_(i));
+					heterogeneousMechanism_.SetPressure(P_(i));
+					for (unsigned int j = 0; j < nc_; j++)
+						aux_eigen(j) = aux_C[j + 1];
+					heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
+
+					// Single contributions
+					delta_rhobulk_(i) = 0.;
+					for (int k = 0; k < heterogeneousMechanism_.r().size(); k++)
+					{
+						delta_rhobulk_due_to_single_reaction_[k](i) += heterogeneousMechanism_.r_deposition_per_unit_volume_per_single_reaction()(k)*coefficient;
+						delta_rhobulk_(i) += delta_rhobulk_due_to_single_reaction_[k](i);
+					}
+
+					// Single contributions (normalized)
+					for (int k = 0; k < heterogeneousMechanism_.r().size(); k++)
+						delta_rhobulk_due_to_single_reaction_over_rhobulk_[k](i) = delta_rhobulk_due_to_single_reaction_[k](i) / (delta_rhobulk_(i) + 1.e-12);
 				}
-
-				// Single contributions (normalized)
-				for (int k = 0; k < heterogeneousMechanism_.r().size(); k++)
-					delta_rhobulk_due_to_single_reaction_over_rhobulk_[k](i) = delta_rhobulk_due_to_single_reaction_[k](i) / (delta_rhobulk_(i)+1.e-12);
 			}
-		}
 
-		if ( t>= (count_tecplot_+1)*tecplot_time_interval_)
-		{
-			count_tecplot_++;
-			std::stringstream current_index; current_index << count_tecplot_;
+			if (t >= (count_tecplot_ + 1)*tecplot_time_interval_)
+			{
+				count_tecplot_++;
+				std::stringstream current_index; current_index << count_tecplot_;
 
-			std::string tecplot_file = "Solution.tec." + current_index.str();
-			PrintTecplot(t, (output_tecplot_folder_ / tecplot_file).string().c_str());
+				std::string tecplot_file = "Solution.tec." + current_index.str();
+				PrintTecplot(t, (output_tecplot_folder_ / tecplot_file).string().c_str());
+
+				if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
+				{
+					std::string plug_flow_file = "PlugFlow.out." + current_index.str();
+					plugFlowReactor_.Print(t, (output_plug_flow_folder_ / plug_flow_file).string().c_str());
+				}
+			}
 
 			if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 			{
-				std::string plug_flow_file = "PlugFlow.out." + current_index.str();
-				plugFlowReactor_.Print(t, (output_plug_flow_folder_ / plug_flow_file).string().c_str());
-			}
-		}
-
-		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
-		{
-			if (plugFlowReactor_.coupling() == true && count_update_plug_flow_ == n_steps_update_plug_flow_)
-			{
-				const double inlet_T = plugFlowReactor_.inlet_temperature();
-				const double inlet_P = plugFlowReactor_.inlet_pressure();
-				const Eigen::VectorXd inlet_omega = plugFlowReactor_.inlet_mass_fractions();
-
-				// Plug flow ractor simulation
-				std::vector<Eigen::VectorXd> Y_gas_side;
+				if (plugFlowReactor_.coupling() == true && count_update_plug_flow_ == n_steps_update_plug_flow_)
 				{
-					// Set initial conditions
-					plugFlowReactor_.SetInitialConditions(inlet_T, inlet_P, inlet_omega);
-					plugFlowReactor_.SetVerboseOutput(false);
+					const double inlet_T = plugFlowReactor_.inlet_temperature();
+					const double inlet_P = plugFlowReactor_.inlet_pressure();
+					const Eigen::VectorXd inlet_omega = plugFlowReactor_.inlet_mass_fractions();
 
-					// Set external profile
+					// Plug flow ractor simulation
+					std::vector<Eigen::VectorXd> Y_gas_side;
 					{
-						Eigen::VectorXd csi_external(ny_ + 2);
-						Eigen::MatrixXd omega_external(ny_ + 2, thermodynamicsMap_.NumberOfSpecies());
-
-						// Set csi external
-						csi_external(0) = 0.;
-						csi_external(ny_ + 1) = 1000.;
-						for (unsigned int i = 0; i < ny_; i++)
-							csi_external(i + 1) = plugFlowReactor_.inert_length() + grid_y_.x()[i];
-
-						// Internal points
-						for (unsigned int i = 0; i < ny_; i++)
-						{
-							const int point = list_points_east_(i);
-							for (unsigned int j = 0; j < nc_; j++)
-								omega_external(i + 1, j) = Y_[point](j);
-						}
-
-						// First point
-						for (unsigned int j = 0; j < nc_; j++)
-							omega_external(0, j) = omega_external(1, j);
-
-						// Last point
-						for (unsigned int j = 0; j < nc_; j++)
-							omega_external(ny_ + 1, j) = omega_external(ny_, j);
+						// Set initial conditions
+						plugFlowReactor_.SetInitialConditions(inlet_T, inlet_P, inlet_omega);
+						plugFlowReactor_.SetVerboseOutput(false);
 
 						// Set external profile
-						plugFlowReactor_.SetExternalMassFractionsProfile(csi_external, omega_external);
-					}
-
-					// Solve the plug flow reactor
-					plugFlowReactor_.Solve(plugFlowReactor_.last_residence_time());
-
-					// Extract the plug flow history
-					Eigen::VectorXd csi(plugFlowReactor_.history_csi().size());
-					for (unsigned int i = 0; i < plugFlowReactor_.history_csi().size(); i++)
-						csi(i) = plugFlowReactor_.history_csi()[i];
-
-					// Assign the boundary conditions
-					PlugFlowReactorCoupledProfiles* profiles = new PlugFlowReactorCoupledProfiles(csi);
-					Y_gas_side.resize(2 * grid_x_.Np() + grid_y_.Np());
-					for (unsigned int i = 0; i < Y_gas_side.size(); i++)
-					{
-						Y_gas_side[i].resize(thermodynamicsMap_.NumberOfSpecies());
-						Y_gas_side[i].setZero();
-					}
-
-					// Case: only east side
-					if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
-					{
-						for (int i = 0; i < grid_y_.Np(); i++)
 						{
-							const int point = i + grid_x_.Np();
-							const double coordinate = grid_y_.x()(i) + plugFlowReactor_.inert_length();
-							profiles->Interpolate(coordinate, plugFlowReactor_.history_Y(), Y_gas_side[point]);
+							Eigen::VectorXd csi_external(ny_ + 2);
+							Eigen::MatrixXd omega_external(ny_ + 2, thermodynamicsMap_.NumberOfSpecies());
+
+							// Set csi external
+							csi_external(0) = 0.;
+							csi_external(ny_ + 1) = 1000.;
+							for (unsigned int i = 0; i < ny_; i++)
+								csi_external(i + 1) = plugFlowReactor_.inert_length() + grid_y_.x()[i];
+
+							// Internal points
+							for (unsigned int i = 0; i < ny_; i++)
+							{
+								const int point = list_points_east_(i);
+								for (unsigned int j = 0; j < nc_; j++)
+									omega_external(i + 1, j) = Y_[point](j);
+							}
+
+							// First point
+							for (unsigned int j = 0; j < nc_; j++)
+								omega_external(0, j) = omega_external(1, j);
+
+							// Last point
+							for (unsigned int j = 0; j < nc_; j++)
+								omega_external(ny_ + 1, j) = omega_external(ny_, j);
+
+							// Set external profile
+							plugFlowReactor_.SetExternalMassFractionsProfile(csi_external, omega_external);
 						}
+
+						// Solve the plug flow reactor
+						plugFlowReactor_.Solve(plugFlowReactor_.last_residence_time());
+
+						// Extract the plug flow history
+						Eigen::VectorXd csi(plugFlowReactor_.history_csi().size());
+						for (unsigned int i = 0; i < plugFlowReactor_.history_csi().size(); i++)
+							csi(i) = plugFlowReactor_.history_csi()[i];
+
+						// Assign the boundary conditions
+						PlugFlowReactorCoupledProfiles* profiles = new PlugFlowReactorCoupledProfiles(csi);
+						Y_gas_side.resize(2 * grid_x_.Np() + grid_y_.Np());
+						for (unsigned int i = 0; i < Y_gas_side.size(); i++)
+						{
+							Y_gas_side[i].resize(thermodynamicsMap_.NumberOfSpecies());
+							Y_gas_side[i].setZero();
+						}
+
+						// Case: only east side
+						if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
+						{
+							for (int i = 0; i < grid_y_.Np(); i++)
+							{
+								const int point = i + grid_x_.Np();
+								const double coordinate = grid_y_.x()(i) + plugFlowReactor_.inert_length();
+								profiles->Interpolate(coordinate, plugFlowReactor_.history_Y(), Y_gas_side[point]);
+							}
+						}
+
+						SetGasSide(inlet_T, inlet_P, Y_gas_side);
 					}
 
-					SetGasSide(inlet_T, inlet_P, Y_gas_side);
+					count_update_plug_flow_ = 0;
 				}
-
-				count_update_plug_flow_ = 0;
 			}
+		}
+		else if (equations_set_ == EQUATIONS_SET_ONLYTEMPERATURE)
+		{
+			std::cout << t << " " << T_(np_ / 2) << std::endl;
 		}
 
 		t_old_ = t;

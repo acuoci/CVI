@@ -54,6 +54,7 @@
 namespace CVI
 {
 	enum GaseousPhase { GASEOUS_PHASE_FROM_PLUG_FLOW, GASEOUS_PHASE_FROM_CFD };
+	enum EquationsSet { EQUATIONS_SET_COMPLETE, EQUATIONS_SET_ONLYTEMPERATURE };
 
 	//!  A class to solve the reaction-diffusion equations in 1D 
 	/*!
@@ -180,6 +181,22 @@ namespace CVI
 		*@param dy current time derivatives
 		*/
 		void Equations(const double t, const double* y, double* dy);
+
+		/**
+		*@brief Returns the differential equations for the complete set
+		*@param t current time [s]
+		*@param y current solution
+		*@param dy current time derivatives
+		*/
+		void EquationsComplete(const double t, const double* y, double* dy);
+
+		/**
+		*@brief Returns the differential equations for temperature equation only
+		*@param t current time [s]
+		*@param y current solution
+		*@param dy current time derivatives
+		*/
+		void EquationsOnlyTemperature(const double t, const double* y, double* dy);
 
 		/**
 		*@brief Solves the reactor equations
@@ -315,6 +332,12 @@ namespace CVI
 		void SubEquations_SurfaceSpeciesFractions();
 
 		/**
+		*@brief Equation of conservation of temperature
+		*@param t current time [s]
+		*/
+		void SubEquations_Temperature(const double t);
+
+		/**
 		*@brief Boundary conditions for mass fractions
 		*/
 		void SubEquations_MassFractions_BoundaryConditions(const double t);
@@ -323,6 +346,16 @@ namespace CVI
 		void SubEquations_MassFractions_BoundaryConditions_EastSide(const double t);
 		void SubEquations_MassFractions_BoundaryConditions_NorthSide(const double t);
 		void SubEquations_MassFractions_BoundaryConditions_SouthSide(const double t);
+
+		/**
+		*@brief Boundary conditions for temperature
+		*/
+		void SubEquations_Temperature_BoundaryConditions(const double t);
+
+		void SubEquations_Temperature_BoundaryConditions_WestSide(const double t);
+		void SubEquations_Temperature_BoundaryConditions_EastSide(const double t);
+		void SubEquations_Temperature_BoundaryConditions_NorthSide(const double t);
+		void SubEquations_Temperature_BoundaryConditions_SouthSide(const double t);
 
 		/**
 		*@brief Prints the current solution on a file
@@ -482,6 +515,7 @@ namespace CVI
 
 		// Time derivatives
 		std::vector<Eigen::VectorXd>	dY_over_dt_;			//!< time derivatives of mass fractions	[1/s]
+		Eigen::VectorXd					dT_over_dt_;			//!< time derivative of temperature [K/s]
 		Eigen::VectorXd					depsilon_over_dt_;		//!< time derivative of porosity [1/s]
 		std::vector<Eigen::VectorXd>	dZ_over_dt_;			//!< time derivatives of fractions of surface species [1/s]
 		std::vector<Eigen::VectorXd>	dGamma_over_dt_;		//!< time derivatives of surface densities [kmol/m2/s]
@@ -511,6 +545,8 @@ namespace CVI
 		Eigen::VectorXi		differential_equations_;	//!< list of differential equations
 		Eigen::VectorXi		algebraic_equations_;		//!< list of algebraic equations
 
+		// Set of equations to be solved
+		EquationsSet	equations_set_;					//!< current set of equations to be solved
 
 		// Auxiliary vectors
 		OpenSMOKE::OpenSMOKEVectorDouble	aux_Y;				//!< vector containing the mass fractions

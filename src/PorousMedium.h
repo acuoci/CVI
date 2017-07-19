@@ -128,6 +128,10 @@ namespace CVI
 
 		double epsilon_threshold() { return epsilon_threshold_; }
 
+		double lambda();
+
+		double cp_times_rho(const double rho_gas, const double rho_graphite);
+
 		/**
 		*@brief Calculates the effective mass diffusion coefficients resulting from the combination of ordinary and Knudsen diffusion
 		*@param mole_fractions mole fractions of gaseous species
@@ -198,6 +202,18 @@ namespace CVI
 		void Summary();
 
 		void Initialize();
+
+		double lambda_gas();
+
+		double lambda_fiber();
+
+		double lambda_graphite();
+
+		double cp_gas();
+
+		double cp_fiber();
+
+		double cp_graphite();
 
 	private:
 
