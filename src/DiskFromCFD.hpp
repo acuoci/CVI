@@ -47,6 +47,8 @@ namespace CVI
 
 	void DiskFromCFD::ReadFromFile(const boost::filesystem::path disk_file_name)
 	{
+		bool edge_centered_policy = false;
+
 		rapidxml::xml_document<> doc;
 		std::vector<char> xml_string;
 		OpenSMOKE::OpenInputFileXML(doc, xml_string, disk_file_name);
@@ -55,6 +57,15 @@ namespace CVI
 		rapidxml::xml_node<>* number_of_species_node = opensmoke_node->first_node("NumberOfSpecies");
 		rapidxml::xml_node<>* names_of_species_node = opensmoke_node->first_node("NamesOfSpecies");
 		
+		rapidxml::xml_node<>* policy_node = opensmoke_node->first_node("Policy");
+		if (policy_node != 0)
+		{
+			const std::string policy = boost::trim_copy(std::string(policy_node->value()));
+			if (policy == "edge-centered")		edge_centered_policy = true;
+			else if (policy == "face-centered")	edge_centered_policy = false;
+			else OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "Wrong policy: face-centered (default) | edge-centered)");
+		}
+
 		try
 		{
 			const unsigned int ns = boost::lexical_cast<unsigned int>(boost::trim_copy(std::string(number_of_species_node->value())));
@@ -157,6 +168,12 @@ namespace CVI
 				for (unsigned int i = 0; i < np; i++)
 					coordinates_from_cfd[i] = coordinates_from_cfd_unsorted[indices_increasing[i]];
 
+				if (edge_centered_policy == true)
+				{
+					coordinates_from_cfd[0]    = 0.9*coordinates_from_cfd[0] + 0.10*coordinates_from_cfd[1];
+					coordinates_from_cfd[np-1] = 0.9*coordinates_from_cfd[np-1] + 0.10*coordinates_from_cfd[np-2];
+				}
+
 				if (side_name == "North")
 				{
 					if (relevant_coordinate != 0)
@@ -227,7 +244,11 @@ namespace CVI
 					std::cout << "Extending" << std::endl;
 
 					if (coordinates_from_cfd[0] <= ri_ || coordinates_from_cfd[np - 1] >= re_)
+					{
+						std::cout << "Provided radii: " << ri_ << " " << re_ << std::endl;
+						std::cout << "Coordinates from CFD: " << coordinates_from_cfd[0] << " " << coordinates_from_cfd[np - 1] << std::endl;
 						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "The size of the disk from CFD does not match the input size");
+					}
 
 					// Initial value
 					coordinates_from_cfd.insert(coordinates_from_cfd.begin(), ri_*(0.9999999));
@@ -249,7 +270,11 @@ namespace CVI
 					coordinates_from_cfd[i] -= south_coordinate;
 
 				if (coordinates_from_cfd[0] <= 0. || coordinates_from_cfd[np - 1] >= H_)
+				{
+					std::cout << "Provided heights: " << 0. << " " << H_ << std::endl;
+					std::cout << "Coordinates from CFD: " << coordinates_from_cfd[0] << " " << coordinates_from_cfd[np - 1] << std::endl;
 					OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "The size of the disk from CFD does not match the input size");
+				}
 
 				// Initial value
 				coordinates_from_cfd.insert(coordinates_from_cfd.begin(), -0.0000001);
