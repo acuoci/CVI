@@ -1707,7 +1707,7 @@ namespace CVI
 
 			// Solve
 			Properties();
-			int flag = Solve(dae_parameters, 0, 1000.);
+			int flag = Solve(dae_parameters, 0, 10000.);
 			
 			equations_set_ = EQUATIONS_SET_COMPLETE;
 			block_ = previous_block;
