@@ -1713,6 +1713,7 @@ namespace CVI
 			block_ = previous_block;
 			ne_ = block_*np_;
 			band_size_ = block_*(nx_ + 1) - 1;
+			count_file_ = n_steps_file_;
 			SetAlgebraicDifferentialEquations();
 		}
 
