@@ -175,6 +175,12 @@ namespace CVI
 		void SetUniformVelocity(const double vx, const double vy);
 
 		/**
+		*@brief Sets the output file name where the integral formation rates are written
+		*@param filename file name
+		*/
+		void SetOutputFile(const std::string filename);
+
+		/**
 		*@brief Returns the differential equations
 		*@param t current time [s]
 		*@param y current solution
@@ -401,6 +407,13 @@ namespace CVI
 		void PrintDetailedHeterogeneousRates(const double t, const std::string name_file);
 
 		/**
+		*@brief Prints the source terms due to the densification to be transferred to CFD
+		*@param t current time [s]
+		*@param name_file name of file where the source terms will be written
+		*/
+		void PrintIntegralHomogeneousRates(const double t, const std::string name_file);
+
+		/**
 		*@brief Solves the system of DAE describing the 1D reactor
 		*@param dae_parameters parameters governing the solution of the DAE system
 		*@param t0 starting time [s]
@@ -566,15 +579,17 @@ namespace CVI
 		unsigned int count_update_plug_flow_;				//!< counter of steps for updating plug flow
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 
-		boost::filesystem::path output_folder_;					//!< name of output folder
-		boost::filesystem::path output_tecplot_folder_;			//!< name of output folder fot Tecplot files
-		boost::filesystem::path output_plug_flow_folder_;		//!< name of output folder fot Tecplot files
-		boost::filesystem::path output_matlab_folder_;			//!< name of output folder fot Matlab files
-		boost::filesystem::path output_diffusion_folder_;		//!< name of output folder fot diffusion coefficient files
-		boost::filesystem::path output_heterogeneous_folder_;	//!< name of output folder fot heterogeneous reaction files
-		boost::filesystem::path output_homogeneous_folder_;		//!< name of output folder fot homogeneous reaction files
-		boost::filesystem::path output_ropa_folder_;			//!< name of output folder for ropa (on the fly)
-		boost::filesystem::path output_backup_folder_;			//!< name of output folder for backup files (only 2D with detailed kinetics)
+		boost::filesystem::path output_folder_;						//!< name of output folder
+		boost::filesystem::path output_tecplot_folder_;				//!< name of output folder fot Tecplot files
+		boost::filesystem::path output_plug_flow_folder_;			//!< name of output folder fot Tecplot files
+		boost::filesystem::path output_matlab_folder_;				//!< name of output folder fot Matlab files
+		boost::filesystem::path output_diffusion_folder_;			//!< name of output folder fot diffusion coefficient files
+		boost::filesystem::path output_heterogeneous_folder_;		//!< name of output folder fot heterogeneous reaction files
+		boost::filesystem::path output_homogeneous_folder_;			//!< name of output folder fot homogeneous reaction files
+		boost::filesystem::path output_ropa_folder_;				//!< name of output folder for ropa (on the fly)
+		boost::filesystem::path output_backup_folder_;				//!< name of output folder for backup files (only 2D with detailed kinetics)
+		boost::filesystem::path output_disks_source_terms_folder_;	//!< name of output folder for source terms of disks (to be imported in CFD)
+		std::string output_disk_file_name_;							//!< name of output file where integral formation rates are written
 
 		// Post-processing	
 		Eigen::VectorXd					delta_rhobulk_;											//!< total increment of bulk density [kg/m3]

@@ -35,11 +35,9 @@
 \*-----------------------------------------------------------------------*/
 
 #include <ida/ida.h>
-#include <ida/ida_band.h>
-#include <ida/ida_lapack.h>
+#include <ida/ida_direct.h>
 #include <kinsol/kinsol.h>
-#include <kinsol/kinsol_band.h>
-#include <kinsol/kinsol_lapack.h>
+#include <kinsol/kinsol_direct.h>
 #include <nvector/nvector_serial.h>
 #include <sundials/sundials_types.h>
 

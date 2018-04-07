@@ -193,6 +193,9 @@ namespace CVI
 		output_homogeneous_folder_ = output_folder_ / "HomogeneousReactions";
 		OpenSMOKE::CreateDirectory(output_homogeneous_folder_);
 
+		output_disks_source_terms_folder_ = output_folder_ / "DisksSourceTerms";
+		OpenSMOKE::CreateDirectory(output_disks_source_terms_folder_);
+
 		output_ropa_folder_ = output_folder_ / "ROPA";
 		OpenSMOKE::CreateDirectory(output_ropa_folder_);
 
@@ -855,6 +858,11 @@ namespace CVI
 		vy_ = vy;
 	}
 
+	void Reactor2D::SetOutputFile(const std::string filename)
+	{
+		output_disk_file_name_ = filename;
+	}
+
 	void Reactor2D::SetDerivativeMassFractions(const OpenSMOKE::derivative_type value)
 	{
 		derivative_type_mass_fractions_ = value;
@@ -1176,6 +1184,8 @@ namespace CVI
 					
 					const double homogeneous_reactions = epsilon_(center)*omega_homogeneous_from_homogeneous_[center](j);
 					const double heterogeneous_reactions = omega_homogeneous_from_heterogeneous_[center](j) + Y_[center](j)*omega_deposition_per_unit_volume_(center);
+
+
 
 					if (planar_symmetry_ == false)
 					{
@@ -1854,11 +1864,13 @@ namespace CVI
 			std::string diffusion_coefficients_file = "DiffusionCoefficients." + hours.str() + ".out";
 			std::string heterogeneous_rates_file = "HeterogeneousRates." + hours.str() + ".out";
 			std::string homogeneous_rates_file = "HomogeneousRates." + hours.str() + ".out";
+			std::string integral_homogeneous_rates_file = output_disk_file_name_ + ".source." + hours.str() + ".xml";
 
 			PrintSolution(tf, (output_folder_ / solution_file).string().c_str());
 			PrintDiffusionCoefficients(tf, (output_diffusion_folder_ / diffusion_coefficients_file).string().c_str());
 			PrintHeterogeneousRates(tf, (output_heterogeneous_folder_ / heterogeneous_rates_file).string().c_str());
 			PrintHomogeneousRates(tf, (output_homogeneous_folder_ / homogeneous_rates_file).string().c_str());
+			PrintIntegralHomogeneousRates(tf, (output_disks_source_terms_folder_ / integral_homogeneous_rates_file).string().c_str());
 
 			if (ropa_analysis_ == true)
 			{
@@ -2458,6 +2470,114 @@ namespace CVI
 		}
 
 		fOutput.close();
+	}
+
+	void Reactor2D::PrintIntegralHomogeneousRates(const double t, const std::string name_file)
+	{
+		Eigen::MatrixXd	omegadot_from_homogeneous_(np_, aux_Y.Size());
+		Eigen::MatrixXd	omegadot_from_heterogeneous_(np_, aux_Y.Size());
+
+		for (unsigned int i = 0; i < np_; i++)
+		{
+			// Concentrations
+			thermodynamicsMap_.SetTemperature(T_(i));
+			thermodynamicsMap_.SetPressure(P_(i));
+			aux_Y.CopyFrom(Y_[i].data());
+			thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
+			aux_X.CopyTo(X_[i].data());
+			const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
+			Product(cTot, aux_X, &aux_C);
+
+			// Formation rates: homogeneous reactions
+			if (heterogeneousDetailedMechanism_.homogeneous_reactions() == true)
+			{
+				kineticsMap_.SetTemperature(T_(i));
+				kineticsMap_.SetPressure(P_(i));
+				kineticsMap_.ReactionRates(aux_C.GetHandle());
+				kineticsMap_.FormationRates(aux_R.GetHandle());
+				OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
+				
+				for (unsigned int j = 0; j < nc_; j++)
+					omegadot_from_homogeneous_(i, j) = epsilon_(i)*aux_R[j+1];
+			}
+
+			// Formation rates: heterogenous reactions
+			if (heterogeneousDetailedMechanism_.heterogeneous_reactions() == true)
+			{
+				heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+				heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+				for (unsigned int j = 0; j < nc_; j++)
+					eigen_C_(j) = aux_C[j + 1];
+
+				for (unsigned int j = 0; j < surf_nc_; j++)
+					eigen_Z_(j) = Z_[i](j);
+
+				for (unsigned int j = 0; j < bulk_nc_; j++)
+					eigen_a_(j) = 1.;
+
+				for (unsigned int j = 0; j < surf_np_; j++)
+					eigen_gamma_(j) = Gamma_[i](j);
+
+				heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
+
+				for (unsigned int j = 0; j < nc_; j++)
+					omegadot_from_heterogeneous_(i,j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j);				// [kg/m3/s]
+			}
+		}
+
+		// Print on file
+		{
+			const double Ri = grid_x_.x()(0);
+			const double Re = grid_x_.x()(nx_ - 1);
+			const double total_volume = boost::math::constants::pi<double>()*(Re*Re - Ri * Ri)*grid_y_.L();
+
+			std::ofstream fOutputXML(name_file.c_str(), std::ios::out);
+			fOutputXML.setf(std::ios::scientific);
+
+			fOutputXML << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl;
+			fOutputXML << "<opensmoke version=\"0.1a\">" << std::endl;
+
+			fOutputXML << "<number-species>" << std::endl;
+			fOutputXML << nc_ << std::endl;
+			fOutputXML << "</number-species>" << std::endl;
+
+			fOutputXML << "<total-volume>" << std::endl;
+			fOutputXML << total_volume << std::endl;
+			fOutputXML << "</total-volume>" << std::endl;
+
+			fOutputXML << "<slice-volume>" << std::endl;
+			fOutputXML << total_volume*5./360. << std::endl;
+			fOutputXML << "</slice-volume>" << std::endl;
+
+			fOutputXML << "<source-terms>" << std::endl;
+
+			double sum_homogeneous = 0.;
+			double sum_heterogeneous = 0.;
+			for (unsigned int j = 0; j < nc_; j++)
+			{
+				const double homogeneous = AreaAveraged(omegadot_from_homogeneous_.col(j));
+				const double heterogeneous = AreaAveraged(omegadot_from_heterogeneous_.col(j));
+				sum_homogeneous += homogeneous;
+				sum_heterogeneous += heterogeneous;
+				fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+				fOutputXML << std::right << std::setprecision(9) << std::setw(20) << homogeneous;
+				fOutputXML << std::right << std::setprecision(9) << std::setw(20) << heterogeneous;
+				fOutputXML << std::right << std::setprecision(9) << std::setw(20) << homogeneous + heterogeneous;
+				fOutputXML << std::endl;
+			}
+			fOutputXML << "</source-terms>" << std::endl;
+
+			fOutputXML << "<total-source-terms>" << std::endl;
+			fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_homogeneous;
+			fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_heterogeneous;
+			fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_homogeneous + sum_heterogeneous;
+			fOutputXML << std::endl;
+			fOutputXML << "</total-source-terms>" << std::endl;
+
+			fOutputXML << "</opensmoke>" << std::endl;
+			fOutputXML.close();
+		}
 	}
 
 	void Reactor2D::PrintHeterogeneousRates(const double t, const std::string name_file)

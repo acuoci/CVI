@@ -138,24 +138,46 @@ namespace CVI
 					points_xml >> coordinates[2](i);
 				}
 
-				double change[3];
+				
+				Eigen::VectorXd mean(3);
+				mean.setZero();
 				for (unsigned int i = 0; i < 3; i++)
-					change[i] = coordinates[i](np - 1) - coordinates[i](0);
+				{
+					
+					for (unsigned int j = 0; j < np; j++)
+						mean(i) += coordinates[i](j);
+					mean(i) /= static_cast<double>(np);
+				}
+
+				Eigen::VectorXd change(3);
+				change.setZero();
+				for (unsigned int i = 0; i < 3; i++)
+				{
+					for (unsigned int j = 0; j < np; j++)
+						change(i) += std::fabs(mean(i)-coordinates[i](j));
+					change(i) /= np;
+				}
+
+				for (unsigned int i = 0; i < 3; i++)
+					std::cout << "Mean: " << mean(i) << " Change: " << change(i) << std::endl;
 
 				// Check alignement
 				{
+					const double tolerance = 1.e-5;
 					unsigned int count_zeros = 0;
 					for (unsigned int i = 0; i < 3; i++)
-						if (std::fabs(change[i]) < 1.e-6)	count_zeros++;
+						if (std::fabs(change(i)) < tolerance)	count_zeros++;
 					if (count_zeros != 2)
 						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "The current side is not aligned with none of the cartisian axes");
 				}
 
 				// Find the relevant coordinate
 				unsigned int relevant_coordinate = 0;
-				if (std::fabs(change[1]) > std::fabs(change[0]) && std::fabs(change[1]) > std::fabs(change[2]))
+				if (std::fabs(change(1)) > std::fabs(change(0)) && std::fabs(change(1)) > std::fabs(change(2)))
 					relevant_coordinate = 1;
-				if (std::fabs(change[2]) > std::fabs(change[0]) && std::fabs(change[2]) > std::fabs(change[0]))
+
+				// The z coordinate is a fake coordinate
+				if (std::fabs(change(2)) > std::fabs(change(0)) && std::fabs(change(2)) > std::fabs(change(0)))
 					relevant_coordinate = 2;
 
 				// Assign coordinates
@@ -198,7 +220,7 @@ namespace CVI
 				else if (side_name == "West")
 				{
 					if (relevant_coordinate != 1)
-						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "East side is not aligned with y axis");
+						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "West side is not aligned with y axis");
 
 					west_coordinate = coordinates[0](0);
 				}

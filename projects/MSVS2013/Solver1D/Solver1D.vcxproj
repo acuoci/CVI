@@ -51,7 +51,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <UseIntelMKL>Sequential</UseIntelMKL>
@@ -94,7 +94,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>CVISMOKE++</TargetName>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_65_1\;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-3.1.0\lib\windows\msvs2017-x64-Release\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
     <OutDir>..\..\..\exe\x64-Release\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -160,14 +160,15 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InterproceduralOptimization>NoIPO</InterproceduralOptimization>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-x64;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-x64-Release\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2016\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libboost_system-vc140-mt-1_60.lib;libboost_chrono-vc140-mt-1_60.lib;libboost_timer-vc140-mt-1_60.lib;libBzzMath60dev_XE2016_x64_Release.lib;libDASPK20_LINPACK_XE2016_x64_Release.lib;libLINPACK_XE2016_x64_Release.lib;libODEPACK_LINPACK_XE2016_x64_Release.lib;libmmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_65_1\lib-msvs2017-x64;C:\Development\ExternalNumericalLibraries\Sundials\sundials-3.1.0\lib\windows\msvs2017-x64-Release\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;sundials_sunmatrixband.lib;sundials_sunlinsollapackdense.lib;sundials_sunlinsollapackband.lib;libboost_system-vc141-mt-1_65_1.lib;libboost_chrono-vc141-mt-1_65_1.lib;libboost_timer-vc141-mt-1_65_1.lib;libBzzMath60dev_MSVS2017_x64_Release.lib;libDASPK20_LINPACK_XE2016_x64_Release.lib;libLINPACK_XE2016_x64_Release.lib;libODEPACK_LINPACK_XE2016_x64_Release.lib;libmmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -842,6 +842,7 @@ int main(int argc, char** argv)
 		reactor2d->SetSiteNonConservation(SiteNonConservation);
 		reactor2d->SetInitialConditions(path_backup, initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		reactor2d->SetGasSide(inlet_T, inlet_P, disk);
+		reactor2d->SetOutputFile(disk_file_name.stem().string());
 		reactor2d->SetUniformVelocity(vx, vy);
 		reactor2d->SetTimeTotal(time_total);
 		reactor2d->SetDaeTimeInterval(dae_time_interval);

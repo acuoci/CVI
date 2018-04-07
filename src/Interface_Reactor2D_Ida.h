@@ -25,9 +25,7 @@
 \*-----------------------------------------------------------------------*/
 
 #include <boost/timer/timer.hpp>
-#include <ida/ida_spgmr.h>
-#include <ida/ida_spbcgs.h>
-#include <ida/ida_sptfqmr.h>
+#include <ida/ida_spils.h>
 
 typedef struct 
 {
