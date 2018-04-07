@@ -2521,8 +2521,10 @@ namespace CVI
 
 				heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
 
+				const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
 				for (unsigned int j = 0; j < nc_; j++)
-					omegadot_from_heterogeneous_(i,j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j);				// [kg/m3/s]
+					omegadot_from_heterogeneous_(i,j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j)
+														+ Y_[i](j)*omega_deposition_per_unit_volume;															// [kg/m3/s]
 			}
 		}
 
