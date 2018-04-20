@@ -57,16 +57,16 @@ C(B)+H(S)+CH2CHCH2=>C.(S)+C3H6	1.05E+11	0	20000
 C.(S)+C3H6=>C(B)+H(S)+CH2CHCH2	4.54E+10	0	-5888
 
 !TODO: needed only if C7H7/C7H8 species are available in the gaseous phase chemistry
-C(B)+H(S)+C7H7=>C.(S)+C7H8	7.63E+13	0	35866
+!C(B)+H(S)+C7H7=>C.(S)+C7H8	7.63E+13	0	35866
 
 !TODO: needed only if C7H7/C7H8 species are available in the gaseous phase chemistry
-C.(S)+C7H8=>C(B)+H(S)+C7H7	7.90E+13	0	12000
+!C.(S)+C7H8=>C(B)+H(S)+C7H7	7.90E+13	0	12000
 
 !TODO: needed only if INDENE/INDENYL species are available in the gaseous phase chemistry
-C(B)+H(S)+INDENYL=>C.(S)+INDENE	6.40E+13	0	42637
+!C(B)+H(S)+INDENYL=>C.(S)+INDENE	6.40E+13	0	42637
 
 !TODO: needed only if INDENE/INDENYL species are available in the gaseous phase chemistry
-C.(S)+INDENE=>C(B)+H(S)+INDENYL	1.00E+14	0	12000
+!C.(S)+INDENE=>C(B)+H(S)+INDENYL	1.00E+14	0	12000
 	                      
 !Formation of C.(S) sites by initiation
 
@@ -292,7 +292,7 @@ C10H8(1)(S)=>10C(B)+6H(S)+H2	2.51E+13	0	59034
 !Deposition of phenylacetylene on armchair sites.
 
 !TODO: needed only if C6H5C2H species is available in the gaseous phase chemistry
-C.(S)+C6H5C2H=>C(B)+phenylac.1(S)	8.30E+22	-2.7	17464
+!C.(S)+C6H5C2H=>C(B)+phenylac.1(S)	8.30E+22	-2.7	17464
 
 ! -------------------------------------------------------------- !
 !              Surface coverage reactions: phenylac.1(S)         !
@@ -307,9 +307,8 @@ C.(S)+C6H5C2H=>C(B)+phenylac.1(S)	8.30E+22	-2.7	17464
 ! -------------------------------------------------------------- !
 
 !Deposition of styrene on armchair sites
-
 !TODO: needed only if C6H5C2H3 species is available in the gaseous phase chemistry
-C.(S)+C6H5C2H3=>C(B)+styrene.1(S)	2.50E+12	0	6200
+!C.(S)+C6H5C2H3=>C(B)+styrene.1(S)	2.50E+12	0	6200
 
 ! -------------------------------------------------------------- !
 !              Surface coverage reactions: styrene.1(S)          !
