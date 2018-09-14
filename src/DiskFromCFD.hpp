@@ -177,8 +177,8 @@ namespace CVI
 					relevant_coordinate = 1;
 
 				// The z coordinate is a fake coordinate
-				if (std::fabs(change(2)) > std::fabs(change(0)) && std::fabs(change(2)) > std::fabs(change(0)))
-					relevant_coordinate = 2;
+				//if (std::fabs(change(2)) > std::fabs(change(0)) && std::fabs(change(2)) > std::fabs(change(0)))
+				//	relevant_coordinate = 2;
 
 				// Assign coordinates
 				std::vector<double> coordinates_from_cfd_unsorted(np);
