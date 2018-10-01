@@ -320,6 +320,70 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 				GammaFromEqs[point](j) = GammaFromEqs_backup[j](point);
 		}
 
+	const double tol_eps_error = 0.05;
+	const double tol_eps_warning = 0.01;
+
+	// Check and adjust the species mass fractions
+	for (int k = 0; k < y.size(); k++)
+		for (int i = 0; i < x.size(); i++)
+		{
+			const int point = k * x.size() + i;
+
+			for (unsigned int j = 0; j < thermodynamicsSurfaceMap.number_of_gas_species(); j++)
+				omega[point](j) = std::max(0., omega[point](j));
+
+			for (unsigned int j = 0; j < thermodynamicsSurfaceMap.number_of_gas_species(); j++)
+				omega[point](j) = std::min(1., omega[point](j));
+
+			double sum = 0.;
+			for (unsigned int j = 0; j < thermodynamicsSurfaceMap.number_of_gas_species(); j++)
+				sum += omega[point](j);
+
+			if (std::fabs(sum - 1.) > tol_eps_error)
+			{
+				std::cout << "The sum of mass fractions in point " << i << "," << k << " is outside the acceptable tolerance" << std::endl;
+				std::cout << "Acceptable tolerance: " << tol_eps_error << " - Current sum: " << sum << std::endl;
+				OpenSMOKE::FatalErrorMessage("Please check your backup file");
+			}
+
+			if (std::fabs(sum - 1.) > tol_eps_warning)
+				std::cout << "WARNING: The sum of mass fractions in point " << i << "," << k << " is " << sum << std::endl;
+
+			for (unsigned int j = 0; j < thermodynamicsSurfaceMap.number_of_gas_species(); j++)
+				omega[point](j) /= sum;
+		}
+
+	// Check and adjust the species mass fractions
+	for (int k = 0; k < y.size(); k++)
+		for (int i = 0; i < x.size(); i++)
+		{
+			const int point = k * x.size() + i;
+
+			for (unsigned int j = 0; j < thermodynamicsSurfaceMap.number_of_site_species(); j++)
+				Z[point](j) = std::max(0., Z[point](j));
+
+			for (unsigned int j = 0; j < thermodynamicsSurfaceMap.number_of_site_species(); j++)
+				Z[point](j) = std::min(1., Z[point](j));
+
+			double sum = 0.;
+			for (unsigned int j = 0; j < thermodynamicsSurfaceMap.number_of_site_species(); j++)
+				sum += Z[point](j);
+
+			if (std::fabs(sum - 1.) > tol_eps_error)
+			{
+				std::cout << "The sum of surface species fractions in point " << i << "," << k << " is outside the acceptable tolerance" << std::endl;
+				std::cout << "Acceptable tolerance: " << tol_eps_error << " - Current sum: " << sum << std::endl;
+				OpenSMOKE::FatalErrorMessage("Please check your backup file");
+			}
+
+			if (std::fabs(sum - 1.) > tol_eps_warning)
+				std::cout << "WARNING: The sum of surface species fractions in point " << i << "," << k << " is " << sum << std::endl;
+
+			for (unsigned int j = 0; j < thermodynamicsSurfaceMap.number_of_site_species(); j++)
+				Z[point](j) /= sum;
+		}
+
+
 	T = T_backup;
 	P = P_backup;
 	epsilon = epsilon_backup;
