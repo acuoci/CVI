@@ -16,7 +16,6 @@ Dictionary CHEMKIN_PreProcessor
 {
 		@Thermodynamics ../../Thermodynamics/POLIMI_TOT_NOX_1412.CKT;
 		@Kinetics 		../../Gas/POLIMI4BremboRevisedComplete.CKI;
-		@Surface 		../../Surface/Lacroix.corrected.2200.CKI;
 		@Transport 		../../Transport/POLIMI_TOT_NOX_1412.TRC;
 		
 		@Output			kinetics;

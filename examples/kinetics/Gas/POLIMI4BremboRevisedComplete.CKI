@@ -20,9 +20,9 @@ IC3H7                         C4H3                          C4H5
 SC4H7                         IC4H7                         CH2C3H5                       
 CYC5H5                        C6H5                          
 
-!C7H7							  C7H8
-!INDENYL						  INDENE
-!C6H5C2H						  C6H5C2H3
+C7H7						  C7H8
+INDENYL						  INDENE
+C6H5C2H						  C6H5C2H3
 
 N2                            
 END
