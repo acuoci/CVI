@@ -88,9 +88,17 @@ namespace CVI
 		*@brief Sets the conditions along the gas side
 		*@param T_gas		gas side temperature [K]
 		*@param P_gas		gas side pressure [Pa]
-		*@param omega_gas	gass side mass fractions
+		*@param omega_gas	gas side mass fractions
 		*/
 		void SetGasSide(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas);
+
+		/**
+		*@brief Sets the conditions along the gas side (profiles in time)
+		*@param profile_temperature		gas side temperature profile
+		*@param P_gas					gas side pressure [Pa]
+		*@param profiles_omega			gas side mass fractions profiles
+		*/
+		void SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const double P_gas, std::vector<OpenSMOKE::FixedProfile*> profiles_omega);
 
 		/**
 		*@brief Sets the initial conditions in the porous medium
@@ -320,6 +328,10 @@ namespace CVI
 
 		void PrintROPA(const double t, const std::string name_file);
 
+		void UpdateBoundaryConditions(const double time, const double P_gas);
+
+		void UpdateTemperatureField(const double time);
+
 	protected:
 
 		// References
@@ -460,6 +472,10 @@ namespace CVI
 		OpenSMOKE::derivative_type derivative_type_mass_fractions_;
 		OpenSMOKE::derivative_type derivative_type_effective_diffusivity_;
 		OpenSMOKE::derivative_type derivative_type_bulk_density_;
+
+		bool time_profiles_;
+		OpenSMOKE::FixedProfile* profile_temperature_;
+		std::vector<OpenSMOKE::FixedProfile*> profiles_omega_;
 	};
 }
 

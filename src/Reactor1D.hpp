@@ -62,6 +62,7 @@ namespace CVI
 		n_steps_file_ = 3;
 		count_file_ = n_steps_file_;
 		ropa_analysis_ = false;
+		time_profiles_ = false;
 
 		time_total_ = 48.*3600.;
 		dae_time_interval_ = 3600.;
@@ -440,6 +441,8 @@ namespace CVI
 
 	void Reactor1D::SetGasSide(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas)
 	{
+		time_profiles_ = false;
+
 		Y_gas_side_.resize(nc_);
 		for (unsigned int j = 0; j < nc_; j++)
 			Y_gas_side_(j) = omega_gas(j);
@@ -465,6 +468,57 @@ namespace CVI
 			P_(grid_.Ni()) = P_gas;
 			T_(grid_.Ni()) = T_gas;
 		}
+	}
+
+	void Reactor1D::SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const double P_gas, std::vector<OpenSMOKE::FixedProfile*> profiles_omega)
+	{
+		time_profiles_ = true;
+
+		profile_temperature_ = new OpenSMOKE::FixedProfile(	profile_temperature->x().size(),
+															profile_temperature->x().data(),
+															profile_temperature->y().data());
+
+		profiles_omega_.resize(nc_);
+		for (unsigned int k = 0; k < nc_; k++)
+			profiles_omega_[k] = new OpenSMOKE::FixedProfile(	profiles_omega[k]->x().size(),
+																profiles_omega[k]->x().data(),
+																profiles_omega[k]->y().data());
+
+		UpdateBoundaryConditions(0., P_gas);
+
+		// Internal side
+		if (planar_symmetry_ == false)
+		{
+			for (unsigned int j = 0; j < nc_; j++)
+				Y_[0](j) = Y_gas_side_(j);
+
+			P_(0) = P_gas;
+			T_(0) = T_gas_side_;
+		}
+
+		// External side
+		{
+			for (unsigned int j = 0; j < nc_; j++)
+				Y_[grid_.Ni()](j) = Y_gas_side_(j);
+
+			P_(grid_.Ni()) = P_gas;
+			T_(grid_.Ni()) = T_gas_side_;
+		}
+	}
+
+	void Reactor1D::UpdateBoundaryConditions(const double time, const double P_gas)
+	{
+		P_gas_side_ = P_gas;
+		T_gas_side_ = profile_temperature_->Interpolate(time);
+
+		Y_gas_side_.resize(nc_);
+		for (unsigned int j = 0; j < nc_; j++)
+			Y_gas_side_(j) = profiles_omega_[j]->Interpolate(time);
+	}
+
+	void Reactor1D::UpdateTemperatureField(const double time)
+	{
+		T_.setConstant(profile_temperature_->Interpolate(time));
 	}
 
 	void Reactor1D::SetInitialConditions(const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0)
@@ -552,6 +606,8 @@ namespace CVI
 					kineticsMap_.FormationRates(aux_R.GetHandle());
 					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
 					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
+
+
 				}
 
 				// Heterogeneous phase (global)
@@ -576,6 +632,9 @@ namespace CVI
 			}
 			else
 			{
+				const double coefficient = porousMedium_.epsilon_smoothing_coefficient();
+				const double smoothing_coefficient = 0.50*(std::tanh(coefficient*(epsilon_(i) - porousMedium_.epsilon_threshold())) + 1.);
+
 				heterogeneousDetailedMechanism_.SetTemperature(T_(i));
 				heterogeneousDetailedMechanism_.SetPressure(P_(i));
 
@@ -588,6 +647,9 @@ namespace CVI
 					kineticsMap_.FormationRates(aux_R.GetHandle());
 					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
 					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
+
+					// Smoothing
+					omega_homogeneous_from_homogeneous_[i] *= smoothing_coefficient;
 				}
 
 				// Heterogeneous phase (detailed)
@@ -622,6 +684,13 @@ namespace CVI
 					omega_loss_per_unit_volume_(i) = 0.;
 					for (unsigned int j = 0; j < nc_; j++)
 						omega_loss_per_unit_volume_(i) += heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsSurfaceMap_.MW(j);					// [kg/m3/s]
+
+					// Smoothing
+					omega_homogeneous_from_heterogeneous_[i] *= smoothing_coefficient;
+					omega_heterogeneous_from_heterogeneous_[i] *= smoothing_coefficient;
+					omega_deposition_per_unit_area_(i) *= smoothing_coefficient;
+					omega_deposition_per_unit_volume_(i) *= smoothing_coefficient;
+					omega_loss_per_unit_volume_(i) *= smoothing_coefficient;
 				}
 			}
 		}
@@ -720,13 +789,18 @@ namespace CVI
 
 	void Reactor1D::SubEquations_Porosity()
 	{
+		// Internal side
+		if (planar_symmetry_ == true)
+			depsilon_over_dt_(0) = -omega_deposition_per_unit_volume_(0) / rho_graphite_;
+		else
+			depsilon_over_dt_(0) = -omega_deposition_per_unit_volume_(0) / rho_graphite_;
+
 		// Internal points
-		for (unsigned int i = 0; i < np_; i++)
-		{
-			const double coefficient = 1000.;
-			const double smoothing_coefficient = 0.50*(std::tanh(coefficient*(epsilon_(i)-porousMedium_.epsilon_threshold()))+1.);
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_*smoothing_coefficient;
-		}
+		for (int i = 1; i < grid_.Ni(); i++)
+			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
+
+		// External side
+		depsilon_over_dt_(grid_.Ni()) = -omega_deposition_per_unit_volume_(grid_.Ni()) / rho_graphite_;
 	}
 
 	void Reactor1D::SubEquations_SurfaceSpeciesFractions()
@@ -997,6 +1071,13 @@ namespace CVI
 	{
 		// Recover unknowns
 		Recover_Unknowns(y);
+
+		// Update boundary conditions
+		if (time_profiles_ == true)
+		{
+			UpdateBoundaryConditions(t, P_gas_side_);
+			UpdateTemperatureField(t);
+		}
 
 		// Properties
 		Properties();

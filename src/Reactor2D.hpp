@@ -960,6 +960,9 @@ namespace CVI
 			}
 			else
 			{
+				const double coefficient = porousMedium_.epsilon_smoothing_coefficient();
+				const double smoothing_coefficient = 0.50*(std::tanh(coefficient*(epsilon_(i) - porousMedium_.epsilon_threshold())) + 1.);
+
 				heterogeneousDetailedMechanism_.SetTemperature(T_(i));
 				heterogeneousDetailedMechanism_.SetPressure(P_(i));
 
@@ -972,6 +975,9 @@ namespace CVI
 					kineticsMap_.FormationRates(aux_R.GetHandle());
 					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
 					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
+
+					// Smoothing
+					omega_homogeneous_from_homogeneous_[i] *= smoothing_coefficient;
 				}
 
 				// Heterogeneous phase (detailed)
@@ -1006,6 +1012,13 @@ namespace CVI
 					omega_loss_per_unit_volume_(i) = 0.;
 					for (unsigned int j = 0; j < nc_; j++)
 						omega_loss_per_unit_volume_(i) += heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsSurfaceMap_.MW(j);					// [kg/m3/s]
+
+					// Smoothing
+					omega_homogeneous_from_heterogeneous_[i] *= smoothing_coefficient;
+					omega_heterogeneous_from_heterogeneous_[i] *= smoothing_coefficient;
+					omega_deposition_per_unit_area_(i) *= smoothing_coefficient;
+					omega_deposition_per_unit_volume_(i) *= smoothing_coefficient;
+					omega_loss_per_unit_volume_(i) *= smoothing_coefficient;
 				}
 			}
 		}
@@ -1212,11 +1225,7 @@ namespace CVI
 	void Reactor2D::SubEquations_Porosity()
 	{
 		for (unsigned int i = 0; i < np_; i++)
-		{
-			const double coefficient = 1000.;
-			const double smoothing_coefficient = 0.50*(std::tanh(coefficient*(epsilon_(i)-porousMedium_.epsilon_threshold()))+1.);
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_ *  smoothing_coefficient;
-		}
+			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
 	}
 
 	void Reactor2D::SubEquations_SurfaceSpeciesFractions()

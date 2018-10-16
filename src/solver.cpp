@@ -1,4 +1,4 @@
-/*----------------------------------------------------------------------*\
+/*-----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -180,6 +180,30 @@ int main(int argc, char** argv)
 	{
 		dictionaries(main_dictionary_name_).ReadPath("@DiskFromCFD", disk_file_name);
 		gaseous_phase = CVI::GASEOUS_PHASE_FROM_CFD;
+	}
+
+	// Profile
+	bool is_temperature_profile = false;
+	OpenSMOKE::FixedProfile* temperature_profile;
+	{
+		std::string name_of_gas_status_subdictionary;
+		if (dictionaries(main_dictionary_name_).CheckOption("@TemperatureProfile") == true)
+		{
+			if (gaseous_phase != CVI::GASEOUS_PHASE_FROM_PLUG_FLOW)
+				OpenSMOKE::FatalErrorMessage("The @TemperatureProfile cannot be used with @PlugFlowReactor option");
+
+			dictionaries(main_dictionary_name_).ReadDictionary("@TemperatureProfile", name_of_gas_status_subdictionary);
+
+			OpenSMOKE::OpenSMOKEVectorDouble x, y;
+			std::string x_variable, y_variable;
+			GetXYProfileFromDictionary(dictionaries(name_of_gas_status_subdictionary), x, y, x_variable, y_variable);
+
+			if (x_variable != "time")
+				OpenSMOKE::FatalErrorMessage("The @TemperatureProfile must be defined versus the time");
+			
+			is_temperature_profile = true;
+			temperature_profile = new OpenSMOKE::FixedProfile(x.Size(), x.GetHandle(), y.GetHandle());
+		}
 	}
 
 	// Porous medium
@@ -869,10 +893,9 @@ int main(int argc, char** argv)
 	}
 	
 	// Solve the 1D problem
-	if (problem_type == CVI_REACTOR1D)
+	if (problem_type == CVI_REACTOR1D && is_temperature_profile == false)
 	{
 		// Plug flow ractor simulation
-		Eigen::VectorXd Y_gas_side(thermodynamicsMapXML->NumberOfSpecies());
 		CVI::PlugFlowReactorCoupled* plug_flow_reactor = new CVI::PlugFlowReactorCoupled(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
 		{
 			// Set initial conditions
@@ -908,6 +931,83 @@ int main(int argc, char** argv)
 		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		reactor1d->SetSiteNonConservation(SiteNonConservation);
 		reactor1d->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
+		reactor1d->SetTimeTotal(time_total);
+		reactor1d->SetDaeTimeInterval(dae_time_interval);
+		reactor1d->SetOdeEndTime(ode_end_time);
+		reactor1d->SetDerivativeMassFractions(derivative_mass_fractions);
+		reactor1d->SetDerivativeEffectiveDiffusivity(derivative_effective_diffusivity);
+		reactor1d->SetDerivativeBulkDensity(derivative_bulk_density);
+
+		if (on_the_fly_ropa == true)
+			reactor1d->SetSurfaceOnTheFlyROPA(onTheFlyROPA);
+
+		// Solve
+		{
+			time_t timerStart;
+			time_t timerEnd;
+
+			time(&timerStart);
+			int flag = reactor1d->SolveFromScratch(*dae_parameters, *ode_parameters);
+			time(&timerEnd);
+
+			std::cout << "Total time: " << difftime(timerEnd, timerStart) << " s" << std::endl;
+		}
+	}
+
+	// Solve the 1D problem
+	if (problem_type == CVI_REACTOR1D && is_temperature_profile == true)
+	{
+		// Plug flow ractor simulation
+		Eigen::MatrixXd omega_profiles_temp(temperature_profile->x().size(), thermodynamicsMapXML->NumberOfSpecies());
+		for (unsigned int j = 0; j < temperature_profile->x().size(); j++)
+		{
+			std::cout << "Solving plug flow @T=" << temperature_profile->y()(j) << std::endl;
+			CVI::PlugFlowReactorCoupled* plug_flow_reactor = new CVI::PlugFlowReactorCoupled(*thermodynamicsMapXML, *kineticsMapXML, dictionaries(dict_name_plug_flow));
+
+			// Set initial conditions
+			plug_flow_reactor->SetInitialConditions(temperature_profile->y()(j), inlet_P, inlet_omega);
+			plug_flow_reactor->SetVerboseOutput(false);
+
+			// Solve the plug flow reactor
+			plug_flow_reactor->Solve(residence_time);
+			
+			// Store profiles
+			for (unsigned int k = 0; k < thermodynamicsMapXML->NumberOfSpecies(); k++)
+				omega_profiles_temp(j,k) = plug_flow_reactor->Y()(k);
+		}
+
+		std::vector<OpenSMOKE::FixedProfile*> omega_profiles(thermodynamicsMapXML->NumberOfSpecies());
+		for (unsigned int k = 0; k < thermodynamicsMapXML->NumberOfSpecies(); k++)
+			omega_profiles[k] = new OpenSMOKE::FixedProfile(temperature_profile->x().size(), 
+															temperature_profile->x().data(), 
+															omega_profiles_temp.col(k).data() );
+
+		// Set heterogeneous mechanism
+		CVI::HeterogeneousMechanism* heterogeneous_mechanism = new CVI::HeterogeneousMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_heterogeneous_mechanism));
+
+		// Set heterogeneous mechanism
+		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
+
+		// Set porous medium
+		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+
+		// Creates the reactor
+		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML,
+			*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML,
+			*porous_medium,
+			*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
+			*grid_x, detailed_heterogeneous_kinetics,
+			SiteNonConservation, surface_dae_species, output_path);
+
+		// Initial surface fractions
+		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
+		for (unsigned int i = 0; i < thermodynamicsSurfaceMapXML->number_of_site_species(); i++)
+			initial_Z(i) = Z0[i + 1];
+
+		reactor1d->SetPlanarSymmetry(symmetry_planar);
+		reactor1d->SetInitialConditions(initial_T, initial_P, initial_omega, Gamma0, initial_Z);
+		reactor1d->SetSiteNonConservation(SiteNonConservation);
+		reactor1d->SetGasSide(temperature_profile, inlet_P, omega_profiles);
 		reactor1d->SetTimeTotal(time_total);
 		reactor1d->SetDaeTimeInterval(dae_time_interval);
 		reactor1d->SetOdeEndTime(ode_end_time);

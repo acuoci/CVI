@@ -126,7 +126,9 @@ namespace CVI
 		*/
 		double density_bulk(const double rho_graphite);
 
-		double epsilon_threshold() { return epsilon_threshold_; }
+		double epsilon_threshold() const { return epsilon_threshold_; }
+
+		double epsilon_smoothing_coefficient() const { return epsilon_smoothing_coefficient_; }
 
 		double lambda();
 
@@ -241,6 +243,7 @@ namespace CVI
 		Eigen::VectorXd gamma_effective_;				//!< effective mass diffusion coefficients (ordinary + Knudsen) [m2/s]
 
 		double epsilon_threshold_;
+		double epsilon_smoothing_coefficient_;
 	};
 }
 

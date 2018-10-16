@@ -66,8 +66,13 @@ namespace CVI
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@ThresholdPorosity",
 				OpenSMOKE::SINGLE_DOUBLE,
-				"Threshold porosity (default: 1e-3)",
-				false));		
+				"Threshold porosity (default: 1e-2)",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@SmoothingCoefficientPorosity",
+				OpenSMOKE::SINGLE_DOUBLE,
+				"Smoothing coefficient for porosity (default: 200)",
+				false));
 		}
 	};
 }

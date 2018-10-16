@@ -87,10 +87,15 @@ namespace CVI
 		if (dictionary.CheckOption("@MassDiffusionMultiplier") == true)
 			dictionary.ReadDouble("@MassDiffusionMultiplier", mass_diffusion_multiplier_);
 
-		// Thrrshold porosity
+		// Threshold porosity
 		epsilon_threshold_ = 1e-2;
 			if (dictionary.CheckOption("@ThresholdPorosity") == true)
 				dictionary.ReadDouble("@ThresholdPorosity", epsilon_threshold_);
+
+		// Thrrshold porosity
+		epsilon_smoothing_coefficient_ = 200.;
+		if (dictionary.CheckOption("@SmoothingCoefficientPorosity") == true)
+			dictionary.ReadDouble("@SmoothingCoefficientPorosity", epsilon_smoothing_coefficient_);
 
 		// Read porous substrate type
 		{
@@ -174,29 +179,30 @@ namespace CVI
 		const double small = 1.e-16;
 		const double epsilon = epsilon_ + small;
 
+		double sv = 0.;
 		if (porous_substrate_type_ == POLYNOMIAL)
 		{
 			const double ratio = epsilon / epsilon0_;
-			return 2. / rf_*((2. - epsilon0_)*ratio - std::pow(ratio, 2.));
+			sv = 2. / rf_*((2. - epsilon0_)*ratio - std::pow(ratio, 2.));
 		}
 		else if (porous_substrate_type_ == RANDOM)
 		{
-			return -2. / rf_*epsilon*std::log(epsilon);
+			sv = -2. / rf_*epsilon*std::log(epsilon);
 		}
 		else if (porous_substrate_type_ == RANDOM_HARDCORE)
 		{
 			const double ratio = epsilon / epsilon0_;
-			return 2. / rf_*ratio*(1. - epsilon)*(1. / epsilon0_*std::log(1. / ratio) + 1.);
+			sv = 2. / rf_*ratio*(1. - epsilon)*(1. / epsilon0_*std::log(1. / ratio) + 1.);
 		}
 		else if (porous_substrate_type_ == POLINOMIAL_ONEHALF)
 		{
 			const double ratio = epsilon / epsilon0_;
-			return 2. / rf_*((2.-3./2.*epsilon)*ratio-(1.-epsilon0_/2.)*ratio*ratio);
+			sv = 2. / rf_*((2.-3./2.*epsilon)*ratio-(1.-epsilon0_/2.)*ratio*ratio);
 		}
 		else if (porous_substrate_type_ == FROM_SPHERES_TO_CYLINDERS)
 		{
 			const double c = 3. / 4. / PhysicalConstants::pi;
-			return 2. / rf_*(1. - epsilon)*(std::pow(-c*std::log(1 - epsilon), 2. / 3.) + epsilon) / (std::pow(-c*std::log(1 - epsilon0_), 2. / 3.) + epsilon0_);
+			sv = 2. / rf_*(1. - epsilon)*(std::pow(-c*std::log(1 - epsilon), 2. / 3.) + epsilon) / (std::pow(-c*std::log(1 - epsilon0_), 2. / 3.) + epsilon0_);
 		}
 		else if (porous_substrate_type_ == DEUTSCHMANN_CORRELATION)
 		{
@@ -204,10 +210,13 @@ namespace CVI
 			const double epsilon3 = epsilon2*epsilon;
 			const double epsilon4 = epsilon2*epsilon2;
 			const double epsilon5 = epsilon3*epsilon2;
-			return -3.855762523198E+05*epsilon5 + 8.558541857891E+05*epsilon4 - 6.109196594973E+05*epsilon3 - 4.351758023548E+04*epsilon2 + 2.196529832093E+05*epsilon;
+			sv = -3.855762523198E+05*epsilon5 + 8.558541857891E+05*epsilon4 - 6.109196594973E+05*epsilon3 - 4.351758023548E+04*epsilon2 + 2.196529832093E+05*epsilon;
 		}
-		else
-			return 0.;
+
+		//const double smoothing_coefficient = 0.50*(std::tanh(epsilon_smoothing_coefficient_*(epsilon - epsilon_threshold_)) + 1.);
+		//sv *= smoothing_coefficient;
+
+		return sv;
 	}
 
 	double PorousMedium::rp()

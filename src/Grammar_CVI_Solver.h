@@ -255,6 +255,11 @@ namespace CVI
 				OpenSMOKE::SINGLE_PATH,
 				"Name of backup file (XML Version)",
 				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TemperatureProfile",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Dictionary defining the temperature profile",
+				false));
 		}
 	};
 }
