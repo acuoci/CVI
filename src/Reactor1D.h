@@ -38,6 +38,7 @@
 
 // 1D grid
 #include "utilities/grids/adaptive/Grid1D.h"
+#include "utilities/profiles/FixedProfile.h"
 
 // Numerical parameters
 #include "math/native-ode-solvers/parameters/OdeSolver_Parameters.h"
