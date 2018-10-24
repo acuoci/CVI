@@ -189,8 +189,14 @@ int main(int argc, char** argv)
 		std::string name_of_gas_status_subdictionary;
 		if (dictionaries(main_dictionary_name_).CheckOption("@TemperatureProfile") == true)
 		{
-			if (gaseous_phase != CVI::GASEOUS_PHASE_FROM_PLUG_FLOW)
-				OpenSMOKE::FatalErrorMessage("The @TemperatureProfile cannot be used with @PlugFlowReactor option");
+			if (problem_type == CVI_REACTOR1D && gaseous_phase != CVI::GASEOUS_PHASE_FROM_PLUG_FLOW)
+				OpenSMOKE::FatalErrorMessage("The @TemperatureProfile cannot be used without the @PlugFlowReactor option");
+
+			if (problem_type == CVI_REACTOR2D && gaseous_phase != CVI::GASEOUS_PHASE_FROM_CFD)
+				OpenSMOKE::FatalErrorMessage("The @TemperatureProfile cannot be used without the @DiskFromCFD option");
+
+			if (problem_type == CVI_CAPILLARY)
+				OpenSMOKE::FatalErrorMessage("The @TemperatureProfile cannot be used with the Capillary geometry");
 
 			dictionaries(main_dictionary_name_).ReadDictionary("@TemperatureProfile", name_of_gas_status_subdictionary);
 
@@ -865,7 +871,11 @@ int main(int argc, char** argv)
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
 		reactor2d->SetSiteNonConservation(SiteNonConservation);
 		reactor2d->SetInitialConditions(path_backup, initial_T, initial_P, initial_omega, Gamma0, initial_Z);
-		reactor2d->SetGasSide(inlet_T, inlet_P, disk);
+		
+		// Set initial/boundary conditions
+		if (is_temperature_profile == false)	reactor2d->SetGasSide(inlet_T, inlet_P, disk);
+		else                                    reactor2d->SetGasSide(temperature_profile, inlet_P, disk);
+
 		reactor2d->SetOutputFile(disk_file_name.stem().string());
 		reactor2d->SetUniformVelocity(vx, vy);
 		reactor2d->SetTimeTotal(time_total);

@@ -104,6 +104,7 @@ namespace CVI
 		dae_time_interval_ = 3600.;
 		tecplot_time_interval_ = 3600.;
 		ode_end_time_ = 1.;
+		time_profiles_ = false;
 
 		time_starting_point_ = 0.;
 		start_from_backup_ = false;
@@ -622,6 +623,8 @@ namespace CVI
 
 	void Reactor2D::SetGasSide(const double T_gas, const double P_gas, const std::vector<Eigen::VectorXd>& omega_gas)
 	{
+		time_profiles_ = false;
+
 		gaseous_phase_ = GASEOUS_PHASE_FROM_PLUG_FLOW;
 
 		// Sides
@@ -706,6 +709,8 @@ namespace CVI
 
 	void Reactor2D::SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd)
 	{
+		time_profiles_ = false;
+
 		gaseous_phase_ = GASEOUS_PHASE_FROM_CFD;
 
 		// Set initial fields consistent along the west side
@@ -771,6 +776,98 @@ namespace CVI
 				T_gas_north_side_(i) = disk_from_cfd.north_temperature()[i];
 			}
 		}
+	}
+
+	void Reactor2D::SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd)
+	{
+		gaseous_phase_ = GASEOUS_PHASE_FROM_CFD;
+
+		time_profiles_ = true;
+
+		profile_temperature_ = new OpenSMOKE::FixedProfile(	profile_temperature->x().size(),
+															profile_temperature->x().data(),
+															profile_temperature->y().data());
+
+		// Update boundary conditions
+		UpdateTemperatureBoundaryConditions(0.);
+
+		// Set initial fields consistent along the west side
+		{
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_[list_points_west_(i)](j) = disk_from_cfd.west_mass_fractions()[i][j];
+				P_(list_points_west_(i)) = P_gas;
+				T_(list_points_west_(i)) = T_gas_west_side_(i);
+
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_gas_west_side_[i](j) = disk_from_cfd.west_mass_fractions()[i][j];
+				P_gas_west_side_(i) = P_gas;
+			}
+		}
+
+		// Set initial fields consistent along the east side
+		{
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_[list_points_east_(i)](j) = disk_from_cfd.east_mass_fractions()[i][j];
+				P_(list_points_east_(i)) = P_gas;
+				T_(list_points_east_(i)) = T_gas_east_side_(i);
+
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_gas_east_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
+				P_gas_east_side_(i) = P_gas;
+			}
+		}
+
+		// Set initial fields consistent along the south side
+		{
+			for (unsigned int i = 0; i < nx_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_[list_points_south_(i)](j) = disk_from_cfd.south_mass_fractions()[i][j];
+				P_(list_points_south_(i)) = P_gas;
+				T_(list_points_south_(i)) = T_gas_south_side_(i);
+
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_gas_south_side_[i](j) = disk_from_cfd.south_mass_fractions()[i][j];
+				P_gas_south_side_(i) = P_gas;
+			}
+		}
+
+		// Set initial fields consistent along the north side
+		{
+			for (unsigned int i = 0; i < nx_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_[list_points_north_(i)](j) = disk_from_cfd.north_mass_fractions()[i][j];
+				P_(list_points_north_(i)) = P_gas;
+				T_(list_points_north_(i)) = T_gas_north_side_(i);
+
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_gas_north_side_[i](j) = disk_from_cfd.north_mass_fractions()[i][j];
+				P_gas_north_side_(i) = P_gas;
+			}
+		}
+	}
+
+	void Reactor2D::UpdateTemperatureBoundaryConditions(const double time)
+	{
+		T_gas_west_side_.setConstant(profile_temperature_->Interpolate(time));
+		T_gas_east_side_.setConstant(profile_temperature_->Interpolate(time));
+		T_gas_north_side_.setConstant(profile_temperature_->Interpolate(time));
+		T_gas_south_side_.setConstant(profile_temperature_->Interpolate(time));
+
+		// Update mass fractions of species (in case of PFR) TODO
+		//Y_gas_side_.resize(nc_);
+		//for (unsigned int j = 0; j < nc_; j++)
+		//	Y_gas_side_(j) = profiles_omega_[j]->Interpolate(time);
+	}
+
+	void Reactor2D::UpdateTemperatureField(const double time)
+	{
+		T_.setConstant(profile_temperature_->Interpolate(time));
 	}
 
 	void Reactor2D::SetInitialConditions(const boost::filesystem::path path_to_backup_file, const double T_gas, const double P_gas, const Eigen::VectorXd& omega_gas, const Eigen::VectorXd& Gamma0, const Eigen::VectorXd& Z0)
@@ -1679,6 +1776,13 @@ namespace CVI
 		// Recover unknowns
 		Recover_Unknowns(y);
 
+		// Update boundary conditions
+		if (time_profiles_ == true)
+		{
+			UpdateTemperatureBoundaryConditions(t);
+			UpdateTemperatureField(t);
+		}
+
 		// Properties
 		Properties();
 
@@ -1695,6 +1799,10 @@ namespace CVI
 	{
 		// Recover unknowns
 		Recover_Unknowns(y);
+
+		// Update boundary conditions
+		if (time_profiles_ == true)
+			std::cout << "Solving equations of temperature only" << std::endl;
 
 		// Properties
 		Properties();

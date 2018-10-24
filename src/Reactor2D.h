@@ -117,6 +117,14 @@ namespace CVI
 		void SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
 
 		/**
+		*@brief Sets the conditions along the gas side
+		*@param profile_temperature		gas side temperature temporal profile [K]
+		*@param P_gas					gas side pressure [Pa]
+		*@param disk_from_cfd			gass side mass fractions
+		*/
+		void SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
+
+		/**
 		*@brief Sets the initial conditions in the porous medium
 		*@param path_to_backup_file		path to backup file (it can be empty)
 		*@param T_initial				initial temperature [K]
@@ -438,6 +446,9 @@ namespace CVI
 
 		void SetInitialConditionsFromBackupFile(const boost::filesystem::path path_to_backup_file);
 
+		void UpdateTemperatureBoundaryConditions(const double time);
+
+		void UpdateTemperatureField(const double time);
 
 	protected:
 
@@ -632,6 +643,10 @@ namespace CVI
 		#if OPENSMOKE_USE_BZZMATH == 1
 		BzzDaeSparseObject dae_object_;
 		#endif
+
+		bool time_profiles_;
+		OpenSMOKE::FixedProfile* profile_temperature_;
+		//std::vector<OpenSMOKE::FixedProfile*> profiles_omega_;
 	};
 }
 
