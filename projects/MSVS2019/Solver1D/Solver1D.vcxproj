@@ -1,0 +1,217 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{728C394B-7A7F-4E24-8309-31E3A28D9D9A}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Solver1D</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <UseIntelMKL>Sequential</UseIntelMKL>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <UseIntelMKL>Sequential</UseIntelMKL>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <UseIntelMKL>Sequential</UseIntelMKL>
+    <InterproceduralOptimization>false</InterproceduralOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <UseIntelMKL>Sequential</UseIntelMKL>
+    <InterproceduralOptimization>false</InterproceduralOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <OutDir>..\..\..\exe\Win32-Debug\</OutDir>
+    <TargetName>CVISMOKE++</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>CVISMOKE++</TargetName>
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <OutDir>..\..\..\exe\x64-Debug\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\boost_1_60_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <OutDir>..\..\..\exe\Win32-Release\</OutDir>
+    <TargetName>CVISMOKE++</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetName>CVISMOKE++</TargetName>
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <OutDir>..\..\..\exe\x64-Release\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions);OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-Win32-Release\lib;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2016\windows\compiler\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libboost_system-vc140-mt-gd-1_60.lib;libboost_chrono-vc140-mt-gd-1_60.lib;libboost_timer-vc140-mt-gd-1_60.lib;libBzzMath60dev_XE2016_Win32_Debug.lib;libDASPK20_LINPACK_XE2016_Win32_Debug.lib;libLINPACK_XE2016_Win32_Debug.lib;libODEPACK_LINPACK_XE2016_Win32_Debug.lib;libmmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions);OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1</PreprocessorDefinitions>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared\stage\lib-msvs2019;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;sundials_sunmatrixband.lib;sundials_sunlinsollapackdense.lib;sundials_sunlinsollapackband.lib;libBzzMath60dev_MSVS2019_x64_Debug.lib;libDASPK20_LINPACK_XE2019_x64_Debug.lib;libLINPACK_XE2019_x64_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InterproceduralOptimization>NoIPO</InterproceduralOptimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_60_0\lib-msvs2015-Win32;C:\Development\ExternalNumericalLibraries\Sundials\sundials-2.6.2\lib\windows\msvs2015-xe2016-Win32-Release\lib;C:\Program Files (x86)\Intel\Composer XE 2015\compiler\lib\ia32;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Development\ExternalNumericalLibraries\ODEPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2016\windows\compiler\lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;libboost_system-vc140-mt-1_60.lib;libboost_chrono-vc140-mt-1_60.lib;libboost_timer-vc140-mt-1_60.lib;libBzzMath60dev_XE2016_Win32_Release.lib;libDASPK20_LINPACK_XE2016_Win32_Release.lib;libLINPACK_XE2016_Win32_Release.lib;libODEPACK_LINPACK_XE2016_Win32_Release.lib;libmmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;OPENSMOKE_USE_MKL=1;OPENSMOKE_USE_SUNDIALS=1;OPENSMOKE_USE_BZZMATH=1;OPENSMOKE_USE_DASPK=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InterproceduralOptimization>NoIPO</InterproceduralOptimization>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared\stage\lib-msvs2019;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;sundials_sunmatrixband.lib;sundials_sunlinsollapackdense.lib;sundials_sunlinsollapackband.lib;libBzzMath60dev_MSVS2019_x64_Release.lib;libDASPK20_LINPACK_XE2019_x64_Release.lib;libLINPACK_XE2019_x64_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\Grammar_SurfaceOnTheFlyROPA.h" />
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.h" />
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.hpp" />
+    <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_BzzDae.h" />
+    <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_Daspk.h" />
+    <ClInclude Include="..\..\..\src\Capillary.h" />
+    <ClInclude Include="..\..\..\src\Capillary.hpp" />
+    <ClInclude Include="..\..\..\src\DiskFromCFD.h" />
+    <ClInclude Include="..\..\..\src\DiskFromCFD.hpp" />
+    <ClInclude Include="..\..\..\src\Grammar_CVI_HeterogeneousMechanism.h" />
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PlugFlowReactorCoupled.h" />
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PorousMedium.h" />
+    <ClInclude Include="..\..\..\src\Grammar_CVI_Solver.h" />
+    <ClInclude Include="..\..\..\src\HeterogeneousDetailedMechanism.h" />
+    <ClInclude Include="..\..\..\src\HeterogeneousDetailedMechanism.hpp" />
+    <ClInclude Include="..\..\..\src\HeterogeneousMechanism.h" />
+    <ClInclude Include="..\..\..\src\HeterogeneousMechanism.hpp" />
+    <ClInclude Include="..\..\..\src\Interface_OpenSMOKEppDae.h" />
+    <ClInclude Include="..\..\..\src\Interface_PlugFlowReactor_ODE.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_BzzDae.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_Daspk.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_Ida.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_OpenSMOKEppDae.h" />
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupled.h" />
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupled.hpp" />
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupledProfiles.h" />
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupledProfiles.hpp" />
+    <ClInclude Include="..\..\..\src\PorousMedium.h" />
+    <ClInclude Include="..\..\..\src\PorousMedium.hpp" />
+    <ClInclude Include="..\..\..\src\Reactor1D.h" />
+    <ClInclude Include="..\..\..\src\Reactor1D.hpp" />
+    <ClInclude Include="..\..\..\src\Reactor2D.h" />
+    <ClInclude Include="..\..\..\src\Reactor2D.hpp" />
+    <ClInclude Include="..\..\..\src\Utilities.h" />
+    <ClInclude Include="..\..\..\src\Utilities.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\solver.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

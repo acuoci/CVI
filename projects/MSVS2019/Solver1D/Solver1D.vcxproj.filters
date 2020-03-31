@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\interfaces">
+      <UniqueIdentifier>{7d8c5d05-b410-4a7e-886f-5dea0b861a81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\plugflow">
+      <UniqueIdentifier>{4b09fcf5-05ac-40d2-af1e-f5b7de5844bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ropa">
+      <UniqueIdentifier>{b67c9d60-b1ab-47df-8b6c-55185e079f44}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\PorousMedium.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PorousMedium.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Reactor1D.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Reactor1D.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Reactor2D.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Reactor2D.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_Daspk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\OpenSMOKEpp\source\math\multivalue-dae-solvers\interfaces\Band_BzzDae.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PorousMedium.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_OpenSMOKEppDae.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_PlugFlowReactor_ODE.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_BzzDae.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_Daspk.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_Ida.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor2D_OpenSMOKEppDae.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Capillary.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Capillary.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Grammar_CVI_HeterogeneousMechanism.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\HeterogeneousMechanism.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\HeterogeneousMechanism.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\HeterogeneousDetailedMechanism.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\HeterogeneousDetailedMechanism.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Grammar_CVI_PlugFlowReactorCoupled.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\DiskFromCFD.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\DiskFromCFD.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupled.h">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupled.hpp">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupledProfiles.h">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\PlugFlowReactorCoupledProfiles.hpp">
+      <Filter>Source Files\plugflow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\Grammar_SurfaceOnTheFlyROPA.h">
+      <Filter>Source Files\ropa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.h">
+      <Filter>Source Files\ropa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OpenSMOKEpp\OpenSMOKEpp\source\surfacereactors\utilities\SurfaceOnTheFlyROPA.hpp">
+      <Filter>Source Files\ropa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Utilities.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Utilities.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Grammar_CVI_Solver.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\solver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
