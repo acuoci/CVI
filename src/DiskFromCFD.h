@@ -27,6 +27,9 @@
 #ifndef OpenSMOKE_DiskFromCFD_H
 #define OpenSMOKE_DiskFromCFD_H
 
+// RapidXML
+#include "rapidxml.hpp"
+
 // OpenSMOKE++ Definitions
 #include "OpenSMOKEpp"
 

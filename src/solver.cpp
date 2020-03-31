@@ -288,17 +288,17 @@ int main(int argc, char** argv)
 
 	// Read the homogeneous kinetic scheme in XML format
 	{
-		rapidxml::xml_document<> doc;
-		std::vector<char> xml_string;
-		OpenSMOKE::OpenInputFileXML(doc, xml_string, path_kinetics_output / "kinetics.xml");
+		// Read names of species
+		boost::property_tree::ptree ptree;
+		boost::property_tree::read_xml((path_kinetics_output / "kinetics.xml").string(), ptree);
 
 		double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
-		thermodynamicsMapXML = new OpenSMOKE::ThermodynamicsMap_CHEMKIN(doc);
-		kineticsMapXML = new OpenSMOKE::KineticsMap_CHEMKIN(*thermodynamicsMapXML, doc);
-		transportMapXML = new OpenSMOKE::TransportPropertiesMap_CHEMKIN(doc);
+		thermodynamicsMapXML = new OpenSMOKE::ThermodynamicsMap_CHEMKIN(ptree);
+		kineticsMapXML = new OpenSMOKE::KineticsMap_CHEMKIN(*thermodynamicsMapXML, ptree);
+		transportMapXML = new OpenSMOKE::TransportPropertiesMap_CHEMKIN(ptree);
 
 		// Transport properties
-		transportMapXML = new OpenSMOKE::TransportPropertiesMap_CHEMKIN(doc);
+		transportMapXML = new OpenSMOKE::TransportPropertiesMap_CHEMKIN(ptree);
 
 		double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
@@ -306,13 +306,13 @@ int main(int argc, char** argv)
 
 	// Read the surface kinetic scheme in XML format
 	{
-		rapidxml::xml_document<> doc;
-		std::vector<char> xml_string;
-		OpenSMOKE::OpenInputFileXML(doc, xml_string, path_kinetics_output / "kinetics.surface.xml");
+		// Read names of species
+		boost::property_tree::ptree ptree;
+		boost::property_tree::read_xml((path_kinetics_output / "kinetics.surface.xml").string(), ptree);
 
 		double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
-		thermodynamicsSurfaceMapXML = new OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN(doc);
-		kineticsSurfaceMapXML = new OpenSMOKE::KineticsMap_Surface_CHEMKIN(*thermodynamicsSurfaceMapXML, doc);
+		thermodynamicsSurfaceMapXML = new OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN(ptree);
+		kineticsSurfaceMapXML = new OpenSMOKE::KineticsMap_Surface_CHEMKIN(*thermodynamicsSurfaceMapXML, ptree);
 		double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 		std::cout << "Time to read XML file: " << tEnd - tStart << std::endl;
 	}

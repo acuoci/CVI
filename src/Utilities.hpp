@@ -34,6 +34,34 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
+#include "rapidxml.hpp"
+
+void OpenInputFileXML(rapidxml::xml_document<>& doc, std::vector<char>& xml_copy, const boost::filesystem::path& file_name)
+{
+	if (!boost::filesystem::exists(file_name))
+	{
+		std::string message = "The " + file_name.string() + " file does not exist";
+		OpenSMOKE::FatalErrorMessage(message);
+	}
+
+	std::ifstream fInput;
+	fInput.open(std::string(file_name.string()).c_str(), std::ios::in);
+
+	if (!fInput.is_open())
+	{
+		std::string msg = std::string("The ") + std::string(file_name.string()).c_str() + std::string(" file cannot be open!");
+		OpenSMOKE::FatalErrorMessage(msg.c_str());
+	}
+
+	const std::string string_file = std::string(std::istreambuf_iterator<char>(fInput), std::istreambuf_iterator<char>());
+	fInput.close();
+
+	xml_copy.assign(string_file.begin(), string_file.end());
+	xml_copy.push_back('\0');
+
+	doc.parse<rapidxml::parse_declaration_node | rapidxml::parse_no_data_nodes>(&xml_copy[0]);
+}
+
 void ReadFromBackupFile(const boost::filesystem::path path_file,
 						double& t,
 						Eigen::VectorXd& x, Eigen::VectorXd& y,
@@ -46,7 +74,7 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 {
 	rapidxml::xml_document<> xml_main_input;
 	std::vector<char> local_xml_input_string;
-	OpenSMOKE::OpenInputFileXML(xml_main_input, local_xml_input_string, path_file);
+	OpenInputFileXML(xml_main_input, local_xml_input_string, path_file);
 
 	unsigned int index_T;
 	unsigned int index_P;

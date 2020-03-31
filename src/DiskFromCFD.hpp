@@ -24,6 +24,8 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
+#include "Utilities.h"
+
 namespace CVI
 {
 	void Interpolate(const double x_req, double& temperature_req, std::vector<double>& mass_fractions_req,
@@ -51,7 +53,7 @@ namespace CVI
 
 		rapidxml::xml_document<> doc;
 		std::vector<char> xml_string;
-		OpenSMOKE::OpenInputFileXML(doc, xml_string, disk_file_name);
+		OpenInputFileXML(doc, xml_string, disk_file_name);
 
 		rapidxml::xml_node<>* opensmoke_node = doc.first_node("opensmoke");
 		rapidxml::xml_node<>* number_of_species_node = opensmoke_node->first_node("NumberOfSpecies");
