@@ -1,2 +1,1 @@
-..\..\..\exe\Win32-Release\CVISMOKE++.exe
-pause
+..\..\..\exe\x64-Release\CVISMOKE++.exe

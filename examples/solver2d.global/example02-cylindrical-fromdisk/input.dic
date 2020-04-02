@@ -14,7 +14,7 @@
 
 Dictionary CVI_Solver
 {
-	@KineticsFolder				C:\Development\Brembo\CVI\examples\kinetics\Mechanisms\Lacroix.corrected.2000-POLIMI4BremboRevised\kinetics;
+	@KineticsFolder				../../kinetics/Mechanisms/Lacroix.corrected.2000-POLIMI4BremboRevised/kinetics;
 	@Output						Output;
 	
 	@DetailedSurfaceChemistry	true;
