@@ -129,6 +129,9 @@
     <ClInclude Include="..\..\..\src\Grammar_CVI_Solver.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\Interface_Reactor1D_BzzDae.h">
+      <Filter>Source Files\interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\solver.cpp">

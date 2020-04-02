@@ -925,12 +925,12 @@ int main(int argc, char** argv)
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, 
-														*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, 
-														*porous_medium, 
-														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
-														*grid_x, detailed_heterogeneous_kinetics,
-														SiteNonConservation, surface_dae_species, output_path);
+		reactor1d = new CVI::Reactor1D(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, 
+										*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, 
+										*porous_medium, 
+										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
+										*grid_x, detailed_heterogeneous_kinetics,
+										SiteNonConservation, surface_dae_species, output_path);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -1002,7 +1002,7 @@ int main(int argc, char** argv)
 		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
 
 		// Creates the reactor
-		CVI::Reactor1D* reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML,
+		reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML,
 			*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML,
 			*porous_medium,
 			*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,

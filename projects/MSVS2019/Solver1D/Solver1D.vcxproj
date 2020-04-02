@@ -191,6 +191,7 @@
     <ClInclude Include="..\..\..\src\HeterogeneousMechanism.hpp" />
     <ClInclude Include="..\..\..\src\Interface_OpenSMOKEppDae.h" />
     <ClInclude Include="..\..\..\src\Interface_PlugFlowReactor_ODE.h" />
+    <ClInclude Include="..\..\..\src\Interface_Reactor1D_BzzDae.h" />
     <ClInclude Include="..\..\..\src\Interface_Reactor2D_BzzDae.h" />
     <ClInclude Include="..\..\..\src\Interface_Reactor2D_Daspk.h" />
     <ClInclude Include="..\..\..\src\Interface_Reactor2D_Ida.h" />

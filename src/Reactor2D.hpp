@@ -2018,7 +2018,12 @@ namespace CVI
 		}
 		#if OPENSMOKE_USE_BZZMATH == 1
 		else if (dae_parameters.type() == DaeSMOKE::DaeSolver_Parameters::DAE_INTEGRATOR_BZZDAE)
-			flag = DaeSMOKE::Solve_Band_BzzDae<Reactor2D, OpenSMOKE_Reactor2D_BzzDaeSystem>(this, dae_object_, dae_parameters, t0, tf);
+		{
+			if(dae_parameters.jacobian_structure() == OpenSMOKE::JACOBIAN_STRUCTURE_BAND)
+				flag = DaeSMOKE::Solve_Band_BzzDae<Reactor2D, OpenSMOKE_Reactor2D_BzzDaeSystem>(this, dae_object_, dae_parameters, t0, tf);
+			else if (dae_parameters.jacobian_structure() == OpenSMOKE::JACOBIAN_STRUCTURE_TRIDIAGONAL_BLOCK)
+				flag = DaeSMOKE::Solve_TridiagonalBlock_BzzDae_Reactor2D<Reactor2D, OpenSMOKE_Reactor2D_BzzDaeSystem>(this, dae_object_, dae_parameters, t0, tf);
+		}
 		#endif
 		#if OPENSMOKE_USE_SUNDIALS == 1
 		else if(dae_parameters.type() == DaeSMOKE::DaeSolver_Parameters::DAE_INTEGRATOR_IDA)

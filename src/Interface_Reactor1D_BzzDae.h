@@ -24,22 +24,22 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-class OpenSMOKE_Reactor2D_BzzDaeSystem : public BzzDaeSystemObject
+class OpenSMOKE_Reactor1D_BzzDaeSystem : public BzzDaeSystemObject
 {
 public:
 
-	void assign(CVI::Reactor2D *reactor);
+	void assign(CVI::Reactor1D *reactor);
 
-	CVI::Reactor2D *ptReactor;
+	CVI::Reactor1D *ptReactor;
 	virtual void GetSystemFunctions(BzzVector &y, double t, BzzVector &dy);
 	virtual void ObjectBzzPrint(void);
 };
 
-void OpenSMOKE_Reactor2D_BzzDaeSystem::ObjectBzzPrint(void)
+void OpenSMOKE_Reactor1D_BzzDaeSystem::ObjectBzzPrint(void)
 {
 }
 
-void OpenSMOKE_Reactor2D_BzzDaeSystem::GetSystemFunctions(BzzVector &x, double t, BzzVector &f)
+void OpenSMOKE_Reactor1D_BzzDaeSystem::GetSystemFunctions(BzzVector &x, double t, BzzVector &f)
 {
 	double* ptx = x.GetHandle();
 	double* ptf = f.GetHandle();
@@ -47,17 +47,16 @@ void OpenSMOKE_Reactor2D_BzzDaeSystem::GetSystemFunctions(BzzVector &x, double t
 	ptReactor->Equations(t, ptx, ptf);
 }
 
-void OpenSMOKE_Reactor2D_BzzDaeSystem::assign(CVI::Reactor2D *reactor)
+void OpenSMOKE_Reactor1D_BzzDaeSystem::assign(CVI::Reactor1D *reactor)
 {
 	ptReactor = reactor;
 }
 
-void DaePrint(BzzVector &y, double t)
+void DaePrintReactor1D(BzzVector &y, double t)
 {
-	reactor2d->Print(t, y.GetHandle());
+	double* pty = y.GetHandle();
+	reactor1d->Print(t, pty);
 }
-
-#include "math/native-dae-solvers/interfaces/Band_BzzDae.h"
 
 // Replacement
 // #include "math/native-dae-solvers/interfaces/TridiagonalBlock_BzzDae.h"
@@ -65,9 +64,9 @@ void DaePrint(BzzVector &y, double t)
 namespace DaeSMOKE
 {
 	template<typename Object, typename System>
-	int Solve_TridiagonalBlock_BzzDae_Reactor2D(Object* object, BzzDaeSparseObject& dae_object, const DaeSMOKE::DaeSolver_Parameters& parameters, const double t0, const double tEnd)
+	int Solve_TridiagonalBlock_BzzDae_Reactor1D(Object* object, BzzDaeSparseObject& dae_object, const DaeSMOKE::DaeSolver_Parameters& parameters, const double t0, const double tEnd)
 	{
-		std::cout << "Tridiagonal-Block DAE solution (BzzDae)..." << std::endl;
+		std::cout << "Tridiagonal DAE solution (BzzDae)..." << std::endl;
 
 		const unsigned int neq = object->NumberOfEquations();
 
@@ -160,7 +159,7 @@ namespace DaeSMOKE
 
 		// Verbose
 		if (parameters.verbosity_level() > 0)
-			dae_object.StepPrint(DaePrint);
+			dae_object.StepPrint(DaePrintReactor1D);
 
 		// Solving the DAE system
 		double timeStart = BzzGetCpuTime();

@@ -1,4 +1,4 @@
-/*----------------------------------------------------------------------*\
+/*-----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -26,6 +26,15 @@
 
 // OpenSMOKE++ Solvers
 #include "Interface_OpenSMOKEppDae.h"
+
+// Pointer
+CVI::Reactor1D* reactor1d;
+
+// Interfaces (BzzMath)
+#if OPENSMOKE_USE_BZZMATH == 1
+#include "BzzMath.hpp"
+#include "Interface_Reactor1D_BzzDae.h"
+#endif
 
 namespace CVI
 {
@@ -1252,7 +1261,13 @@ namespace CVI
 
 	int Reactor1D::Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, const double t0, const double tf)
 	{
-		int flag = DaeSMOKE::Solve_Band_OpenSMOKEppDae<Reactor1D, OpenSMOKE_Reactor1D_DaeSystem>(this, dae_parameters, t0, tf);
+		int flag = 0;
+		if (dae_parameters.type() == DaeSMOKE::DaeSolver_Parameters::DAE_INTEGRATOR_OPENSMOKEPP)
+				flag = DaeSMOKE::Solve_Band_OpenSMOKEppDae<Reactor1D, OpenSMOKE_Reactor1D_DaeSystem>(this, dae_parameters, t0, tf);
+		#if OPENSMOKE_USE_BZZMATH == 1
+		else if (dae_parameters.type() == DaeSMOKE::DaeSolver_Parameters::DAE_INTEGRATOR_BZZDAE)
+			flag = DaeSMOKE::Solve_TridiagonalBlock_BzzDae_Reactor1D<Reactor1D, OpenSMOKE_Reactor1D_BzzDaeSystem>(this, dae_object_, dae_parameters, t0, tf);
+		#endif
 		return flag;
 	}
 

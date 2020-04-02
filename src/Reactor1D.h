@@ -27,6 +27,11 @@
 #ifndef OpenSMOKE_Reactor1D_H
 #define OpenSMOKE_Reactor1D_H
 
+// BzzMath
+#if OPENSMOKE_USE_BZZMATH == 1
+#include "BzzMath.hpp"
+#endif
+
 // OpenSMOKE++ Definitions
 #include "OpenSMOKEpp"
 
@@ -477,6 +482,10 @@ namespace CVI
 		bool time_profiles_;
 		OpenSMOKE::FixedProfile* profile_temperature_;
 		std::vector<OpenSMOKE::FixedProfile*> profiles_omega_;
+
+		#if OPENSMOKE_USE_BZZMATH == 1
+			BzzDaeSparseObject dae_object_;
+		#endif
 	};
 }
 
