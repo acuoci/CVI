@@ -1,4 +1,4 @@
-/*----------------------------------------------------------------------*\
+/*-----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -45,10 +45,19 @@ namespace CVI
 		ri_ = grid_x_.x()[0];
 		re_ = grid_x_.x()[grid_x_.Np()-1];
 		H_ = grid_y_.x()[grid_y_.Np() - 1];
+
+		hole_ = true;
+		if (std::fabs(ri_) <= 1e-12)
+			hole_ = false;
+
+		radial_coordinate_ = 0;
+		axial_coordinate_ = 1;
 	}
 
 	void DiskFromCFD::ReadFromFile(const boost::filesystem::path disk_file_name)
 	{
+		std::cout << "Reading disk from file..." << std::endl;
+
 		bool edge_centered_policy = false;
 
 		rapidxml::xml_document<> doc;
@@ -58,7 +67,34 @@ namespace CVI
 		rapidxml::xml_node<>* opensmoke_node = doc.first_node("opensmoke");
 		rapidxml::xml_node<>* number_of_species_node = opensmoke_node->first_node("NumberOfSpecies");
 		rapidxml::xml_node<>* names_of_species_node = opensmoke_node->first_node("NamesOfSpecies");
-		
+
+		std::cout << " * Check axial coordinate..." << std::endl;
+		{
+			rapidxml::xml_node<>* axial_coordinate_node = opensmoke_node->first_node("AxialCoordinate");
+			if (axial_coordinate_node != 0)
+			{
+				const std::string coordinate = boost::trim_copy(std::string(axial_coordinate_node->value()));
+				if (coordinate == "x")			axial_coordinate_ = 0;
+				else if (coordinate == "y")		axial_coordinate_ = 1;
+				else if (coordinate == "z")		axial_coordinate_ = 2;
+				else OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "Wrong AxialCoordinate: x | y (default) | z");
+			}
+		}
+
+		std::cout << " * Check radial coordinate..." << std::endl;
+		{
+			rapidxml::xml_node<>* radial_coordinate_node = opensmoke_node->first_node("RadialCoordinate");
+			if (radial_coordinate_node != 0)
+			{
+				const std::string coordinate = boost::trim_copy(std::string(radial_coordinate_node->value()));
+				if (coordinate == "x")			radial_coordinate_ = 0;
+				else if (coordinate == "y")		radial_coordinate_ = 1;
+				else if (coordinate == "z")		radial_coordinate_ = 2;
+				else OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "Wrong RadialCoordinate: x (default) | y | z");
+			}
+		}
+
+		std::cout << " * Check policy..." << std::endl;
 		rapidxml::xml_node<>* policy_node = opensmoke_node->first_node("Policy");
 		if (policy_node != 0)
 		{
@@ -70,6 +106,7 @@ namespace CVI
 
 		try
 		{
+			std::cout << " * Check kinetic mechanism..." << std::endl;
 			const unsigned int ns = boost::lexical_cast<unsigned int>(boost::trim_copy(std::string(number_of_species_node->value())));
 			
 			if (ns != thermodynamicsMap_.NumberOfSpecies())
@@ -140,7 +177,6 @@ namespace CVI
 					points_xml >> coordinates[2](i);
 				}
 
-				
 				Eigen::VectorXd mean(3);
 				mean.setZero();
 				for (unsigned int i = 0; i < 3; i++)
@@ -161,11 +197,11 @@ namespace CVI
 				}
 
 				for (unsigned int i = 0; i < 3; i++)
-					std::cout << "Mean: " << mean(i) << " Change: " << change(i) << std::endl;
+					std::cout << " * Direction " << i << ": " << " Mean(mm): " << mean(i)*1000. << " Change(mm): " << change(i)*1000. << std::endl;
 
 				// Check alignement
+				const double tolerance = 1.e-5;
 				{
-					const double tolerance = 1.e-5;
 					unsigned int count_zeros = 0;
 					for (unsigned int i = 0; i < 3; i++)
 						if (std::fabs(change(i)) < tolerance)	count_zeros++;
@@ -174,13 +210,14 @@ namespace CVI
 				}
 
 				// Find the relevant coordinate
-				unsigned int relevant_coordinate = 0;
-				if (std::fabs(change(1)) > std::fabs(change(0)) && std::fabs(change(1)) > std::fabs(change(2)))
-					relevant_coordinate = 1;
-
-				// The z coordinate is a fake coordinate
-				//if (std::fabs(change(2)) > std::fabs(change(0)) && std::fabs(change(2)) > std::fabs(change(0)))
-				//	relevant_coordinate = 2;
+				int relevant_coordinate = -1;
+				for (unsigned int i = 0; i < 3; i++)
+					if (std::fabs(change(i)) > tolerance)
+					{
+						relevant_coordinate = i;
+						break;
+					}
+				std::cout << " * Relevant direction: " << relevant_coordinate << std::endl;
 
 				// Assign coordinates
 				std::vector<double> coordinates_from_cfd_unsorted(np);
@@ -200,31 +237,35 @@ namespace CVI
 
 				if (side_name == "North")
 				{
-					if (relevant_coordinate != 0)
-						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "North side is not aligned with x axis");
+					if (relevant_coordinate != radial_coordinate_)
+						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "North side is not aligned with radial coordinate specified in XML file");
 
-					north_coordinate = coordinates[1](0);
+					north_coordinate = coordinates[axial_coordinate_](0);
+					std::cout << " * North coordinate (mm): " << north_coordinate*1000. << std::endl;
 				}
 				else if (side_name == "South")
 				{
-					if (relevant_coordinate != 0)
-						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "South side is not aligned with x axis");
+					if (relevant_coordinate != radial_coordinate_)
+						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "South side is not aligned with radial coordinate specified in XML file");
 
-					south_coordinate = coordinates[1](0);
+					south_coordinate = coordinates[axial_coordinate_](0);
+					std::cout << " * South coordinate (mm): " << south_coordinate * 1000. << std::endl;
 				}
 				else if (side_name == "East")
 				{
-					if (relevant_coordinate != 1)
-						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "East side is not aligned with y axis");
+					if (relevant_coordinate != axial_coordinate_)
+						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "East side is not aligned with axial coordinate specified in XML file");
 
-					east_coordinate = coordinates[0](0);
+					east_coordinate = coordinates[radial_coordinate_](0);
+					std::cout << " * East coordinate (mm): " << east_coordinate * 1000. << std::endl;
 				}
 				else if (side_name == "West")
 				{
-					if (relevant_coordinate != 1)
-						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "West side is not aligned with y axis");
+					if (relevant_coordinate != axial_coordinate_)
+						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "West side is not aligned with axial coordinate specified in XML file");
 
-					west_coordinate = coordinates[0](0);
+					west_coordinate = coordinates[radial_coordinate_](0);
+					std::cout << " * West coordinate (mm): " << west_coordinate * 1000. << std::endl;
 				}
 			}
 
@@ -269,8 +310,8 @@ namespace CVI
 
 					if (coordinates_from_cfd[0] <= ri_ || coordinates_from_cfd[np - 1] >= re_)
 					{
-						std::cout << "Provided radii: " << ri_ << " " << re_ << std::endl;
-						std::cout << "Coordinates from CFD: " << coordinates_from_cfd[0] << " " << coordinates_from_cfd[np - 1] << std::endl;
+						std::cout << "Provided radii (mm): " << ri_*1000. << " " << re_*1000. << std::endl;
+						std::cout << "Coordinates from CFD (mm): " << coordinates_from_cfd[0]*1000. << " " << coordinates_from_cfd[np - 1]*1000. << std::endl;
 						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "The size of the disk from CFD does not match the input size");
 					}
 
@@ -295,8 +336,8 @@ namespace CVI
 
 				if (coordinates_from_cfd[0] <= 0. || coordinates_from_cfd[np - 1] >= H_)
 				{
-					std::cout << "Provided heights: " << 0. << " " << H_ << std::endl;
-					std::cout << "Coordinates from CFD: " << coordinates_from_cfd[0] << " " << coordinates_from_cfd[np - 1] << std::endl;
+					std::cout << "Provided heights (mm): " << 0. << " " << H_*1000. << std::endl;
+					std::cout << "Coordinates from CFD (mm): " << coordinates_from_cfd[0]*1000. << " " << coordinates_from_cfd[np - 1]*1000. << std::endl;
 					OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "The size of the disk from CFD does not match the input size");
 				}
 
@@ -314,15 +355,20 @@ namespace CVI
 			}
 
 			north_temperature_.resize(grid_x_.Np());
-			south_temperature_.resize(grid_x_.Np());
-			east_temperature_.resize(grid_y_.Np());
-			west_temperature_.resize(grid_y_.Np());
-
 			north_mass_fractions_.resize(grid_x_.Np());
-			south_mass_fractions_.resize(grid_x_.Np());
-			east_mass_fractions_.resize(grid_y_.Np());
-			west_mass_fractions_.resize(grid_y_.Np());
 
+			south_temperature_.resize(grid_x_.Np());
+			south_mass_fractions_.resize(grid_x_.Np());
+
+			east_temperature_.resize(grid_y_.Np());
+			east_mass_fractions_.resize(grid_y_.Np());
+
+			if (hole_ == true)
+			{
+				west_temperature_.resize(grid_y_.Np());
+				west_mass_fractions_.resize(grid_y_.Np());
+			}
+			
 			for (int i = 0; i < grid_x_.Np(); i++)
 			{
 				north_mass_fractions_[i].resize(thermodynamicsMap_.NumberOfSpecies());
@@ -331,7 +377,9 @@ namespace CVI
 			for (int i = 0; i < grid_y_.Np(); i++)
 			{
 				east_mass_fractions_[i].resize(thermodynamicsMap_.NumberOfSpecies());
-				west_mass_fractions_[i].resize(thermodynamicsMap_.NumberOfSpecies());
+
+				if (hole_ == true)
+					west_mass_fractions_[i].resize(thermodynamicsMap_.NumberOfSpecies());
 			}
 
 			// Interpolated fields
@@ -430,6 +478,7 @@ namespace CVI
 		}
 
 		// West side
+		if (hole_ == true)
 		{
 			boost::filesystem::path file_name = output_folder / "Disk.west.out";
 			std::ofstream fWest;

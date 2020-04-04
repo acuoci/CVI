@@ -1,4 +1,4 @@
-/*----------------------------------------------------------------------*\
+/*-----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -86,9 +86,10 @@ namespace CVI
 
 		void PrepareOutputFile(const boost::filesystem::path file_name, std::ofstream& fOutput);
 
-		double ri_;
-		double re_;
-		double H_;
+		bool	hole_;
+		double	ri_;
+		double	re_;
+		double	H_;
 
 		std::vector<double> north_temperature_;
 		std::vector<double> south_temperature_;
@@ -99,6 +100,9 @@ namespace CVI
 		std::vector< std::vector<double> > south_mass_fractions_;
 		std::vector< std::vector<double> > east_mass_fractions_;
 		std::vector< std::vector<double> > west_mass_fractions_;
+
+		unsigned int radial_coordinate_;
+		unsigned int axial_coordinate_;
 
 	};
 }

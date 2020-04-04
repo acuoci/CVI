@@ -170,6 +170,7 @@ namespace CVI
 		band_size_ = block_*(nx_+1)-1;
 
 		planar_symmetry_ = true;
+		hole_ = true;
 
 		gas_dae_species_index_ = thermodynamicsMap_.IndexOfSpecies(gas_dae_species)-1;
 
@@ -412,6 +413,8 @@ namespace CVI
 	void Reactor2D::SetPlanarSymmetry(const bool flag)
 	{
 		planar_symmetry_ = flag;
+		if (std::fabs(grid_x_.x()(0)) <= 1e-12)
+			hole_ = false;
 	}
 
 	void Reactor2D::SetSiteNonConservation(std::vector<bool>& site_non_conservation)
@@ -714,6 +717,22 @@ namespace CVI
 		gaseous_phase_ = GASEOUS_PHASE_FROM_CFD;
 
 		// Set initial fields consistent along the west side
+		if (hole_ == false)
+		{
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_[list_points_west_(i)](j) = disk_from_cfd.east_mass_fractions()[i][j];
+				P_(list_points_west_(i)) = P_gas;
+				T_(list_points_west_(i)) = disk_from_cfd.east_temperature()[i];
+
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_gas_west_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
+				P_gas_west_side_(i) = P_gas;
+				T_gas_west_side_(i) = disk_from_cfd.east_temperature()[i];
+			}
+		}
+		else
 		{
 			for (unsigned int i = 0; i < ny_; i++)
 			{
@@ -792,6 +811,21 @@ namespace CVI
 		UpdateTemperatureBoundaryConditions(0.);
 
 		// Set initial fields consistent along the west side
+		if (hole_ == false)
+		{
+			for (unsigned int i = 0; i < ny_; i++)
+			{
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_[list_points_west_(i)](j) = disk_from_cfd.east_mass_fractions()[i][j];
+				P_(list_points_west_(i)) = P_gas;
+				T_(list_points_west_(i)) = T_gas_east_side_(i);
+
+				for (unsigned int j = 0; j < nc_; j++)
+					Y_gas_west_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
+				P_gas_west_side_(i) = P_gas;
+			}
+		}
+		else
 		{
 			for (unsigned int i = 0; i < ny_; i++)
 			{
@@ -1134,11 +1168,23 @@ namespace CVI
 		}
 		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
-			for (unsigned int i = 0; i < ny_; i++)
+			if (hole_ == false)
 			{
-				const int point = list_points_west_(i);
-				for (unsigned int j = 0; j < nc_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_west_side_[i](j);
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					const int point = list_points_west_(i);
+					for (unsigned int j = 0; j < nc_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_[point + 1](j);
+				}
+			}
+			else
+			{
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					const int point = list_points_west_(i);
+					for (unsigned int j = 0; j < nc_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_gas_west_side_[i](j);
+				}
 			}
 		}
 	}
@@ -1369,10 +1415,21 @@ namespace CVI
 	{
 		if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
-			for (unsigned int i = 0; i < ny_; i++)
+			if (hole_ == false)
 			{
-				const int point = list_points_west_(i);
-				dT_over_dt_(point) = T_(point) - T_gas_west_side_(i);
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					const int point = list_points_west_(i);
+					dT_over_dt_(point) = T_(point) - T_(point+1);
+				}
+			}
+			else
+			{
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					const int point = list_points_west_(i);
+					dT_over_dt_(point) = T_(point) - T_gas_west_side_(i);
+				}
 			}
 		}
 	}

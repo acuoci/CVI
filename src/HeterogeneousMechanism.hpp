@@ -1,4 +1,4 @@
-/*----------------------------------------------------------------------*\
+/*-----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -149,8 +149,8 @@ namespace CVI
 			index_C2H4_ = thermodynamicsMap_.IndexOfSpecies("C2H4") - 1;
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
-			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpeciesWithoutError("C10H8") - 1;
 
 			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C6H6";
 		}
@@ -161,8 +161,8 @@ namespace CVI
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
-			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpeciesWithoutError("C10H8") - 1;
 
 			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C14H10";
 		}
@@ -173,8 +173,8 @@ namespace CVI
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
-			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpeciesWithoutError("C10H8") - 1;
 
 			tags_[0] = "CH4";	tags_[1] = "C6H6";	tags_[2] = "C2H2";	tags_[3] = "C14H10";
 		}
@@ -184,8 +184,9 @@ namespace CVI
 			index_C2H4_ = thermodynamicsMap_.IndexOfSpecies("C2H4") - 1;
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
-			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpeciesWithoutError("C10H8") - 1;
+
 
 			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C6H6";	tags_[4] = "C10H8";
 		}
@@ -196,8 +197,9 @@ namespace CVI
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
-			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpeciesWithoutError("C10H8") - 1;
+
 
 			tags_[0] = "CH4";	tags_[1] = "C2H4";	tags_[2] = "C2H2";	tags_[3] = "C14H10";	tags_[4] = "C10H8";
 		}
@@ -208,8 +210,9 @@ namespace CVI
 			index_C6H6_ = thermodynamicsMap_.IndexOfSpecies("C6H6") - 1;
 			index_C2H2_ = thermodynamicsMap_.IndexOfSpecies("C2H2") - 1;
 			index_C14H10_ = thermodynamicsMap_.IndexOfSpecies("C14H10") - 1;
-			index_C10H8_ = thermodynamicsMap_.IndexOfSpecies("C10H8") - 1;
 			index_H2_ = thermodynamicsMap_.IndexOfSpecies("H2") - 1;
+			index_C10H8_ = thermodynamicsMap_.IndexOfSpeciesWithoutError("C10H8") - 1;
+
 
 			tags_[0] = "CH4";	tags_[1] = "C6H6";	tags_[2] = "C2H2";	tags_[3] = "C14H10";	tags_[4] = "C10H8";
 		}
@@ -258,8 +261,10 @@ namespace CVI
 		const double C2H4 = C(index_C2H4_);
 		const double C2H2 = C(index_C2H2_);
 		const double C6H6 = C(index_C6H6_);
-		const double C10H8 = C(index_C10H8_);
 		const double H2   = C(index_H2_);
+		
+		double C10H8 = 0.;
+			if (index_C10H8_>= 0)  C10H8 = C(index_C10H8_);
 
 		const double eps = 1.e-16;
 		
@@ -333,8 +338,9 @@ namespace CVI
 			const double C2H4 = C(index_C2H4_);
 			const double C2H2 = C(index_C2H2_);
 			const double C6H6 = C(index_C6H6_);
-			const double C10H8 = C(index_C10H8_);
 			const double H2 = C(index_H2_);
+			double C10H8 = 0.;
+			if (index_C10H8_ >= 0)  C10H8 = C(index_C10H8_);
 
 			// Frequency factors are in [m/s]
 			const double kCH4 = 0.;
@@ -366,7 +372,7 @@ namespace CVI
 			Rgas_(index_C2H4_) = -Sv*r_(1);
 			Rgas_(index_C2H2_) = -Sv*r_(2);
 			Rgas_(index_C6H6_) = -Sv*r_(3);
-			Rgas_(index_C10H8_) = -Sv*r_(4);
+			if (index_C10H8_>0) Rgas_(index_C10H8_) = -Sv*r_(4);
 			Rgas_(index_H2_) = Sv*(2.*r_(0) + 2.*r_(1) + 1.*r_(2) + 3.*r_(3) + 4.*r_(4));
 
 			// Heterogeneous deposition rate [kmol/m2/s]
@@ -433,8 +439,9 @@ namespace CVI
 			const double C2H4 = C(index_C2H4_);
 			const double C2H2 = C(index_C2H2_);
 			const double C14H10 = C(index_C14H10_);
-			const double C10H8 = C(index_C10H8_);
 			const double H2 = C(index_H2_);
+			double C10H8 = 0.;
+				if (index_C10H8_ >= 0)  C10H8 = C(index_C10H8_);
 
 			// Frequency factors are in [1/s]
 			const double kCH4 = 0.;
@@ -466,7 +473,7 @@ namespace CVI
 			Rgas_(index_C2H4_) = -Sv*r_(1);
 			Rgas_(index_C2H2_) = -Sv*r_(2);
 			Rgas_(index_C14H10_) = -Sv*r_(3);
-			Rgas_(index_C10H8_) = -Sv*r_(4);
+			if (index_C10H8_ > 0) Rgas_(index_C10H8_) = -Sv*r_(4);
 			Rgas_(index_H2_) = Sv*(2.*r_(0) + 2.*r_(1) + 1.*r_(2) + 5.*r_(3) + 4.*r_(4));
 
 			// Heterogeneous deposition rate [kmol/m2/s]
@@ -533,8 +540,9 @@ namespace CVI
 			const double C2H2 = C(index_C2H2_);
 			const double C6H6 = C(index_C6H6_);
 			const double C14H10 = C(index_C14H10_);
-			const double C10H8 = C(index_C10H8_);
 			const double H2 = C(index_H2_);
+			double C10H8 = 0.;
+			if (index_C10H8_ >= 0)  C10H8 = C(index_C10H8_);
 
 			// Frequency factors are in [m/s]
 			const double kCH4 = 0.;
@@ -566,7 +574,7 @@ namespace CVI
 			Rgas_(index_C2H2_) = -Sv*r_(1);
 			Rgas_(index_C6H6_) = -Sv*r_(2);
 			Rgas_(index_C14H10_) = -Sv*r_(3);
-			Rgas_(index_C10H8_) = -Sv*r_(4);
+			if (index_C10H8_ > 0) Rgas_(index_C10H8_) = -Sv*r_(4);
 			Rgas_(index_H2_) = Sv*(2.*r_(0) + 1.*r_(1) + 3.*r_(2) + 5.*r_(3) + 4.*r_(4));
 
 			// Heterogeneous deposition rate [kmol/m2/s]

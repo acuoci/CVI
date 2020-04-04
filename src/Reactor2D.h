@@ -628,6 +628,7 @@ namespace CVI
 
 		// Additional options
 		bool planar_symmetry_;	// planar vs cylindrical symmetry
+		bool hole_;				// true if the hole is present in the geometry
 		double vx_;				// x-component component of velocity [m/s]
 		double vy_;				// y-component component of velocity [m/s]
 
