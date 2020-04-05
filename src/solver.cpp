@@ -380,7 +380,8 @@ int main(int argc, char** argv)
 			else if (units == "micron")	length = length / 1.e6;
 			else OpenSMOKE::FatalErrorMessage("Unknown length units");
 
-			grid_x = new OpenSMOKE::Grid1D(number_of_points, 0., length, stretching_factor);
+			const double beta = std::pow(stretching_factor, 1. / static_cast<double>(number_of_points - 2));
+			grid_x = new OpenSMOKE::Grid1D(number_of_points, 0., length, 1./beta);
 		}
 		else
 		{
@@ -402,7 +403,35 @@ int main(int argc, char** argv)
 			else if (units == "micron")	radius_external = radius_external / 1.e6;
 			else OpenSMOKE::FatalErrorMessage("Unknown length units");
 
-			grid_x = new OpenSMOKE::Grid1D(number_of_points, radius_internal, radius_external, stretching_factor);
+			if (radius_internal == 0.)
+			{
+				const double beta = std::pow(stretching_factor, 1. / static_cast<double>(number_of_points - 2));
+				grid_x = new OpenSMOKE::Grid1D(number_of_points, radius_internal, radius_external, 1./beta);
+			}
+			else
+			{
+				if (stretching_factor != 1.)
+				{
+					if (number_of_points % 2 != 0)
+						OpenSMOKE::FatalErrorMessage("In case of stretcheg grid along the x axis, the number of points must be odd.");
+
+					const double beta = std::pow(stretching_factor, 1. / static_cast<double>((number_of_points - 1)/2-1));
+					OpenSMOKE::Grid1D grid_left = OpenSMOKE::Grid1D((number_of_points+1)/2, radius_internal, (radius_external- radius_internal)/2., beta);
+					OpenSMOKE::Grid1D grid_right = OpenSMOKE::Grid1D((number_of_points + 1) / 2, (radius_external - radius_internal) / 2., radius_external, 1./beta);
+					
+					std::vector<double> x;
+					for (int i = 0; i < (number_of_points + 1) / 2; i++)
+						x.push_back(grid_left.x()[i]);
+					for (int i = 1; i < (number_of_points + 1) / 2; i++)
+						x.push_back(grid_right.x()[i]);
+
+					grid_x = new OpenSMOKE::Grid1D(x);
+				}
+				else
+				{
+					grid_x = new OpenSMOKE::Grid1D(number_of_points, radius_internal, radius_external, 1.);
+				}
+			}
 		}
 	}
 
@@ -429,7 +458,27 @@ int main(int argc, char** argv)
 			else OpenSMOKE::FatalErrorMessage("Unknown length units");
 		}
 
-		grid_y = new OpenSMOKE::Grid1D(number_of_points, 0., length, stretching_factor);
+		if (stretching_factor != 1.)
+		{
+			if (number_of_points % 2 == 0)
+				OpenSMOKE::FatalErrorMessage("In case of stretcheg grid along the y axis, the number of points must be odd.");
+
+			const double beta = std::pow(stretching_factor, 1. / static_cast<double>((number_of_points - 1) / 2 - 1));
+			OpenSMOKE::Grid1D grid_left = OpenSMOKE::Grid1D((number_of_points + 1) / 2, 0, length / 2., beta);
+			OpenSMOKE::Grid1D grid_right = OpenSMOKE::Grid1D((number_of_points + 1) / 2, length / 2., length, 1. / beta);
+
+			std::vector<double> y;
+			for (int i = 0; i < (number_of_points + 1) / 2; i++)
+				y.push_back(grid_left.x()[i]);
+			for (int i = 1; i < (number_of_points + 1) / 2; i++)
+				y.push_back(grid_right.x()[i]);
+
+			grid_y = new OpenSMOKE::Grid1D(y);
+		}
+		else
+		{
+			grid_y = new OpenSMOKE::Grid1D(number_of_points, 0., length, 1.);
+		}
 	}
 
 	// Dae Options
