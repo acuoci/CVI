@@ -308,7 +308,7 @@ namespace CVI
 				{
 					std::cout << "Extending" << std::endl;
 
-					if (coordinates_from_cfd[0] <= ri_ || coordinates_from_cfd[np - 1] >= re_)
+					if (coordinates_from_cfd[0] < ri_ || coordinates_from_cfd[np - 1] > re_)
 					{
 						std::cout << "Provided radii (mm): " << ri_*1000. << " " << re_*1000. << std::endl;
 						std::cout << "Coordinates from CFD (mm): " << coordinates_from_cfd[0]*1000. << " " << coordinates_from_cfd[np - 1]*1000. << std::endl;
@@ -334,7 +334,7 @@ namespace CVI
 				for (unsigned int i = 0; i < np; i++)
 					coordinates_from_cfd[i] -= south_coordinate;
 
-				if (coordinates_from_cfd[0] <= 0. || coordinates_from_cfd[np - 1] >= H_)
+				if (coordinates_from_cfd[0] < 0. || coordinates_from_cfd[np - 1] > H_)
 				{
 					std::cout << "Provided heights (mm): " << 0. << " " << H_*1000. << std::endl;
 					std::cout << "Coordinates from CFD (mm): " << coordinates_from_cfd[0]*1000. << " " << coordinates_from_cfd[np - 1]*1000. << std::endl;
