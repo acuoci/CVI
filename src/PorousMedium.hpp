@@ -213,9 +213,6 @@ namespace CVI
 			sv = -3.855762523198E+05*epsilon5 + 8.558541857891E+05*epsilon4 - 6.109196594973E+05*epsilon3 - 4.351758023548E+04*epsilon2 + 2.196529832093E+05*epsilon;
 		}
 
-		//const double smoothing_coefficient = 0.50*(std::tanh(epsilon_smoothing_coefficient_*(epsilon - epsilon_threshold_)) + 1.);
-		//sv *= smoothing_coefficient;
-
 		return sv;
 	}
 
