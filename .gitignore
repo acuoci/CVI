@@ -9,6 +9,7 @@
 *.iobj
 *.ipdb
 *.sh
+*.VC.db-*
 
 #Doxygen
 doc/html/
