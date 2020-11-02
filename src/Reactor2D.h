@@ -437,8 +437,10 @@ namespace CVI
 
 		void PrintROPA(const double t, const std::string name_file);
 
-		double AreaAveraged(const Eigen::VectorXd& v);
-		double AreaStandardDeviation(const double mean, const Eigen::VectorXd& v);
+		double VolumeAveraged(const Eigen::VectorXd& v);
+		double VolumeIntegral(const Eigen::VectorXd& v);
+
+		double VolumeStandardDeviation(const double mean, const Eigen::VectorXd& v);
 
 		void PrintLabelMonitoringFile();
 
@@ -648,6 +650,9 @@ namespace CVI
 		bool time_profiles_;
 		OpenSMOKE::FixedProfile* profile_temperature_;
 		//std::vector<OpenSMOKE::FixedProfile*> profiles_omega_;
+
+		Eigen::VectorXd homogeneous_total_mass_source_;		// [kg]
+		Eigen::VectorXd heterogeneous_total_mass_source_;	// [kg]
 	};
 }
 

@@ -402,6 +402,12 @@ namespace CVI
 			for (unsigned int i = 0; i < np_; i++)
 				omega_heterogeneous_from_heterogeneous_[i].setZero();
 		}
+
+		// Total mass produced/consumed (kg)
+		homogeneous_total_mass_source_.resize(nc_);
+		heterogeneous_total_mass_source_.resize(nc_);
+		homogeneous_total_mass_source_.setZero();
+		heterogeneous_total_mass_source_.setZero();
 	}
 
 	void Reactor2D::SetSurfaceOnTheFlyROPA(OpenSMOKE::SurfaceOnTheFlyROPA* ropa)
@@ -2026,6 +2032,11 @@ namespace CVI
 			const double t0 = time_starting_point_ + (k - 1)*dae_time_interval_;
 			const double tf = t0 + dae_time_interval_;
 
+			// Reset to zero
+			t_old_ = t0;
+			homogeneous_total_mass_source_.setZero();
+			heterogeneous_total_mass_source_.setZero();
+
 			// Solve
 			int flag = Solve(dae_parameters, t0, tf);
 			if (flag < 0)
@@ -2731,30 +2742,141 @@ namespace CVI
 			fOutputXML << total_volume*5./360. << std::endl;
 			fOutputXML << "</slice-volume>" << std::endl;
 
-			fOutputXML << "<source-terms>" << std::endl;
-
-			double sum_homogeneous = 0.;
-			double sum_heterogeneous = 0.;
-			for (unsigned int j = 0; j < nc_; j++)
+			// New evaluation of source terms
 			{
-				const double homogeneous = AreaAveraged(omegadot_from_homogeneous_.col(j));
-				const double heterogeneous = AreaAveraged(omegadot_from_heterogeneous_.col(j));
-				sum_homogeneous += homogeneous;
-				sum_heterogeneous += heterogeneous;
-				fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
-				fOutputXML << std::right << std::setprecision(9) << std::setw(20) << homogeneous;
-				fOutputXML << std::right << std::setprecision(9) << std::setw(20) << heterogeneous;
-				fOutputXML << std::right << std::setprecision(9) << std::setw(20) << homogeneous + heterogeneous;
-				fOutputXML << std::endl;
-			}
-			fOutputXML << "</source-terms>" << std::endl;
+				// Correction coefficient
+				const double cc = 1.0;
 
-			fOutputXML << "<total-source-terms>" << std::endl;
-			fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_homogeneous;
-			fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_heterogeneous;
-			fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_homogeneous + sum_heterogeneous;
-			fOutputXML << std::endl;
-			fOutputXML << "</total-source-terms>" << std::endl;
+				// Time interval (s)
+				const double delta_time = dae_time_interval_;
+				fOutputXML << "<delta_time>" << std::endl;
+				fOutputXML << delta_time << std::endl;
+				fOutputXML << "</delta_time>" << std::endl;
+
+				// Source terms (correct, integral version)
+				{
+					fOutputXML << "<source-terms>" << std::endl;
+					fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
+
+					double sum_heterogeneous_integral = 0.;
+					double sum_heterogeneous_instantaneous = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+					{
+						sum_heterogeneous_integral += heterogeneous_total_mass_source_(j);
+
+						const double heterogeneous_instantaneous = VolumeAveraged(omegadot_from_heterogeneous_.col(j));
+						sum_heterogeneous_instantaneous += heterogeneous_instantaneous;
+
+						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_instantaneous;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time / total_volume;
+
+						fOutputXML << std::endl;
+					}
+					fOutputXML << "</source-terms>" << std::endl;
+
+					fOutputXML << "<total-source-terms>" << std::endl;
+					fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_instantaneous;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_integral / delta_time;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_integral / delta_time / total_volume;
+					fOutputXML << std::endl;
+					fOutputXML << "</total-source-terms>" << std::endl;
+				}
+
+				/*
+				// Source terms (integral version, uncorrect)
+				{
+					fOutputXML << "<source-terms-new>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
+					double sum_homogeneous = 0.;
+					double sum_heterogeneous = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+					{
+						sum_homogeneous += homogeneous_total_mass_source_(j);
+						sum_heterogeneous += heterogeneous_total_mass_source_(j);
+
+						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_total_mass_source_(j) / delta_time / total_volume;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time / total_volume;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * (homogeneous_total_mass_source_(j) + heterogeneous_total_mass_source_(j)) / delta_time / total_volume;
+
+						fOutputXML << std::endl;
+					}
+					fOutputXML << "</source-terms-new>" << std::endl;
+
+					fOutputXML << "<total-source-terms-new>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous / delta_time / total_volume;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous / delta_time / total_volume;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * (sum_homogeneous + sum_heterogeneous) / delta_time / total_volume;
+					fOutputXML << std::endl;
+					fOutputXML << "</total-source-terms-new>" << std::endl;
+				}
+				*/
+				
+				// Mass source terms (integral)
+				{
+					fOutputXML << "<mass-source-terms>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/s) Het.(kg/s) Net(kg/s)-->" << std::endl;
+					double sum_homogeneous = 0.;
+					double sum_heterogeneous = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+					{
+						sum_homogeneous += homogeneous_total_mass_source_(j);
+						sum_heterogeneous += heterogeneous_total_mass_source_(j);
+
+						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*homogeneous_total_mass_source_(j) / delta_time;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*heterogeneous_total_mass_source_(j) / delta_time;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*(homogeneous_total_mass_source_(j) + heterogeneous_total_mass_source_(j)) / delta_time;
+
+						fOutputXML << std::endl;
+					}
+					fOutputXML << "</mass-source-terms>" << std::endl;
+
+					fOutputXML << "<total-mass-source-terms>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/s) Het.(kg/s) Net(kg/s)-->" << std::endl;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*sum_homogeneous / delta_time;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*sum_heterogeneous / delta_time;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*(sum_homogeneous + sum_heterogeneous) / delta_time;
+					fOutputXML << std::endl;
+					fOutputXML << "</total-mass-source-terms>" << std::endl;
+				}
+
+				// Old evaluation of source terms
+				{
+					fOutputXML << "<source-terms-old>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
+					double sum_homogeneous = 0.;
+					double sum_heterogeneous = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+					{
+						const double homogeneous = VolumeAveraged(omegadot_from_homogeneous_.col(j));
+						const double heterogeneous = VolumeAveraged(omegadot_from_heterogeneous_.col(j));
+						sum_homogeneous += homogeneous;
+						sum_heterogeneous += heterogeneous;
+						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << homogeneous;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << heterogeneous;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << homogeneous + heterogeneous;
+						fOutputXML << std::endl;
+					}
+					fOutputXML << "</source-terms-old>" << std::endl;
+
+					fOutputXML << "<total-source-terms-old>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_homogeneous;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_heterogeneous;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_homogeneous + sum_heterogeneous;
+					fOutputXML << std::endl;
+					fOutputXML << "</total-source-terms-old>" << std::endl;
+				}
+			}
 
 			fOutputXML << "</opensmoke>" << std::endl;
 			fOutputXML.close();
@@ -3016,10 +3138,10 @@ namespace CVI
 				}
 
 
-				const double rho_bulk_mean = AreaAveraged(rho_bulk_);
-				const double rho_bulk_std = AreaStandardDeviation(rho_bulk_mean, rho_bulk_);
-				const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);		// [kg/m2/s]
-				const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);	// [kg/m3/s]
+				const double rho_bulk_mean = VolumeAveraged(rho_bulk_);
+				const double rho_bulk_std = VolumeStandardDeviation(rho_bulk_mean, rho_bulk_);
+				const double r_deposition_per_unit_area_mean = VolumeAveraged(omega_deposition_per_unit_area_);		// [kg/m2/s]
+				const double r_deposition_per_unit_volume_mean = VolumeAveraged(omega_deposition_per_unit_volume_);	// [kg/m3/s]
 
 				std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t;		// [s]
 				std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t / 3600.;
@@ -3050,46 +3172,46 @@ namespace CVI
 				const int width = 20;
 				const int width_increased = 26;
 
-				const double T_mean = AreaAveraged(T_);
-				const double T_std = AreaStandardDeviation(T_mean, T_);
+				const double T_mean = VolumeAveraged(T_);
+				const double T_std = VolumeStandardDeviation(T_mean, T_);
 
-				const double P_mean = AreaAveraged(P_);
-				const double P_std = AreaStandardDeviation(P_mean, P_);
+				const double P_mean = VolumeAveraged(P_);
+				const double P_std = VolumeStandardDeviation(P_mean, P_);
 
-				const double epsilon_mean = AreaAveraged(epsilon_);
-				const double epsilon_std = AreaStandardDeviation(epsilon_mean, epsilon_);
+				const double epsilon_mean = VolumeAveraged(epsilon_);
+				const double epsilon_std = VolumeStandardDeviation(epsilon_mean, epsilon_);
 
-				const double rho_bulk_mean = AreaAveraged(rho_bulk_);
-				const double rho_bulk_std = AreaStandardDeviation(rho_bulk_mean, rho_bulk_);
+				const double rho_bulk_mean = VolumeAveraged(rho_bulk_);
+				const double rho_bulk_std = VolumeStandardDeviation(rho_bulk_mean, rho_bulk_);
 
-				const double Sv_mean = AreaAveraged(Sv_);
-				const double Sv_std = AreaStandardDeviation(Sv_mean, Sv_);
+				const double Sv_mean = VolumeAveraged(Sv_);
+				const double Sv_std = VolumeStandardDeviation(Sv_mean, Sv_);
 
-				const double rp_mean = AreaAveraged(rp_);
-				const double rp_std = AreaStandardDeviation(rp_mean, rp_);
+				const double rp_mean = VolumeAveraged(rp_);
+				const double rp_std = VolumeStandardDeviation(rp_mean, rp_);
 
-				const double permeability_mean = AreaAveraged(permeability_);
-				const double permeability_std = AreaStandardDeviation(permeability_mean, permeability_);
+				const double permeability_mean = VolumeAveraged(permeability_);
+				const double permeability_std = VolumeStandardDeviation(permeability_mean, permeability_);
 
-				const double eta_bulk_mean = AreaAveraged(eta_bulk_);
-				const double eta_bulk_std = AreaStandardDeviation(eta_bulk_mean, eta_bulk_);
+				const double eta_bulk_mean = VolumeAveraged(eta_bulk_);
+				const double eta_bulk_std = VolumeStandardDeviation(eta_bulk_mean, eta_bulk_);
 
-				const double eta_knudsen_mean = AreaAveraged(eta_knudsen_);
-				const double eta_knudsen_std = AreaStandardDeviation(eta_knudsen_mean, eta_knudsen_);
+				const double eta_knudsen_mean = VolumeAveraged(eta_knudsen_);
+				const double eta_knudsen_std = VolumeStandardDeviation(eta_knudsen_mean, eta_knudsen_);
 
-				const double eta_viscous_mean = AreaAveraged(eta_viscous_);
-				const double eta_viscous_std = AreaStandardDeviation(eta_viscous_mean, eta_viscous_);
+				const double eta_viscous_mean = VolumeAveraged(eta_viscous_);
+				const double eta_viscous_std = VolumeStandardDeviation(eta_viscous_mean, eta_viscous_);
 
-				const double r_deposition_per_unit_area_mean = AreaAveraged(omega_deposition_per_unit_area_);
-				const double r_deposition_per_unit_area_std = AreaStandardDeviation(r_deposition_per_unit_area_mean, omega_deposition_per_unit_area_);
+				const double r_deposition_per_unit_area_mean = VolumeAveraged(omega_deposition_per_unit_area_);
+				const double r_deposition_per_unit_area_std = VolumeStandardDeviation(r_deposition_per_unit_area_mean, omega_deposition_per_unit_area_);
 
-				const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);
-				const double r_deposition_per_unit_volume_std = AreaStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
+				const double r_deposition_per_unit_volume_mean = VolumeAveraged(omega_deposition_per_unit_volume_);
+				const double r_deposition_per_unit_volume_std = VolumeStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
 
-				const double delta_rhobulk_mean = AreaAveraged(delta_rhobulk_);
+				const double delta_rhobulk_mean = VolumeAveraged(delta_rhobulk_);
 				Eigen::VectorXd delta_rhobulk_due_to_single_reaction_mean(heterogeneousMechanism_.r().size());
 				for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
-					delta_rhobulk_due_to_single_reaction_mean(j) = AreaAveraged(delta_rhobulk_due_to_single_reaction_[j]);
+					delta_rhobulk_due_to_single_reaction_mean(j) = VolumeAveraged(delta_rhobulk_due_to_single_reaction_[j]);
 
 				fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t / 3600.;	// [h]
 				fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t;			// [s]
@@ -3288,6 +3410,70 @@ namespace CVI
 			std::cout << t << " " << T_(np_ / 2) << std::endl;
 		}
 
+		// Update the total amount of consumed/produced species
+		// XXX
+		{
+			Eigen::MatrixXd	omegadot_from_homogeneous_(np_, aux_Y.Size());
+			Eigen::MatrixXd	omegadot_from_heterogeneous_(np_, aux_Y.Size());
+
+			for (unsigned int i = 0; i < np_; i++)
+			{
+				// Concentrations
+				thermodynamicsMap_.SetTemperature(T_(i));
+				thermodynamicsMap_.SetPressure(P_(i));
+				aux_Y.CopyFrom(Y_[i].data());
+				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
+				aux_X.CopyTo(X_[i].data());
+				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
+				Product(cTot, aux_X, &aux_C);
+
+				// Formation rates: homogeneous reactions
+				if (heterogeneousDetailedMechanism_.homogeneous_reactions() == true)
+				{
+					kineticsMap_.SetTemperature(T_(i));
+					kineticsMap_.SetPressure(P_(i));
+					kineticsMap_.ReactionRates(aux_C.GetHandle());
+					kineticsMap_.FormationRates(aux_R.GetHandle());
+					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
+
+					for (unsigned int j = 0; j < nc_; j++)
+						omegadot_from_homogeneous_(i, j) = epsilon_(i) * aux_R[j + 1];
+				}
+
+				// Formation rates: heterogeneous reactions
+				if (heterogeneousDetailedMechanism_.heterogeneous_reactions() == true)
+				{
+					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+					heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+					for (unsigned int j = 0; j < nc_; j++)
+						eigen_C_(j) = aux_C[j + 1];
+
+					for (unsigned int j = 0; j < surf_nc_; j++)
+						eigen_Z_(j) = Z_[i](j);
+
+					for (unsigned int j = 0; j < bulk_nc_; j++)
+						eigen_a_(j) = 1.;
+
+					for (unsigned int j = 0; j < surf_np_; j++)
+						eigen_gamma_(j) = Gamma_[i](j);
+
+					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
+
+					const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+					for (unsigned int j = 0; j < nc_; j++)
+						omegadot_from_heterogeneous_(i,j) = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j)
+															+ Y_[i](j) * omega_deposition_per_unit_volume;															// [kg/m3/s]
+				}
+			}
+
+			for (unsigned int j = 0; j < nc_; j++)
+			{
+				homogeneous_total_mass_source_(j) += VolumeIntegral(omegadot_from_homogeneous_.col(j)) * (t - t_old_);
+				heterogeneous_total_mass_source_(j) += VolumeIntegral(omegadot_from_heterogeneous_.col(j)) * (t - t_old_);
+			}
+		}
+
 		t_old_ = t;
 		count_dae_video_++;
 		count_file_++;
@@ -3389,7 +3575,23 @@ namespace CVI
 		}
 	}
 
-	double Reactor2D::AreaAveraged(const Eigen::VectorXd& v)
+	double Reactor2D::VolumeAveraged(const Eigen::VectorXd& v)
+	{
+		if (planar_symmetry_ == true)
+		{
+			const double volume_total = grid_x_.L() * grid_y_.L();
+			return VolumeIntegral(v) / volume_total;
+		}
+		else
+		{
+			const double Ri = grid_x_.x()(0);
+			const double Re = grid_x_.x()(nx_ - 1);
+			const double volume_total = boost::math::constants::pi<double>() * (Re * Re - Ri * Ri) * grid_y_.L();
+			return VolumeIntegral(v) / volume_total;
+		}
+	}
+
+	double Reactor2D::VolumeIntegral(const Eigen::VectorXd& v)
 	{
 		if (planar_symmetry_ == true)
 		{
@@ -3465,8 +3667,7 @@ namespace CVI
 				sum += v(point)*area;
 			}
 
-			const double area_total = grid_x_.L()*grid_y_.L();
-			return sum / area_total;
+			return sum;
 		}
 		else
 		{
@@ -3577,14 +3778,11 @@ namespace CVI
 				sum += v(point)*volume;
 			}
 
-			const double Ri = grid_x_.x()(0);
-			const double Re = grid_x_.x()(nx_-1);
-			const double volume_total = boost::math::constants::pi<double>()*(Re*Re-Ri*Ri)*grid_y_.L();
-			return sum / volume_total;
+			return sum;
 		}
 	}
 
-	double Reactor2D::AreaStandardDeviation(const double mean, const Eigen::VectorXd& v)
+	double Reactor2D::VolumeStandardDeviation(const double mean, const Eigen::VectorXd& v)
 	{
 		if (planar_symmetry_ == true)
 		{
@@ -3661,8 +3859,8 @@ namespace CVI
 			}
 
 			const double coefficient = double(np_ - 1) / double(np_);
-			const double area_total = grid_x_.L()*grid_y_.L();
-			return std::sqrt(sum_std / area_total / coefficient);
+			const double volume_total = grid_x_.L()*grid_y_.L();
+			return std::sqrt(sum_std / volume_total / coefficient);
 		}
 		else
 		{
