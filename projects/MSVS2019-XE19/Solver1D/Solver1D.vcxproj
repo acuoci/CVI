@@ -27,11 +27,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler 19.1</PlatformToolset>
+    <PlatformToolset>Intel(R) oneAPI DPC++ Compiler</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <UseIntelMKL>Sequential</UseIntelMKL>
     <InterproceduralOptimization>false</InterproceduralOptimization>
+    <UseInteloneMKL>Sequential</UseInteloneMKL>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -83,6 +84,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <InterproceduralOptimization>NoIPO</InterproceduralOptimization>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <OptimizeForWindowsApplication>true</OptimizeForWindowsApplication>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -90,7 +92,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared\stage\lib-xe2019;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;sundials_sunmatrixband.lib;sundials_sunlinsollapackdense.lib;sundials_sunlinsollapackband.lib;libBzzMath60dev_MSVS2019_x64_Release.lib;libDASPK20_LINPACK_XE2019_x64_Release.lib;libLINPACK_XE2019_x64_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;sundials_sunmatrixband.lib;sundials_sunlinsollapackdense.lib;sundials_sunlinsollapackband.lib;libBzzMath60dev_XE2019_x64_Release.lib;libDASPK20_LINPACK_XE2019_x64_Release.lib;libLINPACK_XE2019_x64_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

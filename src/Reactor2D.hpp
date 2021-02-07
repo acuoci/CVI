@@ -2753,9 +2753,39 @@ namespace CVI
 				fOutputXML << delta_time << std::endl;
 				fOutputXML << "</delta_time>" << std::endl;
 
-				// Source terms (correct, integral version)
+				// Mass source terms (from time history, per unit of volume)
 				{
 					fOutputXML << "<source-terms>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
+					double sum_homogeneous = 0.;
+					double sum_heterogeneous = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+					{
+						sum_homogeneous += homogeneous_total_mass_source_(j);
+						sum_heterogeneous += heterogeneous_total_mass_source_(j);
+
+						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_total_mass_source_(j) / delta_time / total_volume;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time / total_volume;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * (homogeneous_total_mass_source_(j) + heterogeneous_total_mass_source_(j)) / delta_time / total_volume;
+
+						fOutputXML << std::endl;
+					}
+					fOutputXML << "</source-terms>" << std::endl;
+
+					fOutputXML << "<total-mass-source-terms>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/s) Het.(kg/s) Net(kg/s)-->" << std::endl;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous / delta_time / total_volume;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous / delta_time / total_volume;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * (sum_homogeneous + sum_heterogeneous) / delta_time / total_volume;
+					fOutputXML << std::endl;
+					fOutputXML << "</total-source-terms>" << std::endl;
+				}
+
+				// Source terms (heterogeneous contribution only, instantaneous and from time history)
+				{
+					fOutputXML << "<het-source-terms>" << std::endl;
 					fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
 
 					double sum_heterogeneous_integral = 0.;
@@ -2775,48 +2805,49 @@ namespace CVI
 
 						fOutputXML << std::endl;
 					}
-					fOutputXML << "</source-terms>" << std::endl;
+					fOutputXML << "</het-source-terms>" << std::endl;
 
-					fOutputXML << "<total-source-terms>" << std::endl;
+					fOutputXML << "<total-het-source-terms>" << std::endl;
 					fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_instantaneous;
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_integral / delta_time;
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_integral / delta_time / total_volume;
 					fOutputXML << std::endl;
-					fOutputXML << "</total-source-terms>" << std::endl;
+					fOutputXML << "</total-het-source-terms>" << std::endl;
 				}
 
-				/*
-				// Source terms (integral version, uncorrect)
+				// Source terms (homogeneous contribution only, instantaneous and from time history)
 				{
-					fOutputXML << "<source-terms-new>" << std::endl;
-					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
-					double sum_homogeneous = 0.;
-					double sum_heterogeneous = 0.;
+					fOutputXML << "<hom-source-terms>" << std::endl;
+					fOutputXML << "<!--Species Hom.Inst.(kg/m3/s) Hom.Int.(kg/s) Hom.Int.(kg/m3/s)-->" << std::endl;
+
+					double sum_homogeneous_integral = 0.;
+					double sum_homogeneous_instantaneous = 0.;
 					for (unsigned int j = 0; j < nc_; j++)
 					{
-						sum_homogeneous += homogeneous_total_mass_source_(j);
-						sum_heterogeneous += heterogeneous_total_mass_source_(j);
+						sum_homogeneous_integral += homogeneous_total_mass_source_(j);
+
+						const double homogeneous_instantaneous = VolumeAveraged(omegadot_from_homogeneous_.col(j));
+						sum_homogeneous_instantaneous += homogeneous_instantaneous;
 
 						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
 
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_instantaneous;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_total_mass_source_(j) / delta_time;
 						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_total_mass_source_(j) / delta_time / total_volume;
-						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time / total_volume;
-						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * (homogeneous_total_mass_source_(j) + heterogeneous_total_mass_source_(j)) / delta_time / total_volume;
 
 						fOutputXML << std::endl;
 					}
-					fOutputXML << "</source-terms-new>" << std::endl;
+					fOutputXML << "</hom-source-terms>" << std::endl;
 
-					fOutputXML << "<total-source-terms-new>" << std::endl;
-					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous / delta_time / total_volume;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous / delta_time / total_volume;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * (sum_homogeneous + sum_heterogeneous) / delta_time / total_volume;
+					fOutputXML << "<total-hom-source-terms>" << std::endl;
+					fOutputXML << "<!--Species Hom.Inst.(kg/m3/s) Hom.Int.(kg/s) Hom.Int.(kg/m3/s)-->" << std::endl;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_instantaneous;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_integral / delta_time;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_integral / delta_time / total_volume;
 					fOutputXML << std::endl;
-					fOutputXML << "</total-source-terms-new>" << std::endl;
+					fOutputXML << "</total-hom-source-terms>" << std::endl;
 				}
-				*/
 				
 				// Mass source terms (integral)
 				{
@@ -2840,7 +2871,7 @@ namespace CVI
 					fOutputXML << "</mass-source-terms>" << std::endl;
 
 					fOutputXML << "<total-mass-source-terms>" << std::endl;
-					fOutputXML << "<!--Species Hom.(kg/s) Het.(kg/s) Net(kg/s)-->" << std::endl;
+					fOutputXML << "<!--Species Het.(kg/s) Het.(kg/s) Net(kg/s)-->" << std::endl;
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*sum_homogeneous / delta_time;
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*sum_heterogeneous / delta_time;
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc*(sum_homogeneous + sum_heterogeneous) / delta_time;
@@ -3411,7 +3442,6 @@ namespace CVI
 		}
 
 		// Update the total amount of consumed/produced species
-		// XXX
 		{
 			Eigen::MatrixXd	omegadot_from_homogeneous_(np_, aux_Y.Size());
 			Eigen::MatrixXd	omegadot_from_heterogeneous_(np_, aux_Y.Size());
@@ -3460,10 +3490,16 @@ namespace CVI
 
 					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
 
+					// Option 1
+					//const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+					//for (unsigned int j = 0; j < nc_; j++)
+					//	omegadot_from_heterogeneous_(i,j) = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j)
+					//										+ Y_[i](j) * omega_deposition_per_unit_volume;						// [kg/m3/s]
+
+					// Option 2
 					const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
 					for (unsigned int j = 0; j < nc_; j++)
-						omegadot_from_heterogeneous_(i,j) = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j)
-															+ Y_[i](j) * omega_deposition_per_unit_volume;															// [kg/m3/s]
+						omegadot_from_heterogeneous_(i,j) = epsilon_(i) * heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j);	
 				}
 			}
 
