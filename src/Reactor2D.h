@@ -653,6 +653,8 @@ namespace CVI
 
 		Eigen::VectorXd homogeneous_total_mass_source_;		// [kg]
 		Eigen::VectorXd heterogeneous_total_mass_source_;	// [kg]
+		Eigen::VectorXd total_mass_exchanged_;				// [kg]
+
 	};
 }
 

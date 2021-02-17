@@ -406,8 +406,10 @@ namespace CVI
 		// Total mass produced/consumed (kg)
 		homogeneous_total_mass_source_.resize(nc_);
 		heterogeneous_total_mass_source_.resize(nc_);
+		total_mass_exchanged_.resize(nc_);
 		homogeneous_total_mass_source_.setZero();
 		heterogeneous_total_mass_source_.setZero();
+		total_mass_exchanged_.setZero();
 	}
 
 	void Reactor2D::SetSurfaceOnTheFlyROPA(OpenSMOKE::SurfaceOnTheFlyROPA* ropa)
@@ -2036,6 +2038,7 @@ namespace CVI
 			t_old_ = t0;
 			homogeneous_total_mass_source_.setZero();
 			heterogeneous_total_mass_source_.setZero();
+			total_mass_exchanged_.setZero();
 
 			// Solve
 			int flag = Solve(dae_parameters, t0, tf);
@@ -2780,7 +2783,35 @@ namespace CVI
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous / delta_time / total_volume;
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * (sum_homogeneous + sum_heterogeneous) / delta_time / total_volume;
 					fOutputXML << std::endl;
-					fOutputXML << "</total-source-terms>" << std::endl;
+					fOutputXML << "</total-mass-source-terms>" << std::endl;
+				}
+
+				// Mass exchanged terms (from time history, per unit of volume)
+				{
+					fOutputXML << "<exchanged-terms>" << std::endl;
+					fOutputXML << "<!--Species dummy dummy Net(kg/m3/s)-->" << std::endl;
+					double sum_homogeneous = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+					{
+						sum_homogeneous += total_mass_exchanged_(j);
+
+						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << total_mass_exchanged_(j) / delta_time / total_volume;
+
+						fOutputXML << std::endl;
+					}
+					fOutputXML << "</exchanged-terms>" << std::endl;
+
+					fOutputXML << "<total-mass-exchanged-terms>" << std::endl;
+					fOutputXML << "<!--Species dummy dummy Net(kg/s)-->" << std::endl;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << sum_homogeneous / delta_time / total_volume;
+					fOutputXML << std::endl;
+					fOutputXML << "</total-mass-exchanged-terms>" << std::endl;
 				}
 
 				// Source terms (heterogeneous contribution only, instantaneous and from time history)
@@ -3503,10 +3534,114 @@ namespace CVI
 				}
 			}
 
+			//const double cc = std::tanh(0.05 * t / 3600.);
+			const double cc = 1.0;
 			for (unsigned int j = 0; j < nc_; j++)
 			{
-				homogeneous_total_mass_source_(j) += VolumeIntegral(omegadot_from_homogeneous_.col(j)) * (t - t_old_);
-				heterogeneous_total_mass_source_(j) += VolumeIntegral(omegadot_from_heterogeneous_.col(j)) * (t - t_old_);
+				homogeneous_total_mass_source_(j) += cc*VolumeIntegral(omegadot_from_homogeneous_.col(j)) * (t - t_old_);
+				heterogeneous_total_mass_source_(j) += cc*VolumeIntegral(omegadot_from_heterogeneous_.col(j)) * (t - t_old_);
+			}
+
+			// Updating fluxes across the faces (XXX)
+
+			{
+				// Entering mass flow rates
+				std::vector<double> mfr_west(nc_);
+				std::vector<double> mfr_east(nc_);
+				std::vector<double> mfr_north(nc_);
+				std::vector<double> mfr_south(nc_);
+
+				std::fill(mfr_west.begin(), mfr_west.end(), 0);
+				std::fill(mfr_east.begin(), mfr_east.end(), 0);
+				std::fill(mfr_north.begin(), mfr_north.end(), 0);
+				std::fill(mfr_south.begin(), mfr_south.end(), 0);
+
+				// Loop over all the species
+				for (unsigned int j = 0; j < nc_; j++)
+				{
+					// West face
+					for (unsigned int i = 0; i < ny_ - 1; i++)
+					{
+						const int point1 = list_points_west_(i);
+						const int point2 = list_points_west_(i + 1);
+
+						const double gradY1 = Y_gas_west_side_[i](j) - Y_[point1](j);
+						const double gradY2 = Y_gas_west_side_[i + 1](j) - Y_[point2](j);
+						const double gradY = 0.50 * (gradY1 + gradY2);
+						const double rho = 0.50 * (rho_gas_(point1) + rho_gas_(point2));
+						const double Gamma = 0.50 * (gamma_star_[point1](j) + gamma_star_[point2](j));
+
+						const double r = grid_x_.x()(0);
+						const double height = grid_y_.x()(i+1)- grid_y_.x()(i);
+						const double area = 2 * boost::math::constants::pi<double>() * r * height;
+
+						mfr_west[j] += rho * Gamma * gradY * area;	// [kg/s]
+					}
+
+					// East face
+					for (unsigned int i = 0; i < ny_ - 1; i++)
+					{
+						const int point1 = list_points_east_(i);
+						const int point2 = list_points_east_(i + 1);
+
+						const double gradY1 = Y_gas_east_side_[i](j) - Y_[point1](j);
+						const double gradY2 = Y_gas_east_side_[i + 1](j) - Y_[point2](j);
+						const double gradY = 0.50 * (gradY1 + gradY2);
+						const double rho = 0.50 * (rho_gas_(point1) + rho_gas_(point2));
+						const double Gamma = 0.50 * (gamma_star_[point1](j) + gamma_star_[point2](j));
+
+						const double r = grid_x_.x()(nx_-1);
+						const double height = grid_y_.x()(i + 1) - grid_y_.x()(i);
+						const double area = 2 * boost::math::constants::pi<double>() * r * height;
+
+						mfr_east[j] += rho * Gamma * gradY * area;	// [kg/s]
+					}
+
+					// North face
+					for (unsigned int i = 0; i < nx_ - 1; i++)
+					{
+						const int point1 = list_points_north_(i);
+						const int point2 = list_points_north_(i + 1);
+
+						const double gradY1 = Y_gas_north_side_[i](j) - Y_[point1](j);
+						const double gradY2 = Y_gas_north_side_[i + 1](j) - Y_[point2](j);
+						const double gradY = 0.50 * (gradY1 + gradY2);
+						const double rho = 0.50 * (rho_gas_(point1) + rho_gas_(point2));
+						const double Gamma = 0.50 * (gamma_star_[point1](j) + gamma_star_[point2](j));
+
+						const double ri = grid_x_.x()(i);
+						const double re = grid_x_.x()(i+1);
+						const double area = boost::math::constants::pi<double>() * (re*re-ri*ri);
+
+						mfr_north[j] += rho * Gamma * gradY * area;	// [kg/s]
+					}
+
+					// South face
+					for (unsigned int i = 0; i < nx_ - 1; i++)
+					{
+						const int point1 = list_points_south_(i);
+						const int point2 = list_points_south_(i + 1);
+
+						const double gradY1 = Y_gas_south_side_[i](j) - Y_[point1](j);
+						const double gradY2 = Y_gas_south_side_[i + 1](j) - Y_[point2](j);
+						const double gradY = 0.50 * (gradY1 + gradY2);
+						const double rho = 0.50 * (rho_gas_(point1) + rho_gas_(point2));
+						const double Gamma = 0.50 * (gamma_star_[point1](j) + gamma_star_[point2](j));
+
+						const double ri = grid_x_.x()(i);
+						const double re = grid_x_.x()(i + 1);
+						const double area = boost::math::constants::pi<double>() * (re * re - ri * ri);
+
+						mfr_south[j] += rho * Gamma * gradY * area;	// [kg/s]
+					}
+				}
+
+				// Total mass exchanged
+				for (unsigned int j = 0; j < nc_; j++)
+				{
+					const double mfr = mfr_west[j] + mfr_east[j] + mfr_north[j] + mfr_south[j];
+					total_mass_exchanged_(j) += mfr * (t - t_old_);
+				}
 			}
 		}
 
