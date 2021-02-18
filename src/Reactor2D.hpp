@@ -135,7 +135,7 @@ namespace CVI
 			// Graphite density [kg/m3]
 			rho_graphite_ = heterogeneousDetailedMechanism_.rho_graphite();
 
-			// Dae species
+			// DAE species
 			dae_formulation_ = true;
 			surface_dae_species_index_ = thermodynamicsSurfaceMap_.IndexOfSpecies(surface_dae_species) - (nc_ + 1);
 		}
@@ -160,7 +160,7 @@ namespace CVI
 			// Graphite density [kg/m3]
 			rho_graphite_ = heterogeneousMechanism_.rho_graphite();
 
-			// Dae Species
+			// DAE Species
 			dae_formulation_ = false;
 		}
 		
@@ -232,12 +232,6 @@ namespace CVI
 
 	void Reactor2D::MemoryAllocation()
 	{
-		OpenSMOKE::ChangeDimensions(nc_, &aux_X, true);
-		OpenSMOKE::ChangeDimensions(nc_, &aux_Y, true);
-		OpenSMOKE::ChangeDimensions(nc_, &aux_C, true);
-		OpenSMOKE::ChangeDimensions(nc_, &aux_R, true);
-		aux_eigen.resize(nc_);
-		
 		// Densities [kg/m3]
 		rho_gas_.resize(np_);
 		rho_bulk_.resize(np_);
@@ -395,6 +389,7 @@ namespace CVI
 
 			// Auxiliary vectors
 			eigen_C_.resize(nc_);
+			eigen_R_.resize(nc_);
 			eigen_Z_.resize(surf_nc_);
 			eigen_a_.resize(bulk_nc_);
 			eigen_gamma_.resize(surf_np_);
@@ -1031,13 +1026,11 @@ namespace CVI
 				thermodynamicsMap_.SetPressure(P_(i));
 				thermodynamicsMap_.SetTemperature(T_(i));
 
-				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
-				aux_X.CopyTo(X_[i].data());
+				thermodynamicsMap_.MoleFractions_From_MassFractions(X_[i].data(), mw_(i), Y_[i].data());
 
 				// Concentrations [kmol/m3]
 				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
-				Product(cTot, aux_X, &aux_C);
+				eigen_C_ = cTot*X_[i];
 
 				// Mixture density
 				rho_gas_(i) = cTot*mw_(i);	// [kg/m3]
@@ -1077,10 +1070,10 @@ namespace CVI
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
-					kineticsMap_.ReactionRates(aux_C.GetHandle());
-					kineticsMap_.FormationRates(aux_R.GetHandle());
-					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
-					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
+					kineticsMap_.ReactionRates(eigen_C_.data());
+					kineticsMap_.FormationRates(eigen_R_.data());
+					OpenSMOKE::ElementByElementProduct(nc_, eigen_R_.data(), thermodynamicsMap_.MWs().data(), eigen_R_.data()); // [kg/m3/s]
+					omega_homogeneous_from_homogeneous_[i] = eigen_R_;
 				}
 
 				// Heterogeneous phase
@@ -1089,8 +1082,7 @@ namespace CVI
 					heterogeneousMechanism_.SetTemperature(T_(i));
 					heterogeneousMechanism_.SetPressure(P_(i));
 
-					aux_C.CopyTo(aux_eigen.data());
-					heterogeneousMechanism_.FormationRates(Sv_(i), aux_eigen);
+					heterogeneousMechanism_.FormationRates(Sv_(i), eigen_C_);
 					for (unsigned int j = 0; j < nc_; j++)
 						omega_homogeneous_from_heterogeneous_[i](j) = heterogeneousMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j);								// [kg/m3/s]
 					
@@ -1115,10 +1107,10 @@ namespace CVI
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
-					kineticsMap_.ReactionRates(aux_C.GetHandle());
-					kineticsMap_.FormationRates(aux_R.GetHandle());
-					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
-					aux_R.CopyTo(omega_homogeneous_from_homogeneous_[i].data());
+					kineticsMap_.ReactionRates(eigen_C_.data());
+					kineticsMap_.FormationRates(eigen_R_.data());
+					OpenSMOKE::ElementByElementProduct(nc_, eigen_R_.data(), thermodynamicsMap_.MWs().data(), eigen_R_.data()); // [kg/m3/s]
+					omega_homogeneous_from_homogeneous_[i] = eigen_R_;
 
 					// Smoothing
 					omega_homogeneous_from_homogeneous_[i] *= smoothing_coefficient;
@@ -1130,17 +1122,9 @@ namespace CVI
 					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
 					heterogeneousDetailedMechanism_.SetPressure(P_(i));
 
-					for (unsigned int j = 0; j < nc_; j++)
-						eigen_C_(j) = aux_C[j + 1];
-
-					for (unsigned int j = 0; j < surf_nc_; j++)
-						eigen_Z_(j) = Z_[i](j);
-
-					for (unsigned int j = 0; j < bulk_nc_; j++)
-						eigen_a_(j) = 1.;
-
-					for (unsigned int j = 0; j < surf_np_; j++)
-						eigen_gamma_(j) = Gamma_[i](j);
+					eigen_Z_ = Z_[i];
+					eigen_a_.setConstant(1.);
+					eigen_gamma_ = Gamma_[i];
 
 					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
 
@@ -1537,31 +1521,29 @@ namespace CVI
 			}
 	}
 
-	int Reactor2D::OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy)
+	int Reactor2D::OdeEquations(const double t, const Eigen::VectorXd& y, Eigen::VectorXd& dy)
 	{
-		OpenSMOKE::OpenSMOKEVectorDouble Gamma(surf_np_);
-		OpenSMOKE::OpenSMOKEVectorDouble Z(surf_nc_);
-		OpenSMOKE::OpenSMOKEVectorDouble dGamma_over_dt(surf_np_);
-		OpenSMOKE::OpenSMOKEVectorDouble dZ_over_dt(surf_nc_);
-		OpenSMOKE::OpenSMOKEVectorDouble RfromSurface(nc_);
-		OpenSMOKE::OpenSMOKEVectorDouble Rsurface(surf_nc_);
-		OpenSMOKE::OpenSMOKEVectorDouble Rbulk(bulk_nc_);
-		OpenSMOKE::OpenSMOKEVectorDouble RsurfacePhases(surf_np_);
+		Eigen::VectorXd Gamma(surf_np_);
+		Eigen::VectorXd Z(surf_nc_);
+		Eigen::VectorXd dGamma_over_dt(surf_np_);
+		Eigen::VectorXd dZ_over_dt(surf_nc_);
+		Eigen::VectorXd RfromSurface(nc_);
+		Eigen::VectorXd Rsurface(surf_nc_);
+		Eigen::VectorXd Rbulk(bulk_nc_);
+		Eigen::VectorXd RsurfacePhases(surf_np_);
 
-		unsigned int k = 1;
+		unsigned int k = 0;
 		for (unsigned int j = 0; j < surf_np_; j++)
-			Gamma[j + 1] = y[k++];
+			Gamma(j) = y(k++);
 		for (unsigned int j = 0; j < surf_nc_; j++)
-			Z[j + 1] = y[k++];
+			Z(j) = y(k++);
 
 		// Molar fractions
-		for (unsigned int j = 0; j < nc_; j++)
-			aux_Y[j + 1] = Y_[i_current](j);
-		thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i_current), aux_Y.GetHandle());
+		thermodynamicsMap_.MoleFractions_From_MassFractions(X_[i_current].data(), mw_(i_current), Y_[i_current].data());
 
 		// Calculates the volume and the concentrations of species
 		const double cTot = P_(i_current) / (PhysicalConstants::R_J_kmol * T_(i_current));
-		Product(cTot, aux_X, &aux_C);
+		eigen_C_ = cTot* X_[i_current];
 
 		// Calculates heterogeneous kinetics
 		{
@@ -1572,12 +1554,11 @@ namespace CVI
 
 			kineticsSurfaceMap_.KineticConstants();
 
-			OpenSMOKE::OpenSMOKEVectorDouble aux_a(bulk_nc_);
-			for (unsigned int j = 0; j < bulk_nc_; j++)
-				aux_a[j + 1] = 1.;
+			Eigen::VectorXd a(bulk_nc_);
+			a.setConstant(1.);
 
-			kineticsSurfaceMap_.ReactionRates(aux_C.GetHandle(), Z.GetHandle(), aux_a.GetHandle(), Gamma.GetHandle());
-			kineticsSurfaceMap_.FormationRates(RfromSurface.GetHandle(), Rsurface.GetHandle(), Rbulk.GetHandle(), RsurfacePhases.GetHandle());
+			kineticsSurfaceMap_.ReactionRates(eigen_C_.data(), Z.data(), a.data(), Gamma.data());
+			kineticsSurfaceMap_.FormationRates(RfromSurface.data(), Rsurface.data(), Rbulk.data(), RsurfacePhases.data());
 		}
 
 		// Equations
@@ -1588,33 +1569,33 @@ namespace CVI
 			for (unsigned int j = 0; j < surf_np_; ++j)
 			{
 				if (site_non_conservation_[j] == true)
-					dGamma_over_dt[j + 1] = RsurfacePhases[j + 1];
+					dGamma_over_dt(j) = RsurfacePhases(j);
 				else
-					dGamma_over_dt[j + 1] = 0.;
+					dGamma_over_dt(j) = 0.;
 			}
 
 			// Heterogeneous species
 			for (unsigned int j = 0; j < surf_nc_; ++j)
 			{
 				const unsigned int index_phase = thermodynamicsSurfaceMap_.vector_site_phases_belonging()[j];
-				dZ_over_dt[j + 1] = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * Rsurface[j + 1] -
-					Z[j + 1] * dGamma_over_dt[index_phase + 1]) / Gamma[index_phase + 1];
+				dZ_over_dt(j) = (thermodynamicsSurfaceMap_.vector_occupancies_site_species()[j] * Rsurface(j) -
+									Z(j) * dGamma_over_dt(index_phase)) / Gamma(index_phase);
 			}
 		}
 
 		// Recover unknowns
 		{
-			unsigned int k = 1;
+			unsigned int k = 0;
 			for (unsigned int j = 0; j < surf_np_; j++)
-				dy[k++] = dGamma_over_dt[j + 1];
+				dy(k++) = dGamma_over_dt(j);
 			for (unsigned int j = 0; j < surf_nc_; j++)
-				dy[k++] = dZ_over_dt[j + 1];
+				dy(k++) = dZ_over_dt(j);
 		}
 
 		return 0;
 	}
 
-	int Reactor2D::OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y)
+	int Reactor2D::OdePrint(const double t, const Eigen::VectorXd& y)
 	{
 		// Video output
 		const bool verbose_ode = true;
@@ -1931,17 +1912,17 @@ namespace CVI
 				std::cout << "--------------------------------------------------------------------------" << std::endl;
 
 				// Initial conditions
-				OpenSMOKE::OpenSMOKEVectorDouble yOde0(NE_ODE);
-				OpenSMOKE::OpenSMOKEVectorDouble yOdef(NE_ODE);
-				unsigned int k = 1;
+				Eigen::VectorXd yOde0(NE_ODE);
+				Eigen::VectorXd yOdef(NE_ODE);
+				unsigned int k = 0;
 				for (unsigned int j = 0; j < surf_np_; j++)
-					yOde0[k++] = Gamma_[i](j);
+					yOde0(k++) = Gamma_[i](j);
 				for (unsigned int j = 0; j < surf_nc_; j++)
-					yOde0[k++] = Z_[i](j);
+					yOde0(k++) = Z_[i](j);
 
-				// Print intial conditions
+				// Print initial conditions
 				{
-					OpenSMOKE::OpenSMOKEVectorDouble dy0(yOde0.Size());
+					Eigen::VectorXd dy0(yOde0.size());
 					OdeEquations(0., yOde0, dy0);
 					OdePrint(0., yOde0);
 				}
@@ -1952,8 +1933,8 @@ namespace CVI
 					Eigen::VectorXd yMax(NE_ODE); for (unsigned int j = 0; j < NE_ODE; j++) yMax(j) = 1.;
 
 					// Initial conditions
-					Eigen::VectorXd y0_eigen(yOde0.Size());
-					yOde0.CopyTo(y0_eigen.data());
+					Eigen::VectorXd y0_eigen(yOde0.size());
+					y0_eigen = yOde0;
 
 					// Final f
 					Eigen::VectorXd yf_eigen(y0_eigen.size());
@@ -2011,7 +1992,7 @@ namespace CVI
 					if (status > 0)
 					{
 						ode_solver.Solution(yf_eigen);
-						yOdef.CopyFrom(yf_eigen.data());
+						yOdef = yf_eigen;
 
 						unsigned int k = 0;
 						for (unsigned int j = 0; j < surf_np_; j++)
@@ -2135,9 +2116,6 @@ namespace CVI
 
 	void Reactor2D::PrintTecplotGlobalKinetics(const double t, const std::string name_file)
 	{
-		OpenSMOKE::OpenSMOKEVectorDouble yy(nc_);
-		OpenSMOKE::OpenSMOKEVectorDouble xx(nc_);
-
 		std::ofstream fOutput(name_file.c_str(), std::ios::out);
 
 		// Tecplot file
@@ -2225,25 +2203,21 @@ namespace CVI
 				thermodynamicsMap_.SetTemperature(T_(point));
 
 				// Concentrations
-				aux_Y.CopyFrom(Y_[point].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(point), aux_Y.GetHandle());
-				aux_X.CopyTo(X_[point].data());
+				thermodynamicsMap_.MoleFractions_From_MassFractions(X_[point].data(), mw_(point), Y_[point].data());
 				const double cTot = P_(point) / PhysicalConstants::R_J_kmol / T_(point); // [kmol/m3]
-				Product(cTot, aux_X, &aux_C);
+				eigen_C_ = cTot*X_[point];
 
 				// Heterogeneous reactions
 				heterogeneousMechanism_.SetTemperature(T_(point));
 				heterogeneousMechanism_.SetPressure(P_(point));
-				for (unsigned int j = 0; j < nc_; j++)
-					aux_eigen(j) = aux_C[j + 1];
-				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
+				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), eigen_C_);
 
 
 				// Write grid
 				fOutput << std::setprecision(9) << std::setw(20) << grid_x_.x()(i);
 				fOutput << std::setprecision(9) << std::setw(20) << grid_y_.x()(k);
 
-				// Write rlevant variables
+				// Write relevant variables
 				fOutput << std::setprecision(9) << std::setw(20) << t/3600.;
 				fOutput << std::setprecision(9) << std::setw(20) << T_(point);
 				fOutput << std::setprecision(9) << std::setw(20) << P_(point);
@@ -2315,9 +2289,6 @@ namespace CVI
 
 	void Reactor2D::PrintTecplotDetailedKinetics(const double t, const std::string name_file)
 	{
-		OpenSMOKE::OpenSMOKEVectorDouble yy(nc_);
-		OpenSMOKE::OpenSMOKEVectorDouble xx(nc_);
-
 		std::ofstream fOutput(name_file.c_str(), std::ios::out);
 
 		// Tecplot file
@@ -2390,11 +2361,9 @@ namespace CVI
 					{
 						thermodynamicsMap_.SetPressure(P_(point));
 						thermodynamicsMap_.SetTemperature(T_(point));
-						aux_Y.CopyFrom(Y_[point].data());
-						thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(point), aux_Y.GetHandle());
-						aux_X.CopyTo(X_[point].data());
+						thermodynamicsMap_.MoleFractions_From_MassFractions(X_[point].data(), mw_(point), Y_[point].data());
 						const double cTot = P_(point) / PhysicalConstants::R_J_kmol / T_(point); // [kmol/m3]
-						Product(cTot, aux_X, &aux_C);
+						eigen_C_ = cTot* X_[point];
 					}
 
 					// Heterogeneous mechanism
@@ -2402,17 +2371,9 @@ namespace CVI
 						heterogeneousDetailedMechanism_.SetTemperature(T_(point));
 						heterogeneousDetailedMechanism_.SetPressure(P_(point));
 
-						for (unsigned int j = 0; j < nc_; j++)
-							eigen_C_(j) = aux_C[j + 1];
-
-						for (unsigned int j = 0; j < surf_nc_; j++)
-							eigen_Z_(j) = Z_[point](j);
-
-						for (unsigned int j = 0; j < bulk_nc_; j++)
-							eigen_a_(j) = 1.;
-
-						for (unsigned int j = 0; j < surf_np_; j++)
-							eigen_gamma_(j) = Gamma_[point](j);
+						eigen_Z_ = Z_[point];
+						eigen_a_.setConstant(1.);
+						eigen_gamma_ = Gamma_[point];
 
 						heterogeneousDetailedMechanism_.FormationRates(Sv_(point), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
 					}
@@ -2422,7 +2383,7 @@ namespace CVI
 				fOutput << std::setprecision(9) << std::setw(20) << grid_x_.x()(i);
 				fOutput << std::setprecision(9) << std::setw(20) << grid_y_.x()(k);
 
-				// Write rlevant variables
+				// Write relevant variables
 				fOutput << std::setprecision(9) << std::setw(20) << t / 3600.;
 				fOutput << std::setprecision(9) << std::setw(20) << T_(point);
 				fOutput << std::setprecision(9) << std::setw(20) << P_(point);
@@ -2516,15 +2477,12 @@ namespace CVI
 			const unsigned int iy = int(i/nx_);
 			const unsigned int ix = i - iy*nx_;
 
-			OpenSMOKE::OpenSMOKEVectorDouble yy(nc_);
-			OpenSMOKE::OpenSMOKEVectorDouble xx(nc_);
-
-			for (unsigned int j = 0; j < nc_; j++)
-				yy[j + 1] = Y_[i](j);
+			Eigen::VectorXd yy = Y_[i];
+			Eigen::VectorXd xx(nc_);
 
 			thermodynamicsMap_.SetPressure(P_(i));
 			thermodynamicsMap_.SetTemperature(T_(i));
-			thermodynamicsMap_.MoleFractions_From_MassFractions(xx.GetHandle(), mw_(i), yy.GetHandle());
+			thermodynamicsMap_.MoleFractions_From_MassFractions(xx.data(), mw_(i), yy.data());
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
 			fOutput << std::setprecision(9) << std::setw(20) << grid_x_.x()[ix] * 1000.;
@@ -2551,7 +2509,7 @@ namespace CVI
 				{
 					double sum = 0.;
 					for (unsigned int k = 0; k < nc_; k++)
-						sum += thermodynamicsMap_.atomic_composition()(k, j) * xx(k + 1);
+						sum += thermodynamicsMap_.atomic_composition()(k, j) * xx(k);
 					fOutput << std::setprecision(9) << std::setw(20) << sum;
 				}
 			}
@@ -2559,9 +2517,9 @@ namespace CVI
 			// Species (mole fractions and mass fractions)
 			{
 				for (unsigned int j = 0; j < nc_; j++)
-					fOutput << std::setprecision(9) << std::setw(20) << xx(j + 1);
+					fOutput << std::setprecision(9) << std::setw(20) << xx(j);
 				for (unsigned int j = 0; j < nc_; j++)
-					fOutput << std::setprecision(9) << std::setw(20) << yy(j + 1);
+					fOutput << std::setprecision(9) << std::setw(20) << yy(j);
 			}
 
 			fOutput << std::endl;
@@ -2603,12 +2561,8 @@ namespace CVI
 
 				thermodynamicsMap_.SetPressure(P_(i));
 				thermodynamicsMap_.SetTemperature(T_(i));
-				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
-				aux_X.CopyTo(X_[i].data());
-				for (unsigned int j = 0; j < nc_; j++)
-					aux_eigen(j) = aux_X[j + 1];
-				porousMedium_.EffectiveDiffusionCoefficients(aux_eigen);
+				thermodynamicsMap_.MoleFractions_From_MassFractions(X_[i].data(), mw_(i), Y_[i].data());
+				porousMedium_.EffectiveDiffusionCoefficients(X_[i]);
 			}
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
@@ -2657,15 +2611,14 @@ namespace CVI
 			{
 				thermodynamicsMap_.SetTemperature(T_(i));
 				thermodynamicsMap_.SetPressure(P_(i));
-				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
-				aux_X.CopyTo(X_[i].data());
+				thermodynamicsMap_.MoleFractions_From_MassFractions(X_[i].data(), mw_(i), Y_[i].data());
 				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
-				Product(cTot, aux_X, &aux_C);
+				eigen_C_ = cTot * X_[i];
+
 				kineticsMap_.SetTemperature(T_(i));
 				kineticsMap_.SetPressure(P_(i));
-				kineticsMap_.ReactionRates(aux_C.GetHandle());
-				kineticsMap_.FormationRates(aux_R.GetHandle());
+				kineticsMap_.ReactionRates(eigen_C_.data());
+				kineticsMap_.FormationRates(eigen_R_.data());
 			}
 
 			fOutput << std::setprecision(9) << std::setw(20) << t;
@@ -2674,7 +2627,7 @@ namespace CVI
 			fOutput << std::setprecision(9) << std::setw(20) << P_(i);
 
 			for (unsigned int j = 0; j < nc_; j++)
-					fOutput << std::setprecision(9) << std::setw(20) << aux_R[j+1];
+					fOutput << std::setprecision(9) << std::setw(20) << eigen_R_(j);
 
 			fOutput << std::endl;
 		}
@@ -2684,60 +2637,6 @@ namespace CVI
 
 	void Reactor2D::PrintIntegralHomogeneousRates(const double t, const std::string name_file)
 	{
-		Eigen::MatrixXd	omegadot_from_homogeneous_(np_, aux_Y.Size());
-		Eigen::MatrixXd	omegadot_from_heterogeneous_(np_, aux_Y.Size());
-
-		for (unsigned int i = 0; i < np_; i++)
-		{
-			// Concentrations
-			thermodynamicsMap_.SetTemperature(T_(i));
-			thermodynamicsMap_.SetPressure(P_(i));
-			aux_Y.CopyFrom(Y_[i].data());
-			thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
-			aux_X.CopyTo(X_[i].data());
-			const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
-			Product(cTot, aux_X, &aux_C);
-
-			// Formation rates: homogeneous reactions
-			if (heterogeneousDetailedMechanism_.homogeneous_reactions() == true)
-			{
-				kineticsMap_.SetTemperature(T_(i));
-				kineticsMap_.SetPressure(P_(i));
-				kineticsMap_.ReactionRates(aux_C.GetHandle());
-				kineticsMap_.FormationRates(aux_R.GetHandle());
-				OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
-				
-				for (unsigned int j = 0; j < nc_; j++)
-					omegadot_from_homogeneous_(i, j) = epsilon_(i)*aux_R[j+1];
-			}
-
-			// Formation rates: heterogenous reactions
-			if (heterogeneousDetailedMechanism_.heterogeneous_reactions() == true)
-			{
-				heterogeneousDetailedMechanism_.SetTemperature(T_(i));
-				heterogeneousDetailedMechanism_.SetPressure(P_(i));
-
-				for (unsigned int j = 0; j < nc_; j++)
-					eigen_C_(j) = aux_C[j + 1];
-
-				for (unsigned int j = 0; j < surf_nc_; j++)
-					eigen_Z_(j) = Z_[i](j);
-
-				for (unsigned int j = 0; j < bulk_nc_; j++)
-					eigen_a_(j) = 1.;
-
-				for (unsigned int j = 0; j < surf_np_; j++)
-					eigen_gamma_(j) = Gamma_[i](j);
-
-				heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
-
-				const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume()*heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
-				for (unsigned int j = 0; j < nc_; j++)
-					omegadot_from_heterogeneous_(i,j) = heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j)
-														+ Y_[i](j)*omega_deposition_per_unit_volume;															// [kg/m3/s]
-			}
-		}
-
 		// Print on file
 		{
 			const double Ri = grid_x_.x()(0);
@@ -2862,72 +2761,118 @@ namespace CVI
 					fOutputXML << "</total-mass-exchanged-terms>" << std::endl;
 				}
 
-				// Source terms (heterogeneous contribution only, instantaneous and from time history)
-				std::cout << "Writing het-source-terms section..." << std::endl;
+				// Source terms
 				{
-					fOutputXML << "<het-source-terms>" << std::endl;
-					fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
+					Eigen::MatrixXd	omegadot_from_homogeneous_(np_, nc_);
+					Eigen::MatrixXd	omegadot_from_heterogeneous_(np_, nc_);
 
-					double sum_heterogeneous_integral = 0.;
-					double sum_heterogeneous_instantaneous = 0.;
-					for (unsigned int j = 0; j < nc_; j++)
+					for (unsigned int i = 0; i < np_; i++)
 					{
-						sum_heterogeneous_integral += heterogeneous_total_mass_source_(j);
+						// Concentrations
+						thermodynamicsMap_.SetTemperature(T_(i));
+						thermodynamicsMap_.SetPressure(P_(i));
+						thermodynamicsMap_.MoleFractions_From_MassFractions(X_[i].data(), mw_(i), Y_[i].data());
+						const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
+						eigen_C_ = cTot * X_[i];
 
-						const double heterogeneous_instantaneous = VolumeAveraged(omegadot_from_heterogeneous_.col(j));
-						sum_heterogeneous_instantaneous += heterogeneous_instantaneous;
+						// Formation rates: homogeneous reactions
+						if (heterogeneousDetailedMechanism_.homogeneous_reactions() == true)
+						{
+							kineticsMap_.SetTemperature(T_(i));
+							kineticsMap_.SetPressure(P_(i));
+							kineticsMap_.ReactionRates(eigen_C_.data());
+							kineticsMap_.FormationRates(eigen_R_.data());
+							OpenSMOKE::ElementByElementProduct(nc_, eigen_R_.data(), thermodynamicsMap_.MWs().data(), eigen_R_.data()); // [kg/m3/s]
+							omegadot_from_homogeneous_.row(i) = eigen_R_;
+							omegadot_from_homogeneous_.row(i) *= epsilon_(i);
+						}
 
-						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+						// Formation rates: heterogeneous reactions
+						if (heterogeneousDetailedMechanism_.heterogeneous_reactions() == true)
+						{
+							heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+							heterogeneousDetailedMechanism_.SetPressure(P_(i));
 
-						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_instantaneous;
-						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time;
-						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time / total_volume;
+							eigen_Z_ = Z_[i];
+							eigen_a_.setConstant(1.);
+							eigen_gamma_ = Gamma_[i];
 
-						fOutputXML << std::endl;
+							heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
+
+							const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+							for (unsigned int j = 0; j < nc_; j++)
+								omegadot_from_heterogeneous_(i, j) = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j)
+																		+ Y_[i](j) * omega_deposition_per_unit_volume;						// [kg/m3/s]
+						}
 					}
-					fOutputXML << "</het-source-terms>" << std::endl;
 
-					fOutputXML << "<total-het-source-terms>" << std::endl;
-					fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_instantaneous;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_integral / delta_time;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_integral / delta_time / total_volume;
-					fOutputXML << std::endl;
-					fOutputXML << "</total-het-source-terms>" << std::endl;
-				}
-
-				// Source terms (homogeneous contribution only, instantaneous and from time history)
-				std::cout << "Writing hom-source-terms section..." << std::endl;
-				{
-					fOutputXML << "<hom-source-terms>" << std::endl;
-					fOutputXML << "<!--Species Hom.Inst.(kg/m3/s) Hom.Int.(kg/s) Hom.Int.(kg/m3/s)-->" << std::endl;
-
-					double sum_homogeneous_integral = 0.;
-					double sum_homogeneous_instantaneous = 0.;
-					for (unsigned int j = 0; j < nc_; j++)
+					// Source terms (heterogeneous contribution only, instantaneous and from time history)
+					std::cout << "Writing het-source-terms section..." << std::endl;
 					{
-						sum_homogeneous_integral += homogeneous_total_mass_source_(j);
+						fOutputXML << "<het-source-terms>" << std::endl;
+						fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
 
-						const double homogeneous_instantaneous = VolumeAveraged(omegadot_from_homogeneous_.col(j));
-						sum_homogeneous_instantaneous += homogeneous_instantaneous;
+						double sum_heterogeneous_integral = 0.;
+						double sum_heterogeneous_instantaneous = 0.;
+						for (unsigned int j = 0; j < nc_; j++)
+						{
+							sum_heterogeneous_integral += heterogeneous_total_mass_source_(j);
 
-						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+							const double heterogeneous_instantaneous = VolumeAveraged(omegadot_from_heterogeneous_.col(j));
+							sum_heterogeneous_instantaneous += heterogeneous_instantaneous;
 
-						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_instantaneous;
-						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_total_mass_source_(j) / delta_time;
-						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_total_mass_source_(j) / delta_time / total_volume;
+							fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
 
+							fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_instantaneous;
+							fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time;
+							fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * heterogeneous_total_mass_source_(j) / delta_time / total_volume;
+
+							fOutputXML << std::endl;
+						}
+						fOutputXML << "</het-source-terms>" << std::endl;
+
+						fOutputXML << "<total-het-source-terms>" << std::endl;
+						fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_instantaneous;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_integral / delta_time;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_heterogeneous_integral / delta_time / total_volume;
 						fOutputXML << std::endl;
+						fOutputXML << "</total-het-source-terms>" << std::endl;
 					}
-					fOutputXML << "</hom-source-terms>" << std::endl;
 
-					fOutputXML << "<total-hom-source-terms>" << std::endl;
-					fOutputXML << "<!--Species Hom.Inst.(kg/m3/s) Hom.Int.(kg/s) Hom.Int.(kg/m3/s)-->" << std::endl;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_instantaneous;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_integral / delta_time;
-					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_integral / delta_time / total_volume;
-					fOutputXML << std::endl;
-					fOutputXML << "</total-hom-source-terms>" << std::endl;
+					// Source terms (homogeneous contribution only, instantaneous and from time history)
+					std::cout << "Writing hom-source-terms section..." << std::endl;
+					{
+						fOutputXML << "<hom-source-terms>" << std::endl;
+						fOutputXML << "<!--Species Hom.Inst.(kg/m3/s) Hom.Int.(kg/s) Hom.Int.(kg/m3/s)-->" << std::endl;
+
+						double sum_homogeneous_integral = 0.;
+						double sum_homogeneous_instantaneous = 0.;
+						for (unsigned int j = 0; j < nc_; j++)
+						{
+							sum_homogeneous_integral += homogeneous_total_mass_source_(j);
+
+							const double homogeneous_instantaneous = VolumeAveraged(omegadot_from_homogeneous_.col(j));
+							sum_homogeneous_instantaneous += homogeneous_instantaneous;
+
+							fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+
+							fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_instantaneous;
+							fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_total_mass_source_(j) / delta_time;
+							fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * homogeneous_total_mass_source_(j) / delta_time / total_volume;
+
+							fOutputXML << std::endl;
+						}
+						fOutputXML << "</hom-source-terms>" << std::endl;
+
+						fOutputXML << "<total-hom-source-terms>" << std::endl;
+						fOutputXML << "<!--Species Hom.Inst.(kg/m3/s) Hom.Int.(kg/s) Hom.Int.(kg/m3/s)-->" << std::endl;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_instantaneous;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_integral / delta_time;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum_homogeneous_integral / delta_time / total_volume;
+						fOutputXML << std::endl;
+						fOutputXML << "</total-hom-source-terms>" << std::endl;
+					}
 				}
 				
 				// Mass source terms (integral)
@@ -2962,6 +2907,7 @@ namespace CVI
 				}
 
 				// Old evaluation of source terms
+				/*
 				std::cout << "Writing source-terms-old section..." << std::endl;
 				{
 					fOutputXML << "<source-terms-old>" << std::endl;
@@ -2990,6 +2936,7 @@ namespace CVI
 					fOutputXML << std::endl;
 					fOutputXML << "</total-source-terms-old>" << std::endl;
 				}
+				*/
 			}
 
 			fOutputXML << "</opensmoke>" << std::endl;
@@ -3058,17 +3005,13 @@ namespace CVI
 
 				thermodynamicsMap_.SetPressure(P_(i));
 				thermodynamicsMap_.SetTemperature(T_(i));
-				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
-				aux_X.CopyTo(X_[i].data());
+				thermodynamicsMap_.MoleFractions_From_MassFractions(X_[i].data(), mw_(i), Y_[i].data());
 				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
-				Product(cTot, aux_X, &aux_C);
+				eigen_C_ = cTot*X_[i];
 
 				heterogeneousMechanism_.SetTemperature(T_(i));
 				heterogeneousMechanism_.SetPressure(P_(i));
-				for (unsigned int j = 0; j < nc_; j++)
-					aux_eigen(j) = aux_C[j + 1];
-				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
+				heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), eigen_C_);
 			}
 
 			fOutput << std::setprecision(9) << std::setw(width) << t;
@@ -3396,18 +3339,14 @@ namespace CVI
 					thermodynamicsMap_.SetTemperature(T_(i));
 
 					// Concentrations
-					aux_Y.CopyFrom(Y_[i].data());
-					thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
-					aux_X.CopyTo(X_[i].data());
-					const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
-					Product(cTot, aux_X, &aux_C);
+					thermodynamicsMap_.MoleFractions_From_MassFractions(X_[i].data(), mw_(i), Y_[i].data());
+					const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i);							// [kmol/m3]
+					eigen_C_ = cTot * X_[i];
 
 					// Heterogeneous reactions
 					heterogeneousMechanism_.SetTemperature(T_(i));
 					heterogeneousMechanism_.SetPressure(P_(i));
-					for (unsigned int j = 0; j < nc_; j++)
-						aux_eigen(j) = aux_C[j + 1];
-					heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), aux_eigen);
+					heterogeneousMechanism_.FormationRates(porousMedium_.Sv(), eigen_C_);
 
 					// Single contributions
 					delta_rhobulk_(i) = 0.;
@@ -3526,8 +3465,8 @@ namespace CVI
 
 		// Update the total amount of consumed/produced species
 		{
-			Eigen::MatrixXd	omegadot_from_homogeneous_(np_, aux_Y.Size());
-			Eigen::MatrixXd	omegadot_from_heterogeneous_(np_, aux_Y.Size());
+			Eigen::MatrixXd	omegadot_from_homogeneous_(np_, nc_);
+			Eigen::MatrixXd	omegadot_from_heterogeneous_(np_, nc_);
 
 			for (unsigned int i = 0; i < np_; i++)
 			{
@@ -3538,26 +3477,20 @@ namespace CVI
 				// Concentrations
 				thermodynamicsMap_.SetTemperature(T_(i));
 				thermodynamicsMap_.SetPressure(P_(i));
-				aux_Y.CopyFrom(Y_[i].data());
-				thermodynamicsMap_.MoleFractions_From_MassFractions(aux_X.GetHandle(), mw_(i), aux_Y.GetHandle());
-				aux_X.CopyTo(X_[i].data());
+				thermodynamicsMap_.MoleFractions_From_MassFractions(X_[i].data(), mw_(i), Y_[i].data());
 				const double cTot = P_(i) / PhysicalConstants::R_J_kmol / T_(i); // [kmol/m3]
-				Product(cTot, aux_X, &aux_C);
+				eigen_C_ = cTot * X_[i];
 
 				// Formation rates: homogeneous reactions
 				if (heterogeneousDetailedMechanism_.homogeneous_reactions() == true)
 				{
 					kineticsMap_.SetTemperature(T_(i));
 					kineticsMap_.SetPressure(P_(i));
-					kineticsMap_.ReactionRates(aux_C.GetHandle());
-					kineticsMap_.FormationRates(aux_R.GetHandle());
-					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
-
-					for (unsigned int j = 0; j < nc_; j++)
-					{
-						omegadot_from_homogeneous_(i, j) = epsilon_(i) * aux_R[j + 1];
-						omegadot_from_homogeneous_(i, j) *= smoothing_coefficient;
-					}
+					kineticsMap_.ReactionRates(eigen_C_.data());
+					kineticsMap_.FormationRates(eigen_R_.data());
+					OpenSMOKE::ElementByElementProduct(nc_, eigen_R_.data(), thermodynamicsMap_.MWs().data(), eigen_R_.data()); // [kg/m3/s]
+					omegadot_from_homogeneous_.row(i) = eigen_R_ *epsilon_(i);
+					omegadot_from_homogeneous_.row(i) *= smoothing_coefficient;
 				}
 
 				// Formation rates: heterogeneous reactions
@@ -3566,17 +3499,10 @@ namespace CVI
 					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
 					heterogeneousDetailedMechanism_.SetPressure(P_(i));
 
-					for (unsigned int j = 0; j < nc_; j++)
-						eigen_C_(j) = aux_C[j + 1];
-
-					for (unsigned int j = 0; j < surf_nc_; j++)
-						eigen_Z_(j) = Z_[i](j);
-
-					for (unsigned int j = 0; j < bulk_nc_; j++)
-						eigen_a_(j) = 1.;
-
-					for (unsigned int j = 0; j < surf_np_; j++)
-						eigen_gamma_(j) = Gamma_[i](j);
+					// Extract relevant data
+					eigen_Z_ = Z_[i];
+					eigen_a_.setConstant(1.);
+					eigen_gamma_ = Gamma_[i];
 
 					// Calculation of heterogeneous terms
 					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
@@ -4017,197 +3943,6 @@ namespace CVI
 
 				const int point = list_points_south_(nx_ - 1);
 				sum += v(point)*volume;
-			}
-
-			return sum;
-		}
-	}
-
-	double Reactor2D::VolumeIntegral(const Eigen::VectorXd& v, const Eigen::VectorXd& phi)
-	{
-		if (planar_symmetry_ == true)
-		{
-			double sum = 0.;
-
-			// Internal
-			for (unsigned int k = 1; k < ny_ - 1; k++)
-				for (unsigned int i = 1; i < nx_ - 1; i++)
-				{
-					const int point = k * nx_ + i;
-
-					const double area = (grid_x_.dxc()(i) * 0.50) * (grid_y_.dxc()(k) * 0.50);
-					sum += v(point) * area * phi(point);
-				}
-
-			// South (zero gradient)
-			for (unsigned int i = 1; i < nx_ - 1; i++)
-			{
-				const int point = list_points_south_(i);
-				const double area = (grid_x_.dxc()(i) * 0.50) * (grid_y_.dxe()(0) * 0.50);
-				sum += v(point) * area * phi(point);
-			}
-
-			// North (zero gradient)
-			for (unsigned int i = 1; i < nx_ - 1; i++)
-			{
-				const int point = list_points_north_(i);
-				const double area = (grid_x_.dxc()(i) * 0.50) * (grid_y_.dxw()(ny_ - 1) * 0.50);
-				sum += v(point) * area * phi(point);
-			}
-
-			// West (zero gradient)
-			for (unsigned int i = 1; i < ny_ - 1; i++)
-			{
-				const int point = list_points_west_(i);
-				const double area = (grid_x_.dxe()(0) * 0.50) * (grid_y_.dxc()(i) * 0.50);
-				sum += v(point) * area * phi(point);
-			}
-
-			// East (gas side)
-			for (unsigned int i = 1; i < ny_ - 1; i++)
-			{
-				const int point = list_points_east_(i);
-				const double area = (grid_x_.dxw()(nx_ - 1) * 0.50) * (grid_y_.dxc()(i) * 0.50);
-				sum += v(point) * area * phi(point);
-			}
-
-			// Corner: north/east
-			{
-				const int point = list_points_north_(nx_ - 1);
-				const double area = (grid_x_.dxw()(nx_ - 1) * 0.50) * (grid_y_.dxw()(ny_ - 1) * 0.50);
-				sum += v(point) * area * phi(point);
-			}
-
-			// Corner: north/west
-			{
-				const int point = list_points_north_(0);
-				const double area = (grid_x_.dxe()(0) * 0.50) * (grid_y_.dxw()(ny_ - 1) * 0.50);
-				sum += v(point) * area * phi(point);
-			}
-
-			// Corner: south/west
-			{
-				const int point = list_points_south_(0);
-				const double area = (grid_x_.dxe()(0) * 0.50) * (grid_y_.dxe()(0) * 0.50);
-				sum += v(point) * area * phi(point);
-			}
-
-			// Corner: south/east
-			{
-				const int point = list_points_south_(nx_ - 1);
-				const double area = (grid_x_.dxw()(nx_ - 1) * 0.50) * (grid_y_.dxe()(0) * 0.50);
-				sum += v(point) * area * phi(point);
-			}
-
-			return sum;
-		}
-		else
-		{
-			double sum = 0.;
-
-			// Internal
-			for (unsigned int k = 1; k < ny_ - 1; k++)
-				for (unsigned int i = 1; i < nx_ - 1; i++)
-				{
-					const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
-					const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
-					const double height = grid_y_.dxc()(k) * 0.50;
-					const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-					const int point = k * nx_ + i;
-					sum += v(point) * volume * phi(point);
-				}
-
-			// South (zero gradient)
-			for (unsigned int i = 1; i < nx_ - 1; i++)
-			{
-				const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
-				const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
-				const double height = grid_y_.dxe()(0) * 0.50;
-				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-				const int point = list_points_south_(i);
-				sum += v(point) * volume * phi(point);
-			}
-
-			// North (zero gradient)
-			for (unsigned int i = 1; i < nx_ - 1; i++)
-			{
-				const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
-				const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
-				const double height = grid_y_.dxw()(ny_ - 1) * 0.50;
-				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-				const int point = list_points_north_(i);
-				sum += v(point) * volume * phi(point);
-			}
-
-			// West (zero gradient)
-			for (unsigned int i = 1; i < ny_ - 1; i++)
-			{
-				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
-				const double re = grid_x_.x()(nx_ - 1);
-				const double height = grid_y_.dxc()(i) * 0.50;
-				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-				const int point = list_points_west_(i);
-				sum += v(point) * volume * phi(point);
-			}
-
-			// East (gas side)
-			for (unsigned int i = 1; i < ny_ - 1; i++)
-			{
-				const double ri = grid_x_.x()(0);
-				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
-				const double height = grid_y_.dxc()(i) * 0.50;
-				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-				const int point = list_points_east_(i);
-				sum += v(point) * volume * phi(point);
-			}
-
-			// Corner: north/west
-			{
-				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
-				const double re = grid_x_.x()(nx_ - 1);
-				const double height = grid_y_.dxw()(ny_ - 1) * 0.50;
-				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-				const int point = list_points_north_(nx_ - 1);
-				sum += v(point) * volume * phi(point);
-			}
-
-			// Corner: north/east
-			{
-				const double ri = grid_x_.x()(0);
-				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
-				const double height = grid_y_.dxw()(ny_ - 1) * 0.50;
-				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-				const int point = list_points_north_(0);
-				sum += v(point) * volume * phi(point);
-			}
-
-			// Corner: south/west
-			{
-				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
-				const double re = grid_x_.x()(nx_ - 1);
-				const double height = grid_y_.dxe()(0) * 0.50;
-				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-				const int point = list_points_south_(0);
-				sum += v(point) * volume * phi(point);
-			}
-
-			// Corner: south/east
-			{
-				const double ri = grid_x_.x()(0);
-				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
-				const double height = grid_y_.dxe()(0) * 0.50;
-				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
-
-				const int point = list_points_south_(nx_ - 1);
-				sum += v(point) * volume * phi(point);
 			}
 
 			return sum;

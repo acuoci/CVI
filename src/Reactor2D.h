@@ -104,7 +104,7 @@ namespace CVI
 		*@brief Sets the conditions along the gas side
 		*@param T_gas		gas side temperature [K]
 		*@param P_gas		gas side pressure [Pa]
-		*@param omega_gas	gass side mass fractions
+		*@param omega_gas	gas side mass fractions
 		*/
 		void SetGasSide(const double T_gas, const double P_gas, const std::vector<Eigen::VectorXd>& omega_gas);
 
@@ -112,7 +112,7 @@ namespace CVI
 		*@brief Sets the conditions along the gas side
 		*@param T_gas			gas side temperature [K]
 		*@param P_gas			gas side pressure [Pa]
-		*@param disk_from_cfd	gass side mass fractions
+		*@param disk_from_cfd	gas side mass fractions
 		*/
 		void SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
 
@@ -120,7 +120,7 @@ namespace CVI
 		*@brief Sets the conditions along the gas side
 		*@param profile_temperature		gas side temperature temporal profile [K]
 		*@param P_gas					gas side pressure [Pa]
-		*@param disk_from_cfd			gass side mass fractions
+		*@param disk_from_cfd			gas side mass fractions
 		*/
 		void SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
 
@@ -177,8 +177,8 @@ namespace CVI
 
 		/**
 		*@brief Sets a uniform velocity field
-		*@param vx x-component component of velocity [m/s]
-		*@param vy y-component component of velocity [m/s]
+		*@param vx x-component of velocity [m/s]
+		*@param vy y-component of velocity [m/s]
 		*/
 		void SetUniformVelocity(const double vx, const double vy);
 
@@ -248,7 +248,7 @@ namespace CVI
 
 		/**
 		*@brief Returns if an equation is differential or algebraic
-		*@param v the vector containg if an equation is differential (1.) or algebraic (0.)
+		*@param v the vector containing if an equation is differential (1.) or algebraic (0.)
 		*/
 		void AlgebraicDifferentialVector(double* v);
 
@@ -314,8 +314,9 @@ namespace CVI
 
 		void SetDerivativeBulkDensity(const OpenSMOKE::derivative_type value);
 
-		int OdeEquations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y, OpenSMOKE::OpenSMOKEVectorDouble& dy);
-		int OdePrint(const double t, const OpenSMOKE::OpenSMOKEVectorDouble& y);
+		int OdeEquations(const double t, const Eigen::VectorXd& y, Eigen::VectorXd& dy);
+
+		int OdePrint(const double t, const Eigen::VectorXd& y);
 
 	private:
 
@@ -387,28 +388,28 @@ namespace CVI
 		void PrintDiffusionCoefficients(const double t, const std::string name_file);
 
 		/**
-		*@brief Prints the fomation rates of species due to the homogeneous reactions on file
+		*@brief Prints the formation rates of species due to the homogeneous reactions on file
 		*@param t current time [s]
 		*@param name_file name of file where the formation rates will be written
 		*/
 		void PrintHomogeneousRates(const double t, const std::string name_file);
 
 		/**
-		*@brief Prints the fomation rates of species due to the heterogeneous reactions on file
+		*@brief Prints the formation rates of species due to the heterogeneous reactions on file
 		*@param t current time [s]
 		*@param name_file name of file where the formation rates will be written
 		*/
 		void PrintHeterogeneousRates(const double t, const std::string name_file);
 
 		/**
-		*@brief Prints the fomation rates of species due to the heterogeneous reactions on file
+		*@brief Prints the formation rates of species due to the heterogeneous reactions on file
 		*@param t current time [s]
 		*@param name_file name of file where the formation rates will be written
 		*/
 		void PrintGlobalHeterogeneousRates(const double t, const std::string name_file);
 
 		/**
-		*@brief Prints the fomation rates of species due to the heterogeneous reactions on file
+		*@brief Prints the formation rates of species due to the heterogeneous reactions on file
 		*@param t current time [s]
 		*@param name_file name of file where the formation rates will be written
 		*/
@@ -438,8 +439,8 @@ namespace CVI
 		void PrintROPA(const double t, const std::string name_file);
 
 		double VolumeAveraged(const Eigen::VectorXd& v);
+
 		double VolumeIntegral(const Eigen::VectorXd& v);
-		double VolumeIntegral(const Eigen::VectorXd& v, const Eigen::VectorXd& phi);
 
 		double VolumeStandardDeviation(const double mean, const Eigen::VectorXd& v);
 
@@ -458,10 +459,10 @@ namespace CVI
 		// References
 		OpenSMOKE::ThermodynamicsMap_CHEMKIN&			thermodynamicsMap_;			//!< reference to the thermodynamic map
 		OpenSMOKE::KineticsMap_CHEMKIN&					kineticsMap_;				//!< reference to the kinetic map
-		OpenSMOKE::TransportPropertiesMap_CHEMKIN&		transportMap_;				//!< reference to the trasport properties map
+		OpenSMOKE::TransportPropertiesMap_CHEMKIN&		transportMap_;				//!< reference to the transport properties map
 		OpenSMOKE::ThermodynamicsMap_Surface_CHEMKIN&	thermodynamicsSurfaceMap_;
 		OpenSMOKE::KineticsMap_Surface_CHEMKIN&			kineticsSurfaceMap_;
-		CVI::PorousMedium&								porousMedium_;				//!< reference to the porous mmedium
+		CVI::PorousMedium&								porousMedium_;				//!< reference to the porous medium
 		CVI::PorosityDefect&							porosityDefect_;			//!< reference to the porosity defect
 		CVI::HeterogeneousMechanism&					heterogeneousMechanism_;	//!< reference to the heterogeneous mechanism
 		CVI::HeterogeneousDetailedMechanism&			heterogeneousDetailedMechanism_;	//!< reference to the heterogeneous detailed mechanism
@@ -473,7 +474,7 @@ namespace CVI
 		OpenSMOKE::SurfaceOnTheFlyROPA*					ropa_;
 		bool ropa_analysis_;
 
-		// Dae formulation
+		// DAE formulation
 		bool dae_formulation_;
 		bool detailed_heterogeneous_kinetics_;
 		double rho_graphite_;
@@ -512,6 +513,7 @@ namespace CVI
 		std::vector<Eigen::VectorXd>	Z_;		//!< surface fractions
 
 		Eigen::VectorXd eigen_C_;				//!< concentrations of gaseous species [kmol/m3]
+		Eigen::VectorXd eigen_R_;				//!< formation rates of gaseous species [kg/m3/s]
 		Eigen::VectorXd eigen_Z_;				//!< surface fractions [-]
 		Eigen::VectorXd eigen_a_;				//!< activities of bulk species [-]
 		Eigen::VectorXd eigen_gamma_;			//!< site surface densities [kmol/m2]
@@ -523,15 +525,15 @@ namespace CVI
 		Eigen::VectorXd					epsilon_;			//!< porosity of porous medium [-]
 		Eigen::VectorXd					permeability_;		//!< permeability of porous medium [m2]
 		Eigen::VectorXd					eta_bulk_;			//!< tortuosity for ordinary diffusion [-]
-		Eigen::VectorXd					eta_knudsen_;		//!< tortuosity for knudsen diffusion [-]
+		Eigen::VectorXd					eta_knudsen_;		//!< tortuosity for Knudsen diffusion [-]
 		Eigen::VectorXd					eta_viscous_;		//!< tortuosity for viscous flow [-]
 		Eigen::VectorXd					Sv_;				//!< available area per unit of volume [1/m]
 		Eigen::VectorXd					rp_;				//!< radius of pores [m]
 
 		// Reactions
 		std::vector<Eigen::VectorXd>	omega_homogeneous_from_homogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
-		std::vector<Eigen::VectorXd>	omega_homogeneous_from_heterogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
-		std::vector<Eigen::VectorXd>	omega_heterogeneous_from_heterogeneous_;	//!< formation rates of surface species [kg/m2/s] (only contribution from heterogeneus reactions)
+		std::vector<Eigen::VectorXd>	omega_homogeneous_from_heterogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneous reactions)
+		std::vector<Eigen::VectorXd>	omega_heterogeneous_from_heterogeneous_;	//!< formation rates of surface species [kg/m2/s] (only contribution from heterogeneous reactions)
 
 		Eigen::VectorXd					omega_deposition_per_unit_volume_;			//!< deposition rate [kg/m3/s]
 		Eigen::VectorXd					omega_deposition_per_unit_area_;			//!< deposition rate [kg/m2/s]
@@ -574,13 +576,6 @@ namespace CVI
 
 		// Set of equations to be solved
 		EquationsSet	equations_set_;					//!< current set of equations to be solved
-
-		// Auxiliary vectors
-		OpenSMOKE::OpenSMOKEVectorDouble	aux_Y;				//!< vector containing the mass fractions
-		OpenSMOKE::OpenSMOKEVectorDouble	aux_X;				//!< vector containing the mole fractions
-		OpenSMOKE::OpenSMOKEVectorDouble	aux_C;				//!< vector containing the concentration of gaseous species [kmol/m3]
-		OpenSMOKE::OpenSMOKEVectorDouble	aux_R;				//!< vector containing the formation rates of gaseous species [kg/m3/s]
-		Eigen::VectorXd						aux_eigen;			//!< auxiliary eigen vector
 		
 		// Output
 		double t_old_;							//!< time at the end of the previous step [s]
@@ -594,13 +589,13 @@ namespace CVI
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 
 		boost::filesystem::path output_folder_;						//!< name of output folder
-		boost::filesystem::path output_tecplot_folder_;				//!< name of output folder fot Tecplot files
-		boost::filesystem::path output_plug_flow_folder_;			//!< name of output folder fot Tecplot files
-		boost::filesystem::path output_matlab_folder_;				//!< name of output folder fot Matlab files
-		boost::filesystem::path output_diffusion_folder_;			//!< name of output folder fot diffusion coefficient files
-		boost::filesystem::path output_heterogeneous_folder_;		//!< name of output folder fot heterogeneous reaction files
-		boost::filesystem::path output_homogeneous_folder_;			//!< name of output folder fot homogeneous reaction files
-		boost::filesystem::path output_ropa_folder_;				//!< name of output folder for ropa (on the fly)
+		boost::filesystem::path output_tecplot_folder_;				//!< name of output folder for Tecplot files
+		boost::filesystem::path output_plug_flow_folder_;			//!< name of output folder for Tecplot files
+		boost::filesystem::path output_matlab_folder_;				//!< name of output folder for Matlab files
+		boost::filesystem::path output_diffusion_folder_;			//!< name of output folder for diffusion coefficient files
+		boost::filesystem::path output_heterogeneous_folder_;		//!< name of output folder for heterogeneous reaction files
+		boost::filesystem::path output_homogeneous_folder_;			//!< name of output folder for homogeneous reaction files
+		boost::filesystem::path output_ropa_folder_;				//!< name of output folder for ROPA (on the fly)
 		boost::filesystem::path output_backup_folder_;				//!< name of output folder for backup files (only 2D with detailed kinetics)
 		boost::filesystem::path output_disks_source_terms_folder_;	//!< name of output folder for source terms of disks (to be imported in CFD)
 		std::string output_disk_file_name_;							//!< name of output file where integral formation rates are written
@@ -632,8 +627,8 @@ namespace CVI
 		// Additional options
 		bool planar_symmetry_;	// planar vs cylindrical symmetry
 		bool hole_;				// true if the hole is present in the geometry
-		double vx_;				// x-component component of velocity [m/s]
-		double vy_;				// y-component component of velocity [m/s]
+		double vx_;				// x-component of velocity [m/s]
+		double vy_;				// y-component of velocity [m/s]
 
 		// Spatial derivatives
 		OpenSMOKE::derivative_type derivative_type_mass_fractions_;
@@ -680,30 +675,23 @@ namespace OpenSMOKE
 
 		void MemoryAllocation()
 		{
-			OpenSMOKE::ChangeDimensions(ne_, &y_, true);
-			OpenSMOKE::ChangeDimensions(ne_, &dy_, false);
 		}
 
 		virtual void Equations(const Eigen::VectorXd &Y, const double t, Eigen::VectorXd &DY)
 		{
-			y_.CopyFrom(Y.data());
-			reactor2d_->OdeEquations(t, y_, dy_);
-			dy_.CopyTo(DY.data());
+			reactor2d_->OdeEquations(t, Y, DY);
 		}
 
 		virtual void Jacobian(const Eigen::VectorXd &Y, const double t, Eigen::MatrixXd &J) {};
 
 		void Print(const double t, const Eigen::VectorXd &Y)
 		{
-			y_.CopyFrom(Y.data());
-			reactor2d_->OdePrint(t, y_);
+			reactor2d_->OdePrint(t, Y);
 		}
 
 	private:
 
 		CVI::Reactor2D* reactor2d_;
-		OpenSMOKE::OpenSMOKEVectorDouble  y_;
-		OpenSMOKE::OpenSMOKEVectorDouble dy_;
 	};
 }
 
