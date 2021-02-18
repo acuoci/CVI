@@ -439,6 +439,7 @@ namespace CVI
 
 		double VolumeAveraged(const Eigen::VectorXd& v);
 		double VolumeIntegral(const Eigen::VectorXd& v);
+		double VolumeIntegral(const Eigen::VectorXd& v, const Eigen::VectorXd& phi);
 
 		double VolumeStandardDeviation(const double mean, const Eigen::VectorXd& v);
 
@@ -654,6 +655,8 @@ namespace CVI
 		Eigen::VectorXd homogeneous_total_mass_source_;		// [kg]
 		Eigen::VectorXd heterogeneous_total_mass_source_;	// [kg]
 		Eigen::VectorXd total_mass_exchanged_;				// [kg]
+		Eigen::VectorXd total_mass_produced_;				// [kg]
+		Eigen::VectorXd total_mass_gas_old_;				// [kg]
 
 	};
 }

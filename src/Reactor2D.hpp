@@ -295,7 +295,7 @@ namespace CVI
 		// Deposition rate [kg/m2/s]
 		omega_deposition_per_unit_area_.resize(np_);
 
-		// Effective diffusion coefficiennts [m2/s]
+		// Effective diffusion coefficients [m2/s]
 		gamma_star_.resize(np_);
 		for (unsigned int i = 0; i < np_; i++)
 			gamma_star_[i].resize(nc_);
@@ -408,9 +408,13 @@ namespace CVI
 		homogeneous_total_mass_source_.resize(nc_);
 		heterogeneous_total_mass_source_.resize(nc_);
 		total_mass_exchanged_.resize(nc_);
+		total_mass_produced_.resize(nc_);
+		total_mass_gas_old_.resize(nc_);
 		homogeneous_total_mass_source_.setZero();
 		heterogeneous_total_mass_source_.setZero();
 		total_mass_exchanged_.setZero();
+		total_mass_produced_.setZero();
+		total_mass_gas_old_.setZero();
 	}
 
 	void Reactor2D::SetSurfaceOnTheFlyROPA(OpenSMOKE::SurfaceOnTheFlyROPA* ropa)
@@ -2040,6 +2044,16 @@ namespace CVI
 			homogeneous_total_mass_source_.setZero();
 			heterogeneous_total_mass_source_.setZero();
 			total_mass_exchanged_.setZero();
+			total_mass_produced_.setZero();
+
+			// Old values
+			for (unsigned int j = 0; j < nc_; j++)
+			{
+				Eigen::VectorXd rhoj(np_);
+				for (unsigned int i = 0; i < np_; i++)
+					rhoj(i) = rho_gas_(i) * Y_[i](j);
+				total_mass_gas_old_(j) = VolumeIntegral(rhoj, epsilon_);
+			}
 
 			// Solve
 			int flag = Solve(dae_parameters, t0, tf);
@@ -2790,6 +2804,35 @@ namespace CVI
 					fOutputXML << "</total-mass-source-terms>" << std::endl;
 				}
 
+				// Mass produced terms (from time history, per unit of volume)
+				std::cout << "Writing produced-terms section..." << std::endl;
+				{
+					fOutputXML << "<produced-terms>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
+					double sum = 0.;
+					for (unsigned int j = 0; j < nc_; j++)
+					{
+						sum += total_mass_produced_(j);
+
+						fOutputXML << std::left << std::setw(24) << thermodynamicsMap_.NamesOfSpecies()[j];
+
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
+						fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * total_mass_produced_(j) / delta_time / total_volume;
+
+						fOutputXML << std::endl;
+					}
+					fOutputXML << "</produced-terms>" << std::endl;
+
+					fOutputXML << "<total-mass-produced-terms>" << std::endl;
+					fOutputXML << "<!--Species Hom.(kg/s) Het.(kg/s) Net(kg/s)-->" << std::endl;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
+					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << cc * sum / delta_time / total_volume;
+					fOutputXML << std::endl;
+					fOutputXML << "</total-mass-produced-terms>" << std::endl;
+				}
+
 				// Mass exchanged terms (from time history, per unit of volume)
 				std::cout << "Writing exchanged-terms section..." << std::endl;
 				{
@@ -3488,6 +3531,10 @@ namespace CVI
 
 			for (unsigned int i = 0; i < np_; i++)
 			{
+				// Smoothing coefficients in case of porosity approaching 0 
+				const double coefficient = porousMedium_.epsilon_smoothing_coefficient();
+				const double smoothing_coefficient = 0.50 * (std::tanh(coefficient * (epsilon_(i) - porousMedium_.epsilon_threshold())) + 1.);
+
 				// Concentrations
 				thermodynamicsMap_.SetTemperature(T_(i));
 				thermodynamicsMap_.SetPressure(P_(i));
@@ -3507,7 +3554,10 @@ namespace CVI
 					OpenSMOKE::ElementByElementProduct(aux_R.Size(), aux_R.GetHandle(), thermodynamicsMap_.MWs().data(), aux_R.GetHandle()); // [kg/m3/s]
 
 					for (unsigned int j = 0; j < nc_; j++)
+					{
 						omegadot_from_homogeneous_(i, j) = epsilon_(i) * aux_R[j + 1];
+						omegadot_from_homogeneous_(i, j) *= smoothing_coefficient;
+					}
 				}
 
 				// Formation rates: heterogeneous reactions
@@ -3528,22 +3578,22 @@ namespace CVI
 					for (unsigned int j = 0; j < surf_np_; j++)
 						eigen_gamma_(j) = Gamma_[i](j);
 
+					// Calculation of heterogeneous terms
 					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
 
-					// Option 1
-					//const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
-					//for (unsigned int j = 0; j < nc_; j++)
-					//	omegadot_from_heterogeneous_(i,j) = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j)
-					//										+ Y_[i](j) * omega_deposition_per_unit_volume;						// [kg/m3/s]
+					// Deposition rate [kg/m3/s]
+					const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();
 
-					// Option 2
-					const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+					// Consumption rates due to heterogeneous reactions
 					for (unsigned int j = 0; j < nc_; j++)
-						omegadot_from_heterogeneous_(i,j) = epsilon_(i) * heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j);	
+					{
+						omegadot_from_heterogeneous_(i, j) = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j)
+																+ Y_[i](j) * omega_deposition_per_unit_volume;						// [kg/m3/s]
+						omegadot_from_heterogeneous_(i, j) *= smoothing_coefficient;
+					}
 				}
 			}
 
-			//const double cc = std::tanh(0.05 * t / 3600.);
 			const double cc = 1.0;
 			for (unsigned int j = 0; j < nc_; j++)
 			{
@@ -3551,8 +3601,19 @@ namespace CVI
 				heterogeneous_total_mass_source_(j) += cc*VolumeIntegral(omegadot_from_heterogeneous_.col(j)) * (t - t_old_);
 			}
 
-			// Updating fluxes across the faces (XXX)
+			// Total mass produced during the time interval [kg]
+			for (unsigned int j = 0; j < nc_; j++)
+			{
+				Eigen::VectorXd rhoj(np_);
+				for (unsigned int i = 0; i < np_; i++)
+					rhoj(i) = rho_gas_(i) * Y_[i](j);
 
+				const double total_mass_gas = VolumeIntegral(rhoj, epsilon_);
+				total_mass_produced_(j) += total_mass_gas - total_mass_gas_old_(j);
+				total_mass_gas_old_(j) = total_mass_gas;
+			}
+
+			// Updating fluxes across the faces
 			{
 				// Entering mass flow rates
 				std::vector<double> mfr_west(nc_);
@@ -3956,6 +4017,197 @@ namespace CVI
 
 				const int point = list_points_south_(nx_ - 1);
 				sum += v(point)*volume;
+			}
+
+			return sum;
+		}
+	}
+
+	double Reactor2D::VolumeIntegral(const Eigen::VectorXd& v, const Eigen::VectorXd& phi)
+	{
+		if (planar_symmetry_ == true)
+		{
+			double sum = 0.;
+
+			// Internal
+			for (unsigned int k = 1; k < ny_ - 1; k++)
+				for (unsigned int i = 1; i < nx_ - 1; i++)
+				{
+					const int point = k * nx_ + i;
+
+					const double area = (grid_x_.dxc()(i) * 0.50) * (grid_y_.dxc()(k) * 0.50);
+					sum += v(point) * area * phi(point);
+				}
+
+			// South (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const int point = list_points_south_(i);
+				const double area = (grid_x_.dxc()(i) * 0.50) * (grid_y_.dxe()(0) * 0.50);
+				sum += v(point) * area * phi(point);
+			}
+
+			// North (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const int point = list_points_north_(i);
+				const double area = (grid_x_.dxc()(i) * 0.50) * (grid_y_.dxw()(ny_ - 1) * 0.50);
+				sum += v(point) * area * phi(point);
+			}
+
+			// West (zero gradient)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const int point = list_points_west_(i);
+				const double area = (grid_x_.dxe()(0) * 0.50) * (grid_y_.dxc()(i) * 0.50);
+				sum += v(point) * area * phi(point);
+			}
+
+			// East (gas side)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const int point = list_points_east_(i);
+				const double area = (grid_x_.dxw()(nx_ - 1) * 0.50) * (grid_y_.dxc()(i) * 0.50);
+				sum += v(point) * area * phi(point);
+			}
+
+			// Corner: north/east
+			{
+				const int point = list_points_north_(nx_ - 1);
+				const double area = (grid_x_.dxw()(nx_ - 1) * 0.50) * (grid_y_.dxw()(ny_ - 1) * 0.50);
+				sum += v(point) * area * phi(point);
+			}
+
+			// Corner: north/west
+			{
+				const int point = list_points_north_(0);
+				const double area = (grid_x_.dxe()(0) * 0.50) * (grid_y_.dxw()(ny_ - 1) * 0.50);
+				sum += v(point) * area * phi(point);
+			}
+
+			// Corner: south/west
+			{
+				const int point = list_points_south_(0);
+				const double area = (grid_x_.dxe()(0) * 0.50) * (grid_y_.dxe()(0) * 0.50);
+				sum += v(point) * area * phi(point);
+			}
+
+			// Corner: south/east
+			{
+				const int point = list_points_south_(nx_ - 1);
+				const double area = (grid_x_.dxw()(nx_ - 1) * 0.50) * (grid_y_.dxe()(0) * 0.50);
+				sum += v(point) * area * phi(point);
+			}
+
+			return sum;
+		}
+		else
+		{
+			double sum = 0.;
+
+			// Internal
+			for (unsigned int k = 1; k < ny_ - 1; k++)
+				for (unsigned int i = 1; i < nx_ - 1; i++)
+				{
+					const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+					const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+					const double height = grid_y_.dxc()(k) * 0.50;
+					const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+					const int point = k * nx_ + i;
+					sum += v(point) * volume * phi(point);
+				}
+
+			// South (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+				const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+				const double height = grid_y_.dxe()(0) * 0.50;
+				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+				const int point = list_points_south_(i);
+				sum += v(point) * volume * phi(point);
+			}
+
+			// North (zero gradient)
+			for (unsigned int i = 1; i < nx_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(i) + grid_x_.x()(i - 1)) / 2.;
+				const double re = (grid_x_.x()(i) + grid_x_.x()(i + 1)) / 2.;
+				const double height = grid_y_.dxw()(ny_ - 1) * 0.50;
+				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+				const int point = list_points_north_(i);
+				sum += v(point) * volume * phi(point);
+			}
+
+			// West (zero gradient)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxc()(i) * 0.50;
+				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+				const int point = list_points_west_(i);
+				sum += v(point) * volume * phi(point);
+			}
+
+			// East (gas side)
+			for (unsigned int i = 1; i < ny_ - 1; i++)
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxc()(i) * 0.50;
+				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+				const int point = list_points_east_(i);
+				sum += v(point) * volume * phi(point);
+			}
+
+			// Corner: north/west
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxw()(ny_ - 1) * 0.50;
+				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+				const int point = list_points_north_(nx_ - 1);
+				sum += v(point) * volume * phi(point);
+			}
+
+			// Corner: north/east
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxw()(ny_ - 1) * 0.50;
+				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+				const int point = list_points_north_(0);
+				sum += v(point) * volume * phi(point);
+			}
+
+			// Corner: south/west
+			{
+				const double ri = (grid_x_.x()(nx_ - 1) + grid_x_.x()(nx_ - 2)) / 2.;
+				const double re = grid_x_.x()(nx_ - 1);
+				const double height = grid_y_.dxe()(0) * 0.50;
+				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+				const int point = list_points_south_(0);
+				sum += v(point) * volume * phi(point);
+			}
+
+			// Corner: south/east
+			{
+				const double ri = grid_x_.x()(0);
+				const double re = (grid_x_.x()(0) + grid_x_.x()(1)) / 2.;
+				const double height = grid_y_.dxe()(0) * 0.50;
+				const double volume = boost::math::constants::pi<double>() * (re * re - ri * ri) * height;
+
+				const int point = list_points_south_(nx_ - 1);
+				sum += v(point) * volume * phi(point);
 			}
 
 			return sum;
