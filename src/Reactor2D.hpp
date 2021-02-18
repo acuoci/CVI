@@ -2049,10 +2049,10 @@ namespace CVI
 			// Old values
 			for (unsigned int j = 0; j < nc_; j++)
 			{
-				Eigen::VectorXd rhoj(np_);
+				Eigen::VectorXd rhojeps(np_);
 				for (unsigned int i = 0; i < np_; i++)
-					rhoj(i) = rho_gas_(i) * Y_[i](j);
-				total_mass_gas_old_(j) = VolumeIntegral(rhoj, epsilon_);
+					rhojeps(i) = rho_gas_(i) * Y_[i](j) * epsilon_(i);
+				total_mass_gas_old_(j) = VolumeIntegral(rhojeps);
 			}
 
 			// Solve
@@ -3604,12 +3604,12 @@ namespace CVI
 			// Total mass produced during the time interval [kg]
 			for (unsigned int j = 0; j < nc_; j++)
 			{
-				Eigen::VectorXd rhoj(np_);
+				Eigen::VectorXd rhojeps(np_);
 				for (unsigned int i = 0; i < np_; i++)
-					rhoj(i) = rho_gas_(i) * Y_[i](j);
+					rhojeps(i) = rho_gas_(i) * Y_[i](j) * epsilon_(i);
 
-				const double total_mass_gas = VolumeIntegral(rhoj, epsilon_);
-				total_mass_produced_(j) += total_mass_gas - total_mass_gas_old_(j);
+				const double total_mass_gas = VolumeIntegral(rhojeps);
+				total_mass_produced_(j) += (total_mass_gas - total_mass_gas_old_(j));
 				total_mass_gas_old_(j) = total_mass_gas;
 			}
 
