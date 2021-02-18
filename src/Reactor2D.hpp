@@ -99,6 +99,7 @@ namespace CVI
 		count_file_ = n_steps_file_;
 		count_tecplot_ = 0;
 		count_update_plug_flow_ = 0;
+		ropa_analysis_ = false;
 
 		time_total_ = 48.*3600.;
 		dae_time_interval_ = 3600.;
@@ -2062,12 +2063,14 @@ namespace CVI
 
 			if (ropa_analysis_ == true)
 			{
+				std::cout << "Writing ROPA file..." << std::endl;
 				std::string ropa_file = "ROPA." + hours.str() + ".out";
 				PrintROPA(tf, (output_ropa_folder_ / ropa_file).string().c_str());
 			}
 
 			if (detailed_heterogeneous_kinetics_ == true)
 			{
+				std::cout << "Writing Backup file..." << std::endl;
 				std::string backup_file = "Solution." + hours.str() + ".xml";
 				PrintXMLFile( (output_backup_folder_ / backup_file).string(), tf);
 			}
@@ -2757,6 +2760,7 @@ namespace CVI
 				fOutputXML << "</delta_time>" << std::endl;
 
 				// Mass source terms (from time history, per unit of volume)
+				std::cout << "Writing source-terms section..." << std::endl;
 				{
 					fOutputXML << "<source-terms>" << std::endl;
 					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
@@ -2787,6 +2791,7 @@ namespace CVI
 				}
 
 				// Mass exchanged terms (from time history, per unit of volume)
+				std::cout << "Writing exchanged-terms section..." << std::endl;
 				{
 					fOutputXML << "<exchanged-terms>" << std::endl;
 					fOutputXML << "<!--Species dummy dummy Net(kg/m3/s)-->" << std::endl;
@@ -2804,7 +2809,7 @@ namespace CVI
 						fOutputXML << std::endl;
 					}
 					fOutputXML << "</exchanged-terms>" << std::endl;
-
+					
 					fOutputXML << "<total-mass-exchanged-terms>" << std::endl;
 					fOutputXML << "<!--Species dummy dummy Net(kg/s)-->" << std::endl;
 					fOutputXML << std::right << std::setprecision(9) << std::setw(20) << 0.;
@@ -2815,6 +2820,7 @@ namespace CVI
 				}
 
 				// Source terms (heterogeneous contribution only, instantaneous and from time history)
+				std::cout << "Writing het-source-terms section..." << std::endl;
 				{
 					fOutputXML << "<het-source-terms>" << std::endl;
 					fOutputXML << "<!--Species Het.Inst.(kg/m3/s) Het.Int.(kg/s) Het.Int.(kg/m3/s)-->" << std::endl;
@@ -2848,6 +2854,7 @@ namespace CVI
 				}
 
 				// Source terms (homogeneous contribution only, instantaneous and from time history)
+				std::cout << "Writing hom-source-terms section..." << std::endl;
 				{
 					fOutputXML << "<hom-source-terms>" << std::endl;
 					fOutputXML << "<!--Species Hom.Inst.(kg/m3/s) Hom.Int.(kg/s) Hom.Int.(kg/m3/s)-->" << std::endl;
@@ -2881,6 +2888,7 @@ namespace CVI
 				}
 				
 				// Mass source terms (integral)
+				std::cout << "Writing mass-source-terms section..." << std::endl;
 				{
 					fOutputXML << "<mass-source-terms>" << std::endl;
 					fOutputXML << "<!--Species Hom.(kg/s) Het.(kg/s) Net(kg/s)-->" << std::endl;
@@ -2911,6 +2919,7 @@ namespace CVI
 				}
 
 				// Old evaluation of source terms
+				std::cout << "Writing source-terms-old section..." << std::endl;
 				{
 					fOutputXML << "<source-terms-old>" << std::endl;
 					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
