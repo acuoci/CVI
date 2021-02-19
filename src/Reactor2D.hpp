@@ -3465,8 +3465,13 @@ namespace CVI
 
 		// Update the total amount of consumed/produced species
 		{
-			Eigen::MatrixXd	omegadot_from_homogeneous_(np_, nc_);
-			Eigen::MatrixXd	omegadot_from_heterogeneous_(np_, nc_);
+			std::vector<Eigen::VectorXd>	omegadot_from_homogeneous_(nc_);
+			std::vector<Eigen::VectorXd>	omegadot_from_heterogeneous_(nc_);
+			for (unsigned int j = 0; j < nc_; j++)
+			{
+				omegadot_from_homogeneous_[j].resize(np_);
+				omegadot_from_heterogeneous_[j].resize(np_);
+			}
 
 			for (unsigned int i = 0; i < np_; i++)
 			{
@@ -3489,8 +3494,12 @@ namespace CVI
 					kineticsMap_.ReactionRates(eigen_C_.data());
 					kineticsMap_.FormationRates(eigen_R_.data());
 					OpenSMOKE::ElementByElementProduct(nc_, eigen_R_.data(), thermodynamicsMap_.MWs().data(), eigen_R_.data()); // [kg/m3/s]
-					omegadot_from_homogeneous_.row(i) = eigen_R_ *epsilon_(i);
-					omegadot_from_homogeneous_.row(i) *= smoothing_coefficient;
+					
+					for (unsigned int j = 0; j < nc_; j++)
+					{
+						omegadot_from_homogeneous_[j](i) = eigen_R_(j) * epsilon_(i);
+						omegadot_from_homogeneous_[j](i) *= smoothing_coefficient;
+					}
 				}
 
 				// Formation rates: heterogeneous reactions
@@ -3513,9 +3522,9 @@ namespace CVI
 					// Consumption rates due to heterogeneous reactions
 					for (unsigned int j = 0; j < nc_; j++)
 					{
-						omegadot_from_heterogeneous_(i, j) = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j)
-																+ Y_[i](j) * omega_deposition_per_unit_volume;						// [kg/m3/s]
-						omegadot_from_heterogeneous_(i, j) *= smoothing_coefficient;
+						omegadot_from_heterogeneous_[j](i)  = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j);		// [kg/m3/s]
+						//omegadot_from_heterogeneous_[j](i) += Y_[i](j) * omega_deposition_per_unit_volume;								// [kg/m3/s]
+						omegadot_from_heterogeneous_[j](i) *= smoothing_coefficient;
 					}
 				}
 			}
@@ -3523,8 +3532,8 @@ namespace CVI
 			const double cc = 1.0;
 			for (unsigned int j = 0; j < nc_; j++)
 			{
-				homogeneous_total_mass_source_(j) += cc*VolumeIntegral(omegadot_from_homogeneous_.col(j)) * (t - t_old_);
-				heterogeneous_total_mass_source_(j) += cc*VolumeIntegral(omegadot_from_heterogeneous_.col(j)) * (t - t_old_);
+				homogeneous_total_mass_source_(j) += cc*VolumeIntegral(omegadot_from_homogeneous_[j]) * (t - t_old_);
+				heterogeneous_total_mass_source_(j) += cc*VolumeIntegral(omegadot_from_heterogeneous_[j]) * (t - t_old_);
 			}
 
 			// Total mass produced during the time interval [kg]
