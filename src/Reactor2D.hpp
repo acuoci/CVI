@@ -2694,7 +2694,7 @@ namespace CVI
 			// New evaluation of source terms
 			{
 				// Linking coefficient
-				const double cc = densification_rate/sum_heterogeneous;
+				const double cc = std::fabs(densification_rate/sum_heterogeneous);
 
 				// Mass source terms (from time history, per unit of volume)
 				std::cout << "Writing source-terms section..." << std::endl;
