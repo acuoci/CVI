@@ -235,6 +235,7 @@ namespace CVI
 		// Densities [kg/m3]
 		rho_gas_.resize(np_);
 		rho_bulk_.resize(np_);
+		rho_bulk_initial_.resize(np_);
 		
 		// Porosity [-]
 		epsilon_.resize(np_);
@@ -2036,6 +2037,9 @@ namespace CVI
 				total_mass_gas_old_(j) = VolumeIntegral(rhojeps);
 			}
 
+			// Initial bulk density
+			rho_bulk_initial_ = rho_bulk_;
+
 			// Solve
 			int flag = Solve(dae_parameters, t0, tf);
 			if (flag < 0)
@@ -2642,6 +2646,10 @@ namespace CVI
 			const double Ri = grid_x_.x()(0);
 			const double Re = grid_x_.x()(nx_ - 1);
 			const double total_volume = boost::math::constants::pi<double>()*(Re*Re - Ri * Ri)*grid_y_.L();
+			const double rho_bulk_mean_o = VolumeAveraged(rho_bulk_initial_);
+			const double rho_bulk_mean_f = VolumeAveraged(rho_bulk_);
+			const double delta_time = dae_time_interval_;
+			const double densification_rate = (rho_bulk_mean_f - rho_bulk_mean_o) * total_volume / delta_time;
 
 			std::ofstream fOutputXML(name_file.c_str(), std::ios::out);
 			fOutputXML.setf(std::ios::scientific);
@@ -2661,22 +2669,39 @@ namespace CVI
 			fOutputXML << total_volume*5./360. << std::endl;
 			fOutputXML << "</slice-volume>" << std::endl;
 
+			fOutputXML << "<bulk-density-mean-o>" << std::endl;
+			fOutputXML << rho_bulk_mean_o << std::endl;
+			fOutputXML << "</bulk-density-mean-o>" << std::endl;
+
+			fOutputXML << "<bulk-density-mean-f>" << std::endl;
+			fOutputXML << rho_bulk_mean_f << std::endl;
+			fOutputXML << "</bulk-density-mean-f>" << std::endl;
+
+			fOutputXML << "<densification-rate>" << std::endl;
+			fOutputXML << densification_rate << std::endl;
+			fOutputXML << "</densification-rate>" << std::endl;
+
+			fOutputXML << "<delta_time>" << std::endl;
+			fOutputXML << delta_time << std::endl;
+			fOutputXML << "</delta_time>" << std::endl;
+
+			// Sum of heterogeneous source terms
+			double sum_heterogeneous = 0.;
+			for (unsigned int j = 0; j < nc_; j++)
+				sum_heterogeneous += heterogeneous_total_mass_source_(j);
+			sum_heterogeneous /= (delta_time * total_volume);
+
 			// New evaluation of source terms
 			{
-				// Correction coefficient
-				const double cc = 1.0;
-
-				// Time interval (s)
-				const double delta_time = dae_time_interval_;
-				fOutputXML << "<delta_time>" << std::endl;
-				fOutputXML << delta_time << std::endl;
-				fOutputXML << "</delta_time>" << std::endl;
+				// Linking coefficient
+				const double cc = densification_rate/sum_heterogeneous;
 
 				// Mass source terms (from time history, per unit of volume)
 				std::cout << "Writing source-terms section..." << std::endl;
 				{
 					fOutputXML << "<source-terms>" << std::endl;
 					fOutputXML << "<!--Species Hom.(kg/m3/s) Het.(kg/m3/s) Net(kg/m3/s)-->" << std::endl;
+					
 					double sum_homogeneous = 0.;
 					double sum_heterogeneous = 0.;
 					for (unsigned int j = 0; j < nc_; j++)
@@ -2703,6 +2728,7 @@ namespace CVI
 					fOutputXML << "</total-mass-source-terms>" << std::endl;
 				}
 
+				/*
 				// Mass produced terms (from time history, per unit of volume)
 				std::cout << "Writing produced-terms section..." << std::endl;
 				{
@@ -2731,7 +2757,9 @@ namespace CVI
 					fOutputXML << std::endl;
 					fOutputXML << "</total-mass-produced-terms>" << std::endl;
 				}
+				*/
 
+				/*
 				// Mass exchanged terms (from time history, per unit of volume)
 				std::cout << "Writing exchanged-terms section..." << std::endl;
 				{
@@ -2760,6 +2788,7 @@ namespace CVI
 					fOutputXML << std::endl;
 					fOutputXML << "</total-mass-exchanged-terms>" << std::endl;
 				}
+				*/
 
 				// Source terms
 				{

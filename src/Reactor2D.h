@@ -521,6 +521,7 @@ namespace CVI
 		// Properties
 		Eigen::VectorXd					rho_gas_;			//!< density of gaseous phase [kg/m3]
 		Eigen::VectorXd					rho_bulk_;			//!< density of bulk phase [kg/m3]
+		Eigen::VectorXd					rho_bulk_initial_;	//!< density of bulk phase (initial value) [kg/m3]
 		Eigen::VectorXd					mw_;				//!< molecular weight of gaseous phase [kg/kmol]
 		Eigen::VectorXd					epsilon_;			//!< porosity of porous medium [-]
 		Eigen::VectorXd					permeability_;		//!< permeability of porous medium [m2]
