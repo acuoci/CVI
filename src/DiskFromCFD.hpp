@@ -26,6 +26,10 @@
 
 #include "Utilities.h"
 
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/foreach.hpp>
+
 namespace CVI
 {
 	void Interpolate(const double x_req, double& temperature_req, std::vector<double>& mass_fractions_req,
@@ -60,20 +64,16 @@ namespace CVI
 
 		bool edge_centered_policy = false;
 
-		rapidxml::xml_document<> doc;
-		std::vector<char> xml_string;
-		OpenInputFileXML(doc, xml_string, disk_file_name);
-
-		rapidxml::xml_node<>* opensmoke_node = doc.first_node("opensmoke");
-		rapidxml::xml_node<>* number_of_species_node = opensmoke_node->first_node("NumberOfSpecies");
-		rapidxml::xml_node<>* names_of_species_node = opensmoke_node->first_node("NamesOfSpecies");
+		boost::property_tree::ptree ptree;
+    		boost::property_tree::read_xml( (disk_file_name).string(), ptree );
 
 		std::cout << " * Check axial coordinate..." << std::endl;
 		{
-			rapidxml::xml_node<>* axial_coordinate_node = opensmoke_node->first_node("AxialCoordinate");
-			if (axial_coordinate_node != 0)
+			boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.AxialCoordinate");
+
+			if (child)
 			{
-				const std::string coordinate = boost::trim_copy(std::string(axial_coordinate_node->value()));
+				const std::string coordinate = ptree.get<std::string>("opensmoke.AxialCoordinate");
 				if (coordinate == "x")			axial_coordinate_ = 0;
 				else if (coordinate == "y")		axial_coordinate_ = 1;
 				else if (coordinate == "z")		axial_coordinate_ = 2;
@@ -83,10 +83,11 @@ namespace CVI
 
 		std::cout << " * Check radial coordinate..." << std::endl;
 		{
-			rapidxml::xml_node<>* radial_coordinate_node = opensmoke_node->first_node("RadialCoordinate");
-			if (radial_coordinate_node != 0)
+			boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.RadialCoordinate");
+
+			if (child)
 			{
-				const std::string coordinate = boost::trim_copy(std::string(radial_coordinate_node->value()));
+				const std::string coordinate = ptree.get<std::string>("opensmoke.RadialCoordinate");
 				if (coordinate == "x")			radial_coordinate_ = 0;
 				else if (coordinate == "y")		radial_coordinate_ = 1;
 				else if (coordinate == "z")		radial_coordinate_ = 2;
@@ -95,19 +96,21 @@ namespace CVI
 		}
 
 		std::cout << " * Check policy..." << std::endl;
-		rapidxml::xml_node<>* policy_node = opensmoke_node->first_node("Policy");
-		if (policy_node != 0)
 		{
-			const std::string policy = boost::trim_copy(std::string(policy_node->value()));
-			if (policy == "edge-centered")		edge_centered_policy = true;
-			else if (policy == "face-centered")	edge_centered_policy = false;
-			else OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "Wrong policy: face-centered (default) | edge-centered)");
+			boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.Policy");
+			if (child)
+			{
+				const std::string policy = ptree.get<std::string>("opensmoke.Policy");
+				if (policy == "edge-centered")		edge_centered_policy = true;
+				else if (policy == "face-centered")	edge_centered_policy = false;
+				else OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "Wrong policy: face-centered (default) | edge-centered)");
+			}
 		}
 
 		try
 		{
 			std::cout << " * Check kinetic mechanism..." << std::endl;
-			const unsigned int ns = boost::lexical_cast<unsigned int>(boost::trim_copy(std::string(number_of_species_node->value())));
+			const unsigned int ns = ptree.get<unsigned int>("opensmoke.NumberOfSpecies");
 			
 			if (ns != thermodynamicsMap_.NumberOfSpecies())
 				OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "The kinetic mechanism adopted in the exported Disk data does not match with the current kinetic mechanism");
@@ -115,7 +118,7 @@ namespace CVI
 			std::vector<std::string> names_species(ns);
 
 			std::stringstream names_of_species_string;
-			names_of_species_string << names_of_species_node->value();
+			names_of_species_string.str( ptree.get< std::string >("opensmoke.NamesOfSpecies") );
 			for (unsigned int i = 0; i < ns; i++)
 				names_of_species_string >> names_species[i];
 
@@ -134,24 +137,18 @@ namespace CVI
 		double east_coordinate = 0.;
 		double west_coordinate = 0.;
 
-		//rapidxml::xml_node<>* data_node = opensmoke_node->first_node("Data");
-		for (rapidxml::xml_node<> *child = opensmoke_node->first_node("Data"); child; child = child->next_sibling())
+		BOOST_FOREACH( boost::property_tree::ptree::value_type const& node, ptree.get_child( "opensmoke" ) ) 
 		{
-			rapidxml::xml_attribute<> *side = child->first_attribute();
+			if (node.first == "Data")
+			{
 
-			std::cout << " * Importing disk data from side " << side->value() << std::endl;
+			boost::property_tree::ptree subtree = node.second; 
+			const std::string side = subtree.get<std::string>("<xmlattr>.side");
 
-			std::string side_name;
-			std::stringstream side_name_string; side_name_string << side->value();
-			side_name_string >> side_name;
-
-			rapidxml::xml_node<>* number_points_node = child->first_node("NumberOfPoints");
-			rapidxml::xml_node<>* points_node = child->first_node("Points");
-			rapidxml::xml_node<>* mass_fractions_node = child->first_node("MassFractions");
-			rapidxml::xml_node<>* temperature_node = child->first_node("Temperature");
+			std::cout << " * Importing disk data from side " << side << std::endl;
 
 			// Number of points
-			const unsigned int np = boost::lexical_cast<unsigned int>(boost::trim_copy(std::string(number_points_node->value())));
+			const unsigned int np = subtree.get<unsigned int>("NumberOfPoints");
 			std::vector<double> coordinates_from_cfd(np);
 			std::vector<double> temperature_from_cfd(np);
 			std::vector< std::vector<double> > mass_fractions_from_cfd(thermodynamicsMap_.NumberOfSpecies());
@@ -163,13 +160,12 @@ namespace CVI
 		
 			// Point coordinates
 			{
-				std::stringstream points_xml;
-				points_xml << points_node->value();
-
 				std::vector<Eigen::VectorXd> coordinates(3);
 				for (unsigned int i = 0; i < 3; i++)
 					coordinates[i].resize(np);
 
+				std::stringstream points_xml;
+				points_xml.str( subtree.get< std::string >("Points") );
 				for (unsigned int i = 0; i < np; i++)
 				{
 					points_xml >> coordinates[0](i);
@@ -235,7 +231,7 @@ namespace CVI
 					coordinates_from_cfd[np-1] = 0.9*coordinates_from_cfd[np-1] + 0.10*coordinates_from_cfd[np-2];
 				}
 
-				if (side_name == "North")
+				if (side == "North")
 				{
 					if (relevant_coordinate != radial_coordinate_)
 						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "North side is not aligned with radial coordinate specified in XML file");
@@ -243,7 +239,7 @@ namespace CVI
 					north_coordinate = coordinates[axial_coordinate_](0);
 					std::cout << " * North coordinate (mm): " << north_coordinate*1000. << std::endl;
 				}
-				else if (side_name == "South")
+				else if (side == "South")
 				{
 					if (relevant_coordinate != radial_coordinate_)
 						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "South side is not aligned with radial coordinate specified in XML file");
@@ -251,7 +247,7 @@ namespace CVI
 					south_coordinate = coordinates[axial_coordinate_](0);
 					std::cout << " * South coordinate (mm): " << south_coordinate * 1000. << std::endl;
 				}
-				else if (side_name == "East")
+				else if (side == "East")
 				{
 					if (relevant_coordinate != axial_coordinate_)
 						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "East side is not aligned with axial coordinate specified in XML file");
@@ -259,7 +255,7 @@ namespace CVI
 					east_coordinate = coordinates[radial_coordinate_](0);
 					std::cout << " * East coordinate (mm): " << east_coordinate * 1000. << std::endl;
 				}
-				else if (side_name == "West")
+				else if (side == "West")
 				{
 					if (relevant_coordinate != axial_coordinate_)
 						OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "West side is not aligned with axial coordinate specified in XML file");
@@ -274,7 +270,7 @@ namespace CVI
 				std::vector<double> temperature_from_cfd_unsorted(np);
 
 				std::stringstream temperature_xml;
-				temperature_xml << temperature_node->value();
+				temperature_xml.str( subtree.get< std::string >("Temperature") );
 
 				for (unsigned int i = 0; i < np; i++)
 					temperature_xml >> temperature_from_cfd_unsorted[i];
@@ -290,7 +286,7 @@ namespace CVI
 					mass_fractions_from_cfd_unsorted[i].resize(np);
 
 				std::stringstream mass_fractions_xml;
-				mass_fractions_xml << mass_fractions_node->value();
+				mass_fractions_xml.str( subtree.get< std::string >("MassFractions") );
 
 				for (unsigned int i = 0; i < np; i++)
 					for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
@@ -304,7 +300,7 @@ namespace CVI
 			// Extend data
 			{
 
-				if (side_name == "North" || side_name == "South")
+				if (side == "North" || side == "South")
 				{
 					std::cout << "Extending" << std::endl;
 
@@ -329,7 +325,7 @@ namespace CVI
 				}
 			}
 
-			if (side_name == "East" || side_name == "West")
+			if (side == "East" || side == "West")
 			{
 				for (unsigned int i = 0; i < np; i++)
 					coordinates_from_cfd[i] -= south_coordinate;
@@ -383,29 +379,31 @@ namespace CVI
 			}
 
 			// Interpolated fields
-			if (side_name == "North")
+			if (side == "North")
 			{
 				for (int i = 0; i < grid_x_.Np(); i++)
 					Interpolate(grid_x_.x()[i], north_temperature_[i], north_mass_fractions_[i],
 						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
 			}
-			else if (side_name == "South")
+			else if (side == "South")
 			{
 				for (int i = 0; i < grid_x_.Np(); i++)
 					Interpolate(grid_x_.x()[i], south_temperature_[i], south_mass_fractions_[i],
 						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
 			}
-			else if (side_name == "East")
+			else if (side == "East")
 			{
 				for (int i = 0; i < grid_y_.Np(); i++)
 					Interpolate(grid_y_.x()[i], east_temperature_[i], east_mass_fractions_[i],
 						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
 			}
-			else if (side_name == "West")
+			else if (side == "West")
 			{
 				for (int i = 0; i < grid_y_.Np(); i++)
 					Interpolate(grid_y_.x()[i], west_temperature_[i], west_mass_fractions_[i],
 						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
+			}
+
 			}
 		}
 

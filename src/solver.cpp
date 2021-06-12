@@ -212,6 +212,11 @@ int main(int argc, char** argv)
 		}
 	}
 
+	// Profile
+	std::vector<std::string> impermeable_walls;
+	if (dictionaries(main_dictionary_name_).CheckOption("@ImpermeableWalls") == true)
+		dictionaries(main_dictionary_name_).ReadOption("@ImpermeableWalls", impermeable_walls);
+
 	// Porous medium
 	std::string dict_name_porous_medium;
 	if (dictionaries(main_dictionary_name_).CheckOption("@PorousMedium") == true)
@@ -738,8 +743,13 @@ int main(int argc, char** argv)
 
 	// Read from backupfile
 	boost::filesystem::path path_backup;
+	bool readjust_backup = false;
 	if (dictionaries(main_dictionary_name_).CheckOption("@Backup") == true)
+	{
 		dictionaries(main_dictionary_name_).ReadPath("@Backup", path_backup);
+		if (dictionaries(main_dictionary_name_).CheckOption("@ReadjustBackup") == true)
+			dictionaries(main_dictionary_name_).ReadBool("@ReadjustBackup", readjust_backup);
+	}
 
 	// Solve the 2D problem
 	if (problem_type == CVI_REACTOR2D && gaseous_phase == CVI::GASEOUS_PHASE_FROM_PLUG_FLOW)
@@ -857,6 +867,8 @@ int main(int argc, char** argv)
 		// Set options
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
 		reactor2d->SetSiteNonConservation(SiteNonConservation);
+		reactor2d->SetReadjustBackup(readjust_backup);
+		reactor2d->SetImpermeableWalls(impermeable_walls);
 		reactor2d->SetInitialConditions(path_backup, initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		reactor2d->SetGasSide(inlet_T, inlet_P, Y_gas_side);
 		reactor2d->SetUniformVelocity(vx, vy);
@@ -919,6 +931,8 @@ int main(int argc, char** argv)
 		// Set options
 		reactor2d->SetPlanarSymmetry(symmetry_planar);
 		reactor2d->SetSiteNonConservation(SiteNonConservation);
+		reactor2d->SetReadjustBackup(readjust_backup);
+		reactor2d->SetImpermeableWalls(impermeable_walls);
 		reactor2d->SetInitialConditions(path_backup, initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		
 		// Set initial/boundary conditions

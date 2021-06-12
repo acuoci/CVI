@@ -49,6 +49,7 @@ CVI::Reactor2D* reactor2d;
 
 // Boost C++
 #include <boost/math/special_functions/pow.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace CVI
 {
@@ -109,6 +110,12 @@ namespace CVI
 
 		time_starting_point_ = 0.;
 		start_from_backup_ = false;
+		readjust_backup_ = false;
+
+		north_wall_type_ = CVI::NOT_IMPERMEABLE;
+		south_wall_type_ = CVI::NOT_IMPERMEABLE;
+		east_wall_type_ = CVI::NOT_IMPERMEABLE;
+		west_wall_type_ = CVI::NOT_IMPERMEABLE;
 
 		derivative_type_mass_fractions_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
 		derivative_type_effective_diffusivity_ = OpenSMOKE::DERIVATIVE_1ST_CENTERED;
@@ -1018,6 +1025,34 @@ namespace CVI
 		derivative_type_bulk_density_ = value;
 	}
 
+	void Reactor2D::SetReadjustBackup(const bool readjust_backup)
+	{
+		readjust_backup_ = readjust_backup;
+	}
+
+	void Reactor2D::SetImpermeableWalls(const std::vector<std::string>& impermeable_walls)
+	{
+		for (unsigned int i=0;i<impermeable_walls.size();i++)
+		if (boost::iequals(impermeable_walls[i], "North"))
+			north_wall_type_ = CVI::IMPERMEABLE;
+		else if (boost::iequals(impermeable_walls[i], "South"))
+			south_wall_type_ = CVI::IMPERMEABLE;
+		else if (boost::iequals(impermeable_walls[i], "East"))
+			east_wall_type_ = CVI::IMPERMEABLE;
+		else if (boost::iequals(impermeable_walls[i], "West"))
+			west_wall_type_ = CVI::IMPERMEABLE;
+		else	OpenSMOKE::FatalErrorMessage("Unrecognized wall name in @ImpermeableWalls option");
+
+		std::cout << std::endl;
+		std::cout << "Summary of wall types" << std::endl;
+		std::cout << "----------------------------------------------------------" << std::endl;
+		std::cout << " * North: " << ( (north_wall_type_ == CVI::IMPERMEABLE) ? "IMPERMEABLE" : "NOT IMPERMEABLE" ) << std::endl;
+		std::cout << " * South: " << ( (south_wall_type_ == CVI::IMPERMEABLE) ? "IMPERMEABLE" : "NOT IMPERMEABLE" ) << std::endl;
+		std::cout << " * East:  " << ( (east_wall_type_ == CVI::IMPERMEABLE) ? "IMPERMEABLE" : "NOT IMPERMEABLE" ) << std::endl;
+		std::cout << " * West:  " << ( (west_wall_type_ == CVI::IMPERMEABLE) ? "IMPERMEABLE" : "NOT IMPERMEABLE" ) << std::endl;
+		std::cout << std::endl;
+	}
+
 	void Reactor2D::Properties()
 	{
 		for (unsigned int i = 0; i < np_; i++)
@@ -1155,6 +1190,7 @@ namespace CVI
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_WestSide(const double t)
 	{
+		// Plug flow reactor
 		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
 			for (unsigned int i = 0; i < ny_; i++)
@@ -1164,10 +1200,33 @@ namespace CVI
 					dY_over_dt_[point](j) = Y_[point](j) - Y_[point + 1](j);
 			}
 		}
+		// CFD simulation
 		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
-			if (hole_ == false)
+			if (west_wall_type_ == CVI::NOT_IMPERMEABLE)
 			{
+				if (hole_ == false)
+				{
+					for (unsigned int i = 0; i < ny_; i++)
+					{
+						const int point = list_points_west_(i);
+						for (unsigned int j = 0; j < nc_; j++)
+							dY_over_dt_[point](j) = Y_[point](j) - Y_[point + 1](j);
+					}
+				}
+				else
+				{
+					for (unsigned int i = 0; i < ny_; i++)
+					{
+						const int point = list_points_west_(i);
+						for (unsigned int j = 0; j < nc_; j++)
+							dY_over_dt_[point](j) = Y_[point](j) - Y_gas_west_side_[i](j);
+					}
+				}
+			}
+			else if (west_wall_type_ == CVI::IMPERMEABLE)
+			{
+
 				for (unsigned int i = 0; i < ny_; i++)
 				{
 					const int point = list_points_west_(i);
@@ -1175,20 +1234,13 @@ namespace CVI
 						dY_over_dt_[point](j) = Y_[point](j) - Y_[point + 1](j);
 				}
 			}
-			else
-			{
-				for (unsigned int i = 0; i < ny_; i++)
-				{
-					const int point = list_points_west_(i);
-					for (unsigned int j = 0; j < nc_; j++)
-						dY_over_dt_[point](j) = Y_[point](j) - Y_gas_west_side_[i](j);
-				}
-			}
+			
 		}
 	}
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_EastSide(const double t)
 	{
+		// Plug-flow reactor
 		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
 			if (plugFlowReactor_.internal_boundary_layer_correction() == true && t > time_smoothing_)
@@ -1214,19 +1266,33 @@ namespace CVI
 				}
 			}
 		}
+		// CFD simulation
 		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
-			for (unsigned int i = 0; i < ny_; i++)
+			if (east_wall_type_ == CVI::NOT_IMPERMEABLE)
 			{
-				const int point = list_points_east_(i);
-				for (unsigned int j = 0; j < nc_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_east_side_[i](j);
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					const int point = list_points_east_(i);
+					for (unsigned int j = 0; j < nc_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_gas_east_side_[i](j);
+				}
+			}
+			else if (east_wall_type_ == CVI::IMPERMEABLE)
+			{
+				for (unsigned int i = 0; i < ny_; i++)
+				{
+					const int point = list_points_east_(i);
+					for (unsigned int j = 0; j < nc_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_[point-1](j);
+				}
 			}
 		}
 	}
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_NorthSide(const double t)
 	{
+		// Plug flow reactor
 		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
 			if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
@@ -1248,19 +1314,33 @@ namespace CVI
 				}
 			}
 		}
+		// CFD simulation
 		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
-			for (unsigned int i = 0; i < nx_; i++)
+			if (north_wall_type_ == CVI::NOT_IMPERMEABLE)
 			{
-				const int point = list_points_north_(i);
-				for (unsigned int j = 0; j < nc_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_north_side_[i](j);
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = list_points_north_(i);
+					for (unsigned int j = 0; j < nc_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_gas_north_side_[i](j);
+				}
 			}
+			else if (north_wall_type_ == CVI::IMPERMEABLE)
+			{
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = list_points_north_(i);
+					for (unsigned int j = 0; j < nc_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_[point-nx_](j);
+				}
+			}		
 		}
 	}
 
 	void Reactor2D::SubEquations_MassFractions_BoundaryConditions_SouthSide(const double t)
 	{
+		// Plug flow reactor
 		if (gaseous_phase_ == GASEOUS_PHASE_FROM_PLUG_FLOW)
 		{
 			if (plugFlowReactor_.geometric_pattern() == CVI::PlugFlowReactorCoupled::ONE_SIDE)
@@ -1282,13 +1362,26 @@ namespace CVI
 				}
 			}
 		}
+		// CFD simulation
 		else if (gaseous_phase_ == GASEOUS_PHASE_FROM_CFD)
 		{
-			for (unsigned int i = 0; i < nx_; i++)
+			if (south_wall_type_ == CVI::NOT_IMPERMEABLE)
 			{
-				const int point = list_points_south_(i);
-				for (unsigned int j = 0; j < nc_; j++)
-					dY_over_dt_[point](j) = Y_[point](j) - Y_gas_south_side_[i](j);
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = list_points_south_(i);
+					for (unsigned int j = 0; j < nc_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_gas_south_side_[i](j);
+				}
+			}
+			else if (south_wall_type_ == CVI::IMPERMEABLE)
+			{
+				for (unsigned int i = 0; i < nx_; i++)
+				{
+					const int point = list_points_south_(i);
+					for (unsigned int j = 0; j < nc_; j++)
+						dY_over_dt_[point](j) = Y_[point](j) - Y_[point+nx_](j);
+				}
 			}
 		}
 	}
@@ -1900,8 +1993,13 @@ namespace CVI
 		Properties();
 		PrintTecplot(0., (output_tecplot_folder_ / "Solution.tec.0").string().c_str());
 		
-		if (detailed_heterogeneous_kinetics_ == true && start_from_backup_ == true)
+		if (detailed_heterogeneous_kinetics_ == true && start_from_backup_ == true && readjust_backup_ == true)
 		{
+			std::cout << std::endl;
+			std::cout << "Surface composition is to be re-adjusted after reading the backup file... " << std::endl;
+			std::cout << "--------------------------------------------------------------------------" << std::endl;
+			std::cout << std::endl;
+
 			// Solve independent ODE systems
 			for (unsigned int i = 0; i < np_; i++)
 			{
@@ -2008,6 +2106,14 @@ namespace CVI
 					}
 				}
 			}
+		}
+
+		else if (detailed_heterogeneous_kinetics_ == true && start_from_backup_ == true && readjust_backup_ == false)
+		{
+			std::cout << std::endl;
+			std::cout << "No surface composition is re-adjusted after reading the backup file...    " << std::endl;
+			std::cout << "--------------------------------------------------------------------------" << std::endl;
+			std::cout << std::endl;
 		}
 		
 		std::cout << "--------------------------------------------------------------------------" << std::endl;

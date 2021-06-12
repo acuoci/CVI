@@ -256,9 +256,19 @@ namespace CVI
 				"Name of backup file (XML Version)",
 				false));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@ReadjustBackup",
+				OpenSMOKE::SINGLE_BOOL,
+				"Adjust surface composition after reading the backup file (default: false)",
+				false));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TemperatureProfile",
 				OpenSMOKE::SINGLE_DICTIONARY,
 				"Dictionary defining the temperature profile",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@ImpermeableWalls",
+				OpenSMOKE::VECTOR_STRING,
+				"List of impermeable walls (default: none)",
 				false));
 		}
 	};

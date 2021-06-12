@@ -34,33 +34,9 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-#include "rapidxml.hpp"
-
-void OpenInputFileXML(rapidxml::xml_document<>& doc, std::vector<char>& xml_copy, const boost::filesystem::path& file_name)
-{
-	if (!boost::filesystem::exists(file_name))
-	{
-		std::string message = "The " + file_name.string() + " file does not exist";
-		OpenSMOKE::FatalErrorMessage(message);
-	}
-
-	std::ifstream fInput;
-	fInput.open(std::string(file_name.string()).c_str(), std::ios::in);
-
-	if (!fInput.is_open())
-	{
-		std::string msg = std::string("The ") + std::string(file_name.string()).c_str() + std::string(" file cannot be open!");
-		OpenSMOKE::FatalErrorMessage(msg.c_str());
-	}
-
-	const std::string string_file = std::string(std::istreambuf_iterator<char>(fInput), std::istreambuf_iterator<char>());
-	fInput.close();
-
-	xml_copy.assign(string_file.begin(), string_file.end());
-	xml_copy.push_back('\0');
-
-	doc.parse<rapidxml::parse_declaration_node | rapidxml::parse_no_data_nodes>(&xml_copy[0]);
-}
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/foreach.hpp>
 
 void ReadFromBackupFile(const boost::filesystem::path path_file,
 						double& t,
@@ -72,9 +48,8 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 						std::vector<std::string>& gas_names_species,
 						std::vector<std::string>& surface_names_species)
 {
-	rapidxml::xml_document<> xml_main_input;
-	std::vector<char> local_xml_input_string;
-	OpenInputFileXML(xml_main_input, local_xml_input_string, path_file);
+	boost::property_tree::ptree ptree;
+    	boost::property_tree::read_xml( (path_file).string(), ptree );
 
 	unsigned int index_T;
 	unsigned int index_P;
@@ -87,22 +62,22 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 
 	// Time
 	{
-		rapidxml::xml_node<>* time_node = xml_main_input.first_node("opensmoke")->first_node("time");
-		if (time_node != 0)
-		{
-			std::stringstream values(time_node->value());
-			values >> t;
-		}
+		std::cout << " * From backup file: reading time... " << std::endl;
+		boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.time");
+		if (child)
+			t = ptree.get<double>("opensmoke.time");
 		else
 			OpenSMOKE::FatalErrorMessage("Corrupted backup xml file: missing the time leaf");
 	}
 
 	// Indices of T, P and MW
 	{
-		rapidxml::xml_node<>* indices_node = xml_main_input.first_node("opensmoke")->first_node("t-p-mw");
-		if (indices_node != 0)
+		std::cout << " * From backup file: reading t-p-mw... " << std::endl;
+		boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.t-p-mw");
+		if (child)
 		{
-			std::stringstream values(indices_node->value());
+			std::stringstream values;
+			values.str( ptree.get< std::string >("opensmoke.t-p-mw") );
 			values >> index_T;
 			values >> index_P;
 			values >> index_MW;
@@ -113,10 +88,12 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 
 	// Additional
 	{
-		rapidxml::xml_node<>* additional_node = xml_main_input.first_node("opensmoke")->first_node("additional");
-		if (additional_node != 0)
+		std::cout << " * From backup file: reading additional... " << std::endl;
+		boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.additional");
+		if (child)
 		{
-			std::stringstream values(additional_node->value());
+			std::stringstream values;
+			values.str( ptree.get< std::string >("opensmoke.additional") );
 			values >> number_of_additional_profiles;
 		}
 		else
@@ -125,11 +102,12 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 
 	// Gaseous species
 	{
-		rapidxml::xml_node<>* massfractions_node = xml_main_input.first_node("opensmoke")->first_node("mass-fractions");
-		if (massfractions_node != 0)
+		std::cout << " * From backup file: reading mass-fractions... " << std::endl;
+		boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.mass-fractions");
+		if (child)
 		{
-			std::stringstream values(massfractions_node->value());
-
+			std::stringstream values;
+			values.str( ptree.get< std::string >("opensmoke.mass-fractions") );
 			values >> number_of_gaseous_species;
 
 			gas_names_species.resize(number_of_gaseous_species);
@@ -151,11 +129,12 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 
 	// Surface species
 	{
-		rapidxml::xml_node<>* surfacefractions_node = xml_main_input.first_node("opensmoke")->first_node("surface-fractions");
-		if (surfacefractions_node != 0)
+		std::cout << " * From backup file: reading surface-fractions... " << std::endl;
+		boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.surface-fractions");
+		if (child)
 		{
-			std::stringstream values(surfacefractions_node->value());
-
+			std::stringstream values;
+			values.str( ptree.get< std::string >("opensmoke.surface-fractions") );
 			values >> number_of_surface_species;
 
 			surface_names_species.resize(number_of_surface_species);
@@ -177,11 +156,13 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 
 	// Surface phases
 	{
-		rapidxml::xml_node<>* surfacephases_node = xml_main_input.first_node("opensmoke")->first_node("surface-phases");
-		if (surfacephases_node != 0)
+		std::cout << " * From backup file: reading surface-phases... " << std::endl;
+		boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.surface-phases");
+		if (child)
 		{
-			std::stringstream values(surfacephases_node->value());
-			values >> number_of_surface_phases;
+			std::stringstream values;
+			values.str( ptree.get< std::string >("opensmoke.surface-phases") );
+			values >> number_of_surface_phases; 
 		}
 		else
 			OpenSMOKE::FatalErrorMessage("Corrupted backup xml file: missing the surface-phases leaf");
@@ -194,11 +175,12 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 		unsigned int number_of_ordinates;
 
 		{
-			rapidxml::xml_node<>* profiles_size_node = xml_main_input.first_node("opensmoke")->first_node("profiles-size");
-
-			if (profiles_size_node != 0)
+			std::cout << " * From backup file: reading profiles-size... " << std::endl;
+			boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.profiles-size");
+			if (child)
 			{
-				std::stringstream values(profiles_size_node->value());
+				std::stringstream values;
+				values.str( ptree.get< std::string >("opensmoke.profiles-size") );
 				values >> number_of_abscissas;
 				values >> number_of_ordinates;
 			}
@@ -222,10 +204,12 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 		for (unsigned int j = 0; j<number_of_additional_profiles; j++)
 			additional[j].resize(number_of_abscissas);
 
-		rapidxml::xml_node<>* profiles_node = xml_main_input.first_node("opensmoke")->first_node("profiles");
-		if (profiles_node != 0)
+		std::cout << " * From backup file: reading profiles... " << std::endl;
+		boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.profiles");
+		if (child)
 		{
-			std::stringstream values(profiles_node->value());
+			std::stringstream values;
+			values.str( ptree.get< std::string >("opensmoke.profiles") );
 			for (unsigned int i = 0; i<number_of_abscissas; i++)
 			{
 				for (unsigned int j = 0; j<number_of_additional_profiles; j++)
@@ -243,12 +227,14 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 
 		// Read grid (x direction)
 		{
-			rapidxml::xml_node<>* grid_x_node = xml_main_input.first_node("opensmoke")->first_node("grid-x");
+			std::cout << " * From backup file: reading grid-x... " << std::endl;
+			boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.grid-x");
 
-			if (grid_x_node != 0)
+			if (child)
 			{
 				unsigned int number_x_points;
-				std::stringstream values(grid_x_node->value());
+				std::stringstream values;
+				values.str( ptree.get< std::string >("opensmoke.grid-x") );
 				values >> number_x_points;
 				x.resize(number_x_points);
 				for (unsigned int i = 0; i < number_x_points; i++)
@@ -260,12 +246,14 @@ void ReadFromBackupFile(const boost::filesystem::path path_file,
 
 		// Read grid (y direction)
 		{
-			rapidxml::xml_node<>* grid_y_node = xml_main_input.first_node("opensmoke")->first_node("grid-y");
+			std::cout << " * From backup file: reading grid-y... " << std::endl;
+			boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.grid-y");
 
-			if (grid_y_node != 0)
+			if (child)
 			{
 				unsigned int number_y_points;
-				std::stringstream values(grid_y_node->value());
+				std::stringstream values;
+				values.str( ptree.get< std::string >("opensmoke.grid-y") );
 				values >> number_y_points;
 				y.resize(number_y_points);
 				for (unsigned int i = 0; i < number_y_points; i++)

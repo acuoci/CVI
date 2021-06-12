@@ -52,19 +52,6 @@ AC_CHECK_FILE([${with_eigen_include_path}/Eigen/Eigen], [],
 EIGEN_INCLUDE_DIR="-I$with_eigen_include_path"
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
-# Add RapidXML library (compulsory)
-# ---------------------------------------------------------------------------------------------------------------------------------------
-AC_ARG_WITH([rapidxml], [AS_HELP_STRING([--with-rapidxml=DIR], 
-            [installation prefix for RapidXML libraries])], 
-            [with_rapidxml_include_path=$with_rapidxml],
-	    AC_MSG_ERROR([Please use --with-rapidxml to provide the path to RapidXML. Try downloading the RapidXML libraries from http://rapidxml.sourceforge.net]))
-
-AC_CHECK_FILE([${with_rapidxml_include_path}/rapidxml.hpp], [], 
-              AC_MSG_ERROR([Include file rapidxml.hpp not found. Try downloading the RapidXML libraries from http://rapidxml.sourceforge.net]))
-
-RAPIDXML_INCLUDE_DIR="-I$with_rapidxml_include_path"
-
-# ---------------------------------------------------------------------------------------------------------------------------------------
 # Add Boost C++ library (compulsory, but system implementation can be used)
 # ---------------------------------------------------------------------------------------------------------------------------------------
 
@@ -382,7 +369,6 @@ PLASMA_LIBS=""
 #Compulsory libraries
 AC_SUBST(OPENSMOKEPP_INCLUDE_DIR)
 AC_SUBST(EIGEN_INCLUDE_DIR)
-AC_SUBST(RAPIDXML_INCLUDE_DIR)
 AC_SUBST(BOOST_INCLUDE_DIR)
 AC_SUBST(BOOST_LIBS)
 AC_SUBST(LIBCONFIG_INCLUDE_DIR)
@@ -454,7 +440,7 @@ AC_SUBST(PLASMA_LIBS)
 USE_EXTERNAL_LIBRARIES="$USE_BZZMATH $USE_DASPK $USE_RADAU $USE_MEBDF $USE_ODEPACK $USE_UMFPACK $USE_SUPERLU $USE_SUNDIALS"
 AC_SUBST(USE_EXTERNAL_LIBRARIES)
 
-COMPULSORY_INCLUDE_DIRS="$OPENSMOKEPP_INCLUDE_DIR $EIGEN_INCLUDE_DIR $RAPIDXML_INCLUDE_DIR $BOOST_INCLUDE_DIR $LIBCONFIG_INCLUDE_DIR"
+COMPULSORY_INCLUDE_DIRS="$OPENSMOKEPP_INCLUDE_DIR $EIGEN_INCLUDE_DIR $BOOST_INCLUDE_DIR $LIBCONFIG_INCLUDE_DIR"
 AC_SUBST(COMPULSORY_INCLUDE_DIRS)
 
 EXTERNAL_INCLUDE_DIRS="$BZZMATH_INCLUDE_DIR $UMFPACK_INCLUDE_DIR $SUPERLU_INCLUDE_DIR $SUNDIALS_INCLUDE_DIR"

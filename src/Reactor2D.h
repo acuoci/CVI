@@ -55,6 +55,7 @@ namespace CVI
 {
 	enum GaseousPhase { GASEOUS_PHASE_FROM_PLUG_FLOW, GASEOUS_PHASE_FROM_CFD };
 	enum EquationsSet { EQUATIONS_SET_COMPLETE, EQUATIONS_SET_ONLYTEMPERATURE };
+	enum WallType { IMPERMEABLE, NOT_IMPERMEABLE };
 
 	//!  A class to solve the reaction-diffusion equations in 1D 
 	/*!
@@ -187,6 +188,18 @@ namespace CVI
 		*@param filename file name
 		*/
 		void SetOutputFile(const std::string filename);
+
+		/**
+		*@brief Specifies if local adjustments of surface compostion have to be applied in case of initialization from backup files
+		*@param readjust_backup if true, local adjustments are carried out
+		*/
+		void SetReadjustBackup(const bool readjust_backup);
+
+		/**
+		*@brief List of impermeable walls
+		*@param impermeable_walls list of impermeable walls
+		*/
+		void SetImpermeableWalls(const std::vector<std::string>& impermeable_walls);
 
 		/**
 		*@brief Returns the differential equations
@@ -613,6 +626,7 @@ namespace CVI
 		double ode_end_time_;
 		double time_starting_point_;
 		bool start_from_backup_;
+		bool readjust_backup_;
 
 		// Tecplot
 		int count_tecplot_;
@@ -653,6 +667,11 @@ namespace CVI
 		Eigen::VectorXd total_mass_exchanged_;				// [kg]
 		Eigen::VectorXd total_mass_produced_;				// [kg]
 		Eigen::VectorXd total_mass_gas_old_;				// [kg]
+
+		CVI::WallType north_wall_type_;
+		CVI::WallType south_wall_type_;
+		CVI::WallType east_wall_type_;
+		CVI::WallType west_wall_type_;
 
 	};
 }
