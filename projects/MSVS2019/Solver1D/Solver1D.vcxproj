@@ -46,13 +46,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>CVISMOKE++</TargetName>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.4;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
     <OutDir>..\..\..\exe\x64-Debug\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>CVISMOKE++</TargetName>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.3;C:\Development\ExternalNumericalLibraries\RapidXML\rapidxml-1.13;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0;C:\Development\ExternalNumericalLibraries\Eigen\Eigen3.4;C:\Development\OpenSMOKEpp\OpenSMOKEpp\source;C:\Development\OpenSMOKEpp\OpenSMOKEppSolvers\src;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\include;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\hpp;$(IncludePath)</IncludePath>
     <OutDir>..\..\..\exe\x64-Release\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -67,7 +67,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared\stage\lib-msvs2019;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0\lib64-msvc-14.2;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;sundials_sunmatrixband.lib;sundials_sunlinsollapackdense.lib;sundials_sunlinsollapackband.lib;libBzzMath60dev_MSVS2019_x64_Debug.lib;libDASPK20_LINPACK_XE2019_x64_Debug.lib;libLINPACK_XE2019_x64_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -89,7 +89,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0_shared\stage\lib-msvs2019;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Development\ExternalNumericalLibraries\Boost\boost_1_72_0\lib64-msvc-14.2;C:\Development\ExternalNumericalLibraries\Sundials\sundials4opensmokepp-5.1.0\lib-msvs2019\lib;C:\Development\ExternalNumericalLibraries\BzzMath\BzzMath6-dev\lib\windows;C:\Development\ExternalNumericalLibraries\DASPK\lib\windows;C:\Development\ExternalNumericalLibraries\LINPACK\lib\windows;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries\windows\compiler\lib\intel64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>sundials_ida.lib;sundials_nvecserial.lib;sundials_kinsol.lib;sundials_sunmatrixband.lib;sundials_sunlinsollapackdense.lib;sundials_sunlinsollapackband.lib;libBzzMath60dev_MSVS2019_x64_Release.lib;libDASPK20_LINPACK_XE2019_x64_Release.lib;libLINPACK_XE2019_x64_Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
