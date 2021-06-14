@@ -73,7 +73,8 @@ namespace CVI
 
 			if (child)
 			{
-				const std::string coordinate = ptree.get<std::string>("opensmoke.AxialCoordinate");
+				std::string coordinate = ptree.get<std::string>("opensmoke.AxialCoordinate");
+				coordinate.erase(std::remove(coordinate.begin(), coordinate.end(), '\n'), coordinate.end());
 				if (coordinate == "x")			axial_coordinate_ = 0;
 				else if (coordinate == "y")		axial_coordinate_ = 1;
 				else if (coordinate == "z")		axial_coordinate_ = 2;
@@ -87,7 +88,8 @@ namespace CVI
 
 			if (child)
 			{
-				const std::string coordinate = ptree.get<std::string>("opensmoke.RadialCoordinate");
+				std::string coordinate = ptree.get<std::string>("opensmoke.RadialCoordinate");
+				coordinate.erase(std::remove(coordinate.begin(), coordinate.end(), '\n'), coordinate.end());
 				if (coordinate == "x")			radial_coordinate_ = 0;
 				else if (coordinate == "y")		radial_coordinate_ = 1;
 				else if (coordinate == "z")		radial_coordinate_ = 2;
@@ -100,7 +102,8 @@ namespace CVI
 			boost::optional< boost::property_tree::ptree& > child = ptree.get_child_optional("opensmoke.Policy");
 			if (child)
 			{
-				const std::string policy = ptree.get<std::string>("opensmoke.Policy");
+				std::string policy = ptree.get<std::string>("opensmoke.Policy");
+				policy.erase(std::remove(policy.begin(), policy.end(), '\n'), policy.end());
 				if (policy == "edge-centered")		edge_centered_policy = true;
 				else if (policy == "face-centered")	edge_centered_policy = false;
 				else OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "Wrong policy: face-centered (default) | edge-centered)");
