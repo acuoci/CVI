@@ -726,7 +726,7 @@ namespace CVI
 		}
 	}
 
-	void Reactor2D::SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd)
+	void Reactor2D::SetGasSide(const CVI::DiskFromCFD& disk_from_cfd)
 	{
 		time_profiles_ = false;
 
@@ -739,12 +739,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_west_(i)](j) = disk_from_cfd.east_mass_fractions()[i][j];
-				P_(list_points_west_(i)) = P_gas;
+				P_(list_points_west_(i)) = disk_from_cfd.east_pressure()[i];
 				T_(list_points_west_(i)) = disk_from_cfd.east_temperature()[i];
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_west_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
-				P_gas_west_side_(i) = P_gas;
+				P_gas_west_side_(i) = disk_from_cfd.east_pressure()[i];
 				T_gas_west_side_(i) = disk_from_cfd.east_temperature()[i];
 			}
 		}
@@ -754,12 +754,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_west_(i)](j) = disk_from_cfd.west_mass_fractions()[i][j];
-				P_(list_points_west_(i)) = P_gas;
+				P_(list_points_west_(i)) = disk_from_cfd.west_pressure()[i];
 				T_(list_points_west_(i)) = disk_from_cfd.west_temperature()[i];
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_west_side_[i](j) = disk_from_cfd.west_mass_fractions()[i][j];
-				P_gas_west_side_(i) = P_gas;
+				P_gas_west_side_(i) = disk_from_cfd.west_pressure()[i];
 				T_gas_west_side_(i) = disk_from_cfd.west_temperature()[i];
 			}
 		}
@@ -770,12 +770,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_east_(i)](j) = disk_from_cfd.east_mass_fractions()[i][j];
-				P_(list_points_east_(i)) = P_gas;
+				P_(list_points_east_(i)) = disk_from_cfd.east_pressure()[i];
 				T_(list_points_east_(i)) = disk_from_cfd.east_temperature()[i];
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_east_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
-				P_gas_east_side_(i) = P_gas;
+				P_gas_east_side_(i) = disk_from_cfd.east_pressure()[i];
 				T_gas_east_side_(i) = disk_from_cfd.east_temperature()[i];
 			}
 		}
@@ -786,12 +786,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_south_(i)](j) = disk_from_cfd.south_mass_fractions()[i][j];
-				P_(list_points_south_(i)) = P_gas;
+				P_(list_points_south_(i)) = disk_from_cfd.south_pressure()[i];
 				T_(list_points_south_(i)) = disk_from_cfd.south_temperature()[i];
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_south_side_[i](j) = disk_from_cfd.south_mass_fractions()[i][j];
-				P_gas_south_side_(i) = P_gas;
+				P_gas_south_side_(i) = disk_from_cfd.south_pressure()[i];
 				T_gas_south_side_(i) = disk_from_cfd.south_temperature()[i];
 			}
 		}
@@ -802,18 +802,18 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_north_(i)](j) = disk_from_cfd.north_mass_fractions()[i][j];
-				P_(list_points_north_(i)) = P_gas;
+				P_(list_points_north_(i)) = disk_from_cfd.north_pressure()[i];
 				T_(list_points_north_(i)) = disk_from_cfd.north_temperature()[i];
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_north_side_[i](j) = disk_from_cfd.north_mass_fractions()[i][j];
-				P_gas_north_side_(i) = P_gas;
+				P_gas_north_side_(i) = disk_from_cfd.north_pressure()[i];
 				T_gas_north_side_(i) = disk_from_cfd.north_temperature()[i];
 			}
 		}
 	}
 
-	void Reactor2D::SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd)
+	void Reactor2D::SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const CVI::DiskFromCFD& disk_from_cfd)
 	{
 		gaseous_phase_ = GASEOUS_PHASE_FROM_CFD;
 
@@ -833,12 +833,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_west_(i)](j) = disk_from_cfd.east_mass_fractions()[i][j];
-				P_(list_points_west_(i)) = P_gas;
+				P_(list_points_west_(i)) = disk_from_cfd.east_pressure()[i];
 				T_(list_points_west_(i)) = T_gas_east_side_(i);
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_west_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
-				P_gas_west_side_(i) = P_gas;
+				P_gas_west_side_(i) = disk_from_cfd.east_pressure()[i];
 			}
 		}
 		else
@@ -847,12 +847,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_west_(i)](j) = disk_from_cfd.west_mass_fractions()[i][j];
-				P_(list_points_west_(i)) = P_gas;
+				P_(list_points_west_(i)) = disk_from_cfd.west_pressure()[i];
 				T_(list_points_west_(i)) = T_gas_west_side_(i);
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_west_side_[i](j) = disk_from_cfd.west_mass_fractions()[i][j];
-				P_gas_west_side_(i) = P_gas;
+				P_gas_west_side_(i) = disk_from_cfd.west_pressure()[i];
 			}
 		}
 
@@ -862,12 +862,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_east_(i)](j) = disk_from_cfd.east_mass_fractions()[i][j];
-				P_(list_points_east_(i)) = P_gas;
+				P_(list_points_east_(i)) = disk_from_cfd.east_pressure()[i];
 				T_(list_points_east_(i)) = T_gas_east_side_(i);
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_east_side_[i](j) = disk_from_cfd.east_mass_fractions()[i][j];
-				P_gas_east_side_(i) = P_gas;
+				P_gas_east_side_(i) = disk_from_cfd.east_pressure()[i];
 			}
 		}
 
@@ -877,12 +877,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_south_(i)](j) = disk_from_cfd.south_mass_fractions()[i][j];
-				P_(list_points_south_(i)) = P_gas;
+				P_(list_points_south_(i)) = disk_from_cfd.south_pressure()[i];
 				T_(list_points_south_(i)) = T_gas_south_side_(i);
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_south_side_[i](j) = disk_from_cfd.south_mass_fractions()[i][j];
-				P_gas_south_side_(i) = P_gas;
+				P_gas_south_side_(i) = disk_from_cfd.south_pressure()[i];
 			}
 		}
 
@@ -892,12 +892,12 @@ namespace CVI
 			{
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[list_points_north_(i)](j) = disk_from_cfd.north_mass_fractions()[i][j];
-				P_(list_points_north_(i)) = P_gas;
+				P_(list_points_north_(i)) = disk_from_cfd.north_pressure()[i];
 				T_(list_points_north_(i)) = T_gas_north_side_(i);
 
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_gas_north_side_[i](j) = disk_from_cfd.north_mass_fractions()[i][j];
-				P_gas_north_side_(i) = P_gas;
+				P_gas_north_side_(i) = disk_from_cfd.north_pressure()[i];
 			}
 		}
 	}

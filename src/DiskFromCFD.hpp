@@ -32,15 +32,17 @@
 
 namespace CVI
 {
-	void Interpolate(const double x_req, double& temperature_req, std::vector<double>& mass_fractions_req,
+	void Interpolate(const double x_req, double& temperature_req, double& pressure_req, 
+		std::vector<double>& mass_fractions_req,
 		const std::vector<double>& coordinates_from_cfd,
 		const std::vector<double>& temperature_from_cfd,
+		const std::vector<double>& pressure_from_cfd,
 		const std::vector< std::vector<double> >& mass_fractions_from_cfd);
 
 	DiskFromCFD::DiskFromCFD(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
 								OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
 								OpenSMOKE::Grid1D& grid_x,
-								OpenSMOKE::Grid1D& grid_y) :
+								OpenSMOKE::Grid1D& grid_y ) :
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
 	grid_x_(grid_x),
@@ -58,7 +60,7 @@ namespace CVI
 		axial_coordinate_ = 1;
 	}
 
-	void DiskFromCFD::ReadFromFile(const boost::filesystem::path disk_file_name)
+	void DiskFromCFD::ReadFromFile(const boost::filesystem::path disk_file_name, const double pressure_from_input_file)
 	{
 		std::cout << "Reading disk from file..." << std::endl;
 
@@ -154,6 +156,7 @@ namespace CVI
 			const unsigned int np = subtree.get<unsigned int>("NumberOfPoints");
 			std::vector<double> coordinates_from_cfd(np);
 			std::vector<double> temperature_from_cfd(np);
+			std::vector<double> pressure_from_cfd(np);
 			std::vector< std::vector<double> > mass_fractions_from_cfd(thermodynamicsMap_.NumberOfSpecies());
 			for (unsigned int i = 0; i < thermodynamicsMap_.NumberOfSpecies(); i++)
 				mass_fractions_from_cfd[i].resize(np);
@@ -270,11 +273,14 @@ namespace CVI
 
 			// Temperature
 			{
-				std::vector<double> temperature_from_cfd_unsorted(np);
+				boost::optional< boost::property_tree::ptree& > child = subtree.get_child_optional("Temperature");
+				if (!child)
+					OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "Missing Temperature data in XML file");
 
 				std::stringstream temperature_xml;
 				temperature_xml.str( subtree.get< std::string >("Temperature") );
 
+				std::vector<double> temperature_from_cfd_unsorted(np);
 				for (unsigned int i = 0; i < np; i++)
 					temperature_xml >> temperature_from_cfd_unsorted[i];
 
@@ -282,14 +288,42 @@ namespace CVI
 					temperature_from_cfd[i] = temperature_from_cfd_unsorted[indices_increasing[i]];
 			}
 
+			// Pressure
+			{
+				boost::optional< boost::property_tree::ptree& > child = subtree.get_child_optional("Pressure");
+				if (!child)
+				{
+					std::cout << "DiskFromCFD::ReadFromFile: pressure from input file = " << pressure_from_input_file << " Pa" << std::endl;
+
+					for (unsigned int i = 0; i < np; i++)
+						pressure_from_cfd[i] = pressure_from_input_file;
+				}
+				else
+				{
+					std::stringstream pressure_xml;
+					pressure_xml.str(subtree.get< std::string >("Pressure"));
+
+					std::vector<double> pressure_from_cfd_unsorted(np);
+					for (unsigned int i = 0; i < np; i++)
+						pressure_xml >> pressure_from_cfd_unsorted[i];
+
+					for (unsigned int i = 0; i < np; i++)
+						pressure_from_cfd[i] = pressure_from_cfd_unsorted[indices_increasing[i]];
+				}
+			}
+
 			// Mass fractions
 			{
-				std::vector< std::vector<double> > mass_fractions_from_cfd_unsorted(thermodynamicsMap_.NumberOfSpecies());
-				for (unsigned int i = 0; i < thermodynamicsMap_.NumberOfSpecies(); i++)
-					mass_fractions_from_cfd_unsorted[i].resize(np);
+				boost::optional< boost::property_tree::ptree& > child = subtree.get_child_optional("MassFractions");
+				if (!child)
+					OpenSMOKE::ErrorMessage("DiskFromCFD::ReadFromFile", "Missing MassFractions data in XML file");
 
 				std::stringstream mass_fractions_xml;
 				mass_fractions_xml.str( subtree.get< std::string >("MassFractions") );
+
+				std::vector< std::vector<double> > mass_fractions_from_cfd_unsorted(thermodynamicsMap_.NumberOfSpecies());
+				for (unsigned int i = 0; i < thermodynamicsMap_.NumberOfSpecies(); i++)
+					mass_fractions_from_cfd_unsorted[i].resize(np);
 
 				for (unsigned int i = 0; i < np; i++)
 					for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
@@ -317,12 +351,14 @@ namespace CVI
 					// Initial value
 					coordinates_from_cfd.insert(coordinates_from_cfd.begin(), ri_*(0.9999999));
 					temperature_from_cfd.insert(temperature_from_cfd.begin(), temperature_from_cfd[0]);
+					pressure_from_cfd.insert(pressure_from_cfd.begin(), pressure_from_cfd[0]);
 					for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
 						mass_fractions_from_cfd[j].insert(mass_fractions_from_cfd[j].begin(), mass_fractions_from_cfd[j][0]);
 
 					// Final value
 					coordinates_from_cfd.push_back(re_*(1.0000001));
 					temperature_from_cfd.push_back(temperature_from_cfd[np]);
+					pressure_from_cfd.push_back(pressure_from_cfd[np]);
 					for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
 						mass_fractions_from_cfd[j].push_back(mass_fractions_from_cfd[j][np]);
 				}
@@ -343,28 +379,34 @@ namespace CVI
 				// Initial value
 				coordinates_from_cfd.insert(coordinates_from_cfd.begin(), -0.0000001);
 				temperature_from_cfd.insert(temperature_from_cfd.begin(), temperature_from_cfd[0]);
+				pressure_from_cfd.insert(pressure_from_cfd.begin(), pressure_from_cfd[0]);
 				for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
 					mass_fractions_from_cfd[j].insert(mass_fractions_from_cfd[j].begin(), mass_fractions_from_cfd[j][0]);
 
 				// Final value
 				coordinates_from_cfd.push_back(H_*(1.0000001));
 				temperature_from_cfd.push_back(temperature_from_cfd[np]);
+				pressure_from_cfd.push_back(pressure_from_cfd[np]);
 				for (unsigned int j = 0; j < thermodynamicsMap_.NumberOfSpecies(); j++)
 					mass_fractions_from_cfd[j].push_back(mass_fractions_from_cfd[j][np]);
 			}
 
 			north_temperature_.resize(grid_x_.Np());
+			north_pressure_.resize(grid_x_.Np());
 			north_mass_fractions_.resize(grid_x_.Np());
 
 			south_temperature_.resize(grid_x_.Np());
+			south_pressure_.resize(grid_x_.Np());
 			south_mass_fractions_.resize(grid_x_.Np());
 
 			east_temperature_.resize(grid_y_.Np());
+			east_pressure_.resize(grid_y_.Np());
 			east_mass_fractions_.resize(grid_y_.Np());
 
 			if (hole_ == true)
 			{
 				west_temperature_.resize(grid_y_.Np());
+				west_pressure_.resize(grid_y_.Np());
 				west_mass_fractions_.resize(grid_y_.Np());
 			}
 			
@@ -385,26 +427,26 @@ namespace CVI
 			if (side == "North")
 			{
 				for (int i = 0; i < grid_x_.Np(); i++)
-					Interpolate(grid_x_.x()[i], north_temperature_[i], north_mass_fractions_[i],
-						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
+					Interpolate(grid_x_.x()[i], north_temperature_[i], north_pressure_[i], north_mass_fractions_[i],
+						coordinates_from_cfd, temperature_from_cfd, pressure_from_cfd, mass_fractions_from_cfd);
 			}
 			else if (side == "South")
 			{
 				for (int i = 0; i < grid_x_.Np(); i++)
-					Interpolate(grid_x_.x()[i], south_temperature_[i], south_mass_fractions_[i],
-						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
+					Interpolate(grid_x_.x()[i], south_temperature_[i], south_pressure_[i], south_mass_fractions_[i],
+						coordinates_from_cfd, temperature_from_cfd, pressure_from_cfd, mass_fractions_from_cfd);
 			}
 			else if (side == "East")
 			{
 				for (int i = 0; i < grid_y_.Np(); i++)
-					Interpolate(grid_y_.x()[i], east_temperature_[i], east_mass_fractions_[i],
-						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
+					Interpolate(grid_y_.x()[i], east_temperature_[i], east_pressure_[i], east_mass_fractions_[i],
+						coordinates_from_cfd, temperature_from_cfd, pressure_from_cfd, mass_fractions_from_cfd);
 			}
 			else if (side == "West")
 			{
 				for (int i = 0; i < grid_y_.Np(); i++)
-					Interpolate(grid_y_.x()[i], west_temperature_[i], west_mass_fractions_[i],
-						coordinates_from_cfd, temperature_from_cfd, mass_fractions_from_cfd);
+					Interpolate(grid_y_.x()[i], west_temperature_[i], west_pressure_[i], west_mass_fractions_[i],
+						coordinates_from_cfd, temperature_from_cfd, pressure_from_cfd, mass_fractions_from_cfd);
 			}
 
 			}
@@ -509,9 +551,10 @@ namespace CVI
 		fOutput << std::endl;
 	}
 
-	void Interpolate(	const double x_req, double& temperature_req, std::vector<double>& mass_fractions_req,
+	void Interpolate(	const double x_req, double& temperature_req, double& pressure_req, 
+						std::vector<double>& mass_fractions_req,
 						const std::vector<double>& coordinates_from_cfd,
-						const std::vector<double>& temperature_from_cfd,
+						const std::vector<double>& temperature_from_cfd, const std::vector<double>& pressure_from_cfd,
 						const std::vector< std::vector<double> >& mass_fractions_from_cfd)
 	{
 		for (unsigned int j = 1; j < coordinates_from_cfd.size(); j++)
@@ -521,6 +564,7 @@ namespace CVI
 				const double coefficient = (x_req - coordinates_from_cfd[j - 1]) / (coordinates_from_cfd[j] - coordinates_from_cfd[j-1]);
 
 				temperature_req = temperature_from_cfd[j - 1] + (temperature_from_cfd[j] - temperature_from_cfd[j-1])*coefficient;
+				pressure_req = pressure_from_cfd[j - 1] + (pressure_from_cfd[j] - pressure_from_cfd[j - 1]) * coefficient;
 				for (unsigned int k = 0; k < mass_fractions_req.size(); k++)
 					mass_fractions_req[k] = mass_fractions_from_cfd[k][j - 1] + (mass_fractions_from_cfd[k][j] - mass_fractions_from_cfd[k][j-1])*coefficient;
 

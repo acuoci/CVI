@@ -111,19 +111,16 @@ namespace CVI
 
 		/**
 		*@brief Sets the conditions along the gas side
-		*@param T_gas			gas side temperature [K]
-		*@param P_gas			gas side pressure [Pa]
 		*@param disk_from_cfd	gas side mass fractions
 		*/
-		void SetGasSide(const double T_gas, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
+		void SetGasSide(const CVI::DiskFromCFD& disk_from_cfd);
 
 		/**
 		*@brief Sets the conditions along the gas side
 		*@param profile_temperature		gas side temperature temporal profile [K]
-		*@param P_gas					gas side pressure [Pa]
 		*@param disk_from_cfd			gas side mass fractions
 		*/
-		void SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const double P_gas, const CVI::DiskFromCFD& disk_from_cfd);
+		void SetGasSide(OpenSMOKE::FixedProfile* profile_temperature, const CVI::DiskFromCFD& disk_from_cfd);
 
 		/**
 		*@brief Sets the initial conditions in the porous medium

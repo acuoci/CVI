@@ -900,7 +900,7 @@ int main(int argc, char** argv)
 	if (problem_type == CVI_REACTOR2D && gaseous_phase == CVI::GASEOUS_PHASE_FROM_CFD)
 	{
 		CVI::DiskFromCFD disk(*thermodynamicsMapXML, *kineticsMapXML, *grid_x, *grid_y);
-		disk.ReadFromFile(disk_file_name);
+		disk.ReadFromFile(disk_file_name, initial_P);
 		disk.WriteOnFile(output_path);
 
 		// Set heterogeneous mechanism
@@ -936,8 +936,8 @@ int main(int argc, char** argv)
 		reactor2d->SetInitialConditions(path_backup, initial_T, initial_P, initial_omega, Gamma0, initial_Z);
 		
 		// Set initial/boundary conditions
-		if (is_temperature_profile == false)	reactor2d->SetGasSide(inlet_T, inlet_P, disk);
-		else                                    reactor2d->SetGasSide(temperature_profile, inlet_P, disk);
+		if (is_temperature_profile == false)	reactor2d->SetGasSide(disk);
+		else                                    reactor2d->SetGasSide(temperature_profile, disk);
 
 		reactor2d->SetOutputFile(disk_file_name.stem().string());
 		reactor2d->SetUniformVelocity(vx, vy);
