@@ -3480,12 +3480,12 @@ namespace CVI
 					const unsigned int index_of_CB = thermodynamicsSurfaceMap_.IndexOfSpecies("C(B)") - 1;
 
 					// Stoichiometric vector for C(B)
-					heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().BuildStoichiometricMatrix();
-					const Eigen::SparseMatrix<double> nu = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix();
-					const Eigen::VectorXd nu_CB = nu.col(index_of_CB);
+					const Eigen::SparseMatrix<double> nur = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_reactants();
+					const Eigen::SparseMatrix<double> nuf = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_products();
+					const Eigen::VectorXd nu_CB = nuf.col(index_of_CB)- nur.col(index_of_CB);
 
 					// Total number of reactions
-					const unsigned int nr = nu.rows();
+					const unsigned int nr = nur.rows();
 
 					// Memory allocation
 					std::vector<Eigen::VectorXd> r_CB(nr);
