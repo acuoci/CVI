@@ -3480,6 +3480,7 @@ namespace CVI
 					const unsigned int index_of_CB = thermodynamicsSurfaceMap_.IndexOfSpecies("C(B)") - 1;
 
 					// Stoichiometric vector for C(B)
+					heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().BuildStoichiometricMatrix();
 					const Eigen::SparseMatrix<double> nu = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix();
 					const Eigen::VectorXd nu_CB = nu.col(index_of_CB);
 
@@ -3497,7 +3498,7 @@ namespace CVI
 						// Molar fractions
 						double mw;
 						Eigen::VectorXd omega = Y_[i];
-						Eigen::VectorXd x(nc_);
+						Eigen::VectorXd x(omega.size());
 						thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
 
 						// Concentrations
