@@ -163,6 +163,11 @@ namespace CVI
 		*/
 		const std::vector<std::string>& tags() const { return tags_; }
 
+		/**
+		*@brief Give access to the surface kinetic map
+		*/
+		OpenSMOKE::KineticsMap_Surface_CHEMKIN& kineticsSurfaceMap() { return kineticsSurfaceMap_;  }
+
 	private:
 
 		/**
