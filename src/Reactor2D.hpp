@@ -3224,11 +3224,11 @@ namespace CVI
 			OpenSMOKE::OpenSMOKEVectorDouble gamma(surf_np_);
 
 			std::vector<double> list_points(5);
-			list_points[0] = np_/2-1;
+			list_points[0] = np_ / 2 - 1;
 			list_points[1] = 0;
-			list_points[2] = grid_x_.Np()-1;
+			list_points[2] = grid_x_.Np() - 1;
 			list_points[3] = (np_ - grid_x_.Np()) - 1;
-			list_points[4] = np_-1;
+			list_points[4] = np_ - 1;
 
 			std::vector<std::string> list_points_names(5);
 			list_points_names[0] = "Center";
@@ -3237,7 +3237,7 @@ namespace CVI
 			list_points_names[3] = "NE Corner";
 			list_points_names[4] = "NW Corner";
 
-			for (unsigned int i = 0; i<list_points.size(); i++)
+			for (unsigned int i = 0; i < list_points.size(); i++)
 			{
 				const unsigned int point = static_cast<unsigned int>(list_points[i]);
 
@@ -3270,82 +3270,6 @@ namespace CVI
 					gamma[j + 1] = Gamma_[point](j);
 
 				ropa_->Analyze(fROPA, 0, 0., T_(point), P_(point), c, omega, z, a, gamma);
-			}
-
-			{
-				// Bulk activities
-				Eigen::VectorXd a_eigen(bulk_nc_);
-				a_eigen.setConstant(1.);
-
-				// Index of C(B) species
-				const unsigned int index_of_CB = thermodynamicsSurfaceMap_.IndexOfSpecies("C(B)") - 1;
-				
-				// Stoichiometric vector for C(B)
-				const Eigen::SparseMatrix<double> nu = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix();
-				const Eigen::VectorXd nu_CB = nu.col(index_of_CB);
-
-				// Total number of reactions
-				const unsigned int nr = nu.rows();
-
-				// Memory allocation
-				std::vector<Eigen::VectorXd> r_CB(nr);
-				for (unsigned int j = 0; j < nr; j++)
-					r_CB[j].resize(np_);
-
-				// Loop over all the points
-				for (unsigned int i = 0; i < np_; i++)
-				{
-					// Molar fractions
-					double mw;
-					for (unsigned int j = 0; j < nc_; j++)
-						omega[j + 1] = Y_[i](j);
-					thermodynamicsMap_.MoleFractions_From_MassFractions(x.GetHandle(), mw, omega.GetHandle());
-
-					// Concentrations
-					const double cTot = rho_gas_(i) / mw_(i);
-					Eigen::VectorXd c_eigen(nc_);
-					for (unsigned int j = 0; j < nc_; j++)
-						c_eigen(j) = cTot * x[j + 1];
-
-					// Surface species
-					Eigen::VectorXd z_eigen = Z_[i];
-
-					// Surface densities
-					Eigen::VectorXd gamma_eigen = Gamma_[i];
-
-					// Calculates thermodynamic properties
-					thermodynamicsMap_.SetTemperature(T_(i));
-					thermodynamicsMap_.SetPressure(P_(i));
-
-					// Calculates kinetics
-					kineticsMap_.SetTemperature(T_(i));
-					kineticsMap_.SetPressure(P_(i));
-
-					// Heterogeneous mechanism
-					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
-					heterogeneousDetailedMechanism_.SetPressure(P_(i));
-
-					// Calculation of heterogeneous terms
-					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), c_eigen, z_eigen, a_eigen, gamma_eigen);
-
-					// Reaction rates
-					std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
-
-					// Contributions to formation of C(B)
-					for (unsigned int j = 0; j < nr; j++)
-						r_CB[j](i) = r[j] * nu_CB(j);
-				}
-
-				// Volume average
-				Eigen::VectorXd r_CB_averaged(nr);
-				for (unsigned int j = 0; j < nr; j++)
-					r_CB_averaged(j) = VolumeAveraged(r_CB[j]);
-
-				// Write on file
-				fROPA_CB_ << std::left << std::setw(16) << t;
-				for (unsigned int j = 0; j < nr; j++)
-					fROPA_CB_ << std::left << std::setw(16) << r_CB_averaged(j);
-				fROPA_CB_ << std::endl;
 			}
 		}
 	}
@@ -3545,6 +3469,75 @@ namespace CVI
 					fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_due_to_single_reaction_mean(j);	// [kg/m3]
 
 				fMonitoring_ << std::endl;
+
+				// ROPA on C(B)
+				{
+					// Bulk activities
+					Eigen::VectorXd a(bulk_nc_);
+					a.setConstant(1.);
+
+					// Index of C(B) species
+					const unsigned int index_of_CB = thermodynamicsSurfaceMap_.IndexOfSpecies("C(B)") - 1;
+
+					// Stoichiometric vector for C(B)
+					const Eigen::SparseMatrix<double> nu = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix();
+					const Eigen::VectorXd nu_CB = nu.col(index_of_CB);
+
+					// Total number of reactions
+					const unsigned int nr = nu.rows();
+
+					// Memory allocation
+					std::vector<Eigen::VectorXd> r_CB(nr);
+					for (unsigned int j = 0; j < nr; j++)
+						r_CB[j].resize(np_);
+
+					// Loop over all the points
+					for (unsigned int i = 0; i < np_; i++)
+					{
+						// Molar fractions
+						double mw;
+						Eigen::VectorXd omega = Y_[i];
+						Eigen::VectorXd x(nc_);
+						thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
+
+						// Concentrations
+						const double cTot = rho_gas_(i) / mw_(i);
+						Eigen::VectorXd c = cTot*x;
+
+						// Calculates thermodynamic properties
+						thermodynamicsMap_.SetTemperature(T_(i));
+						thermodynamicsMap_.SetPressure(P_(i));
+
+						// Calculates kinetics
+						kineticsMap_.SetTemperature(T_(i));
+						kineticsMap_.SetPressure(P_(i));
+
+						// Heterogeneous mechanism
+						heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+						heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+						// Calculation of heterogeneous terms
+						heterogeneousDetailedMechanism_.FormationRates(Sv_(i), c, Z_[i], a, Gamma_[i]);
+
+						// Reaction rates
+						std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
+
+						// Contributions to formation of C(B)
+						for (unsigned int j = 0; j < nr; j++)
+							r_CB[j](i) = r[j] * nu_CB(j);
+					}
+
+					// Volume average
+					Eigen::VectorXd r_CB_averaged(nr);
+					for (unsigned int j = 0; j < nr; j++)
+						r_CB_averaged(j) = VolumeAveraged(r_CB[j]);
+
+					// Write on file
+					fROPA_CB_ << std::left << std::setw(16) << t;
+					for (unsigned int j = 0; j < nr; j++)
+						fROPA_CB_ << std::left << std::setw(16) << r_CB_averaged(j);
+					fROPA_CB_ << std::endl;
+				}
 
 				count_file_ = 0;
 			}
