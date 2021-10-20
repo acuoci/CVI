@@ -1,4 +1,4 @@
-/*----------------------------------------------------------------------*\
+/*-----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -177,7 +177,7 @@ namespace CVI
 		for (unsigned int i = 0; i < np_; i++)
 			Y_[i].resize(nc_);
 
-		// Formation rates in gas pahse [kg/m3/s]
+		// Formation rates in gas phase [kg/m3/s]
 		omega_homogeneous_from_homogeneous_.resize(np_);
 		for (unsigned int i = 0; i < np_; i++)
 			omega_homogeneous_from_homogeneous_[i].resize(nc_);
@@ -196,7 +196,7 @@ namespace CVI
 		// Deposition rate [kg/m2/s]
 		omega_deposition_per_unit_area_.resize(np_);
 
-		// Effective diffusion coefficiennts [m2/s]
+		// Effective diffusion coefficients [m2/s]
 		gamma_star_.resize(np_);
 		for (unsigned int i = 0; i < np_; i++)
 			gamma_star_[i].resize(nc_);
@@ -966,7 +966,7 @@ namespace CVI
 				for (unsigned int j = 0; j < surf_nc_; j++)
 					yOde0[k++] = Z_[i](j);
 
-				// Print intial conditions
+				// Print initial conditions
 				{
 					OpenSMOKE::OpenSMOKEVectorDouble dy0(yOde0.Size());
 					OdeEquations(0., yOde0, dy0);

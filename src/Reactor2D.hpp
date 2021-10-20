@@ -222,10 +222,11 @@ namespace CVI
 			fROPA_CB_.setf(std::ios::scientific);
 			
 			fROPA_CB_ << std::left << std::setw(16) << "time[s](1)";
+			fROPA_CB_ << std::left << std::setw(20) << "dep[kmol/m3/s](2)";
 			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
 			{
 				std::stringstream index; index << (i + 1);
-				std::stringstream col; col << (i + 2);
+				std::stringstream col; col << (i + 3);
 				std::string label = "r" + index.str() + "(" + col.str() + ")";
 				fROPA_CB_ << std::left << std::setw(16) << label;
 			}
@@ -2778,6 +2779,10 @@ namespace CVI
 
 			fOutputXML << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl;
 			fOutputXML << "<opensmoke version=\"0.1a\">" << std::endl;
+			
+			fOutputXML << "<output-version>" << std::endl; 
+			fOutputXML << "20211020" << std::endl; 
+			fOutputXML << "</output-version>" << std::endl;
 
 			fOutputXML << "<number-species>" << std::endl;
 			fOutputXML << nc_ << std::endl;
@@ -2950,7 +2955,7 @@ namespace CVI
 
 							heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
 
-							const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
+							const double omega_deposition_per_unit_volume = heterogeneousDetailedMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();		// [kg/m3/s]
 							for (unsigned int j = 0; j < nc_; j++)
 								omegadot_from_heterogeneous_(i, j) = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j)
 																		+ Y_[i](j) * omega_deposition_per_unit_volume;						// [kg/m3/s]
@@ -3488,6 +3493,7 @@ namespace CVI
 					const unsigned int nr = nur.rows();
 
 					// Memory allocation
+					// rCB (kmol/m3/s) is the average deposition rate of CB
 					std::vector<Eigen::VectorXd> r_CB(nr);
 					for (unsigned int j = 0; j < nr; j++)
 						r_CB[j].resize(np_);
@@ -3524,17 +3530,20 @@ namespace CVI
 						std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
 
 						// Contributions to formation of C(B)
+						// The units of heterogeneous gas-solid reaction rates are in kmol/m2/s
+						// We multiply by the surface per unit of volume (1/m) to have the deposition rate in kmol/m3/s
 						for (unsigned int j = 0; j < nr; j++)
-							r_CB[j](i) = r[j] * nu_CB(j);
+							r_CB[j](i) = Sv_(i) * r[j] * nu_CB(j);
 					}
 
-					// Volume average
+					// Volume averaged deposition rate in (kmol/m3/s)
 					Eigen::VectorXd r_CB_averaged(nr);
 					for (unsigned int j = 0; j < nr; j++)
 						r_CB_averaged(j) = VolumeAveraged(r_CB[j]);
 
 					// Write on file
 					fROPA_CB_ << std::left << std::setw(16) << t;
+					fROPA_CB_ << std::left << std::setw(20) << r_CB_averaged.sum();
 					for (unsigned int j = 0; j < nr; j++)
 						fROPA_CB_ << std::left << std::setw(16) << r_CB_averaged(j);
 					fROPA_CB_ << std::endl;
@@ -3738,13 +3747,13 @@ namespace CVI
 					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), eigen_C_, eigen_Z_, eigen_a_, eigen_gamma_);
 
 					// Deposition rate [kg/m3/s]
-					const double omega_deposition_per_unit_volume = heterogeneousMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();
+					const double omega_deposition_per_unit_volume = heterogeneousDetailedMechanism_.r_deposition_per_unit_volume() * heterogeneousMechanism_.mw_carbon();
 
 					// Consumption rates due to heterogeneous reactions
 					for (unsigned int j = 0; j < nc_; j++)
 					{
 						omegadot_from_heterogeneous_[j](i)  = heterogeneousDetailedMechanism_.Rgas()(j) * thermodynamicsMap_.MW(j);		// [kg/m3/s]
-						//omegadot_from_heterogeneous_[j](i) += Y_[i](j) * omega_deposition_per_unit_volume;								// [kg/m3/s]
+						omegadot_from_heterogeneous_[j](i) += Y_[i](j) * omega_deposition_per_unit_volume;								// [kg/m3/s]
 						omegadot_from_heterogeneous_[j](i) *= smoothing_coefficient;
 					}
 				}
