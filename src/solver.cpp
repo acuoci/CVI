@@ -160,6 +160,20 @@ int main(int argc, char** argv)
 		else OpenSMOKE::FatalErrorMessage("Wrong @Symmetry: Planar | Cylindrical");
 	}
 
+	// Type of problem
+	CVI::PorosityTreatment porosity_treatment = CVI::PorosityTreatment::POROSITY_COUPLED;
+	{
+		if (dictionaries(main_dictionary_name_).CheckOption("@PorosityTreatment") == true)
+		{
+			std::string value;
+			dictionaries(main_dictionary_name_).ReadString("@PorosityTreatment", value);
+			if (value == "coupled")						porosity_treatment = CVI::PorosityTreatment::POROSITY_COUPLED;
+			else if (value == "decoupled-cumulative")	porosity_treatment = CVI::PorosityTreatment::POROSITY_DECOUPLED_CUMULATIVE;
+			else if (value == "decoupled-finalvalue")	porosity_treatment = CVI::PorosityTreatment::POROSITY_DECOUPLED_FINALVALUE;
+			else OpenSMOKE::FatalErrorMessage("Wrong @PorosityTreatment: coupled | decoupled-cumulative | decoupled-finalvalue");
+		}
+	}
+
 	// Plug flow reactor
 	std::string dict_name_plug_flow;
 	if (dictionaries(main_dictionary_name_).CheckOption("@PlugFlowReactor") == true)
@@ -857,7 +871,7 @@ int main(int argc, char** argv)
 										*porous_medium, *porosity_defect,
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 										*grid_x, *grid_y, *plug_flow_reactor,
-										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path);
+										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path, porosity_treatment);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -921,7 +935,7 @@ int main(int argc, char** argv)
 										*porous_medium, *porosity_defect,
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 										*grid_x, *grid_y, *plug_flow_reactor,
-										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path);
+										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path, porosity_treatment);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());

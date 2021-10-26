@@ -68,7 +68,8 @@ namespace CVI
 							const std::vector<bool>& site_non_conservation,
 							const std::string gas_dae_species,
 							const std::string surface_dae_species,
-							const boost::filesystem::path output_folder) :
+							const boost::filesystem::path output_folder,
+							const PorosityTreatment porosity_treatment ) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -84,10 +85,12 @@ namespace CVI
 	plugFlowReactor_(plugFlowReactor),
 	detailed_heterogeneous_kinetics_(detailed_heterogeneous_kinetics),
 	site_non_conservation_(site_non_conservation),
-	output_folder_(output_folder)
+	output_folder_(output_folder),
+	porosity_treatment_(porosity_treatment)
 	{
 		t_old_ = 0.;
 		time_smoothing_ = 10.;
+		t_final_ = 0.;
 
 		gaseous_phase_ = GASEOUS_PHASE_FROM_PLUG_FLOW;
 		equations_set_ = EQUATIONS_SET_COMPLETE;
@@ -137,7 +140,10 @@ namespace CVI
 			bulk_nc_ = thermodynamicsSurfaceMap_.number_of_bulk_species();
 
 			// Block size
-			block_ = nc_ + 1 + surf_np_ + surf_nc_;
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				block_ = nc_ + 1 + surf_np_ + surf_nc_;
+			else
+				block_ = nc_ + 0 + surf_np_ + surf_nc_;
 
 			// Graphite density [kg/m3]
 			rho_graphite_ = heterogeneousDetailedMechanism_.rho_graphite();
@@ -162,7 +168,10 @@ namespace CVI
 			bulk_nc_ = 0;
 
 			// Block size
-			block_ = nc_ + 1;
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				block_ = nc_ + 1;
+			else
+				block_ = nc_ + 0;
 
 			// Graphite density [kg/m3]
 			rho_graphite_ = heterogeneousMechanism_.rho_graphite();
@@ -263,6 +272,8 @@ namespace CVI
 		
 		// Porosity [-]
 		epsilon_.resize(np_);
+		epsilon_old_.resize(np_);
+		cumulative_epsilon_source_term_.resize(np_);
 
 		// Permeability [m2]
 		permeability_.resize(np_);
@@ -295,7 +306,7 @@ namespace CVI
 		for (unsigned int i = 0; i < np_; i++)
 			Y_[i].resize(nc_);
 
-		// Formation rates in gas pahse [kg/m3/s]
+		// Formation rates in gas phase [kg/m3/s]
 		omega_homogeneous_from_homogeneous_.resize(np_);
 		for (unsigned int i = 0; i < np_; i++)
 			omega_homogeneous_from_homogeneous_[i].resize(nc_);
@@ -328,7 +339,8 @@ namespace CVI
 			dY_over_dt_[i].resize(nc_);
 
 		// Time derivatives: porosity [1/s]
-		depsilon_over_dt_.resize(np_);
+		if (porosity_treatment_ == POROSITY_COUPLED)
+			depsilon_over_dt_.resize(np_);
 
 
 		// Gas side Mass fractions [-]
@@ -471,7 +483,8 @@ namespace CVI
 					id_equations_[count++] = false;
 
 				// Porosity
-				id_equations_[count++] = true;
+				if (porosity_treatment_ == POROSITY_COUPLED)
+					id_equations_[count++] = true;
 
 				// Surface species
 				for (unsigned int j = 0; j < surf_np_; j++)
@@ -503,7 +516,8 @@ namespace CVI
 						id_equations_[count++] = false;
 
 					// Porosity
-					id_equations_[count++] = true;
+					if (porosity_treatment_ == POROSITY_COUPLED)
+						id_equations_[count++] = true;
 
 					// Surface species
 					for (unsigned int j = 0; j < surf_np_; j++)
@@ -535,7 +549,8 @@ namespace CVI
 						id_equations_[count++] = true;
 
 					// Porosity
-					id_equations_[count++] = true;
+					if (porosity_treatment_ == POROSITY_COUPLED)
+						id_equations_[count++] = true;
 
 					// Surface species
 					for (unsigned int j = 0; j < surf_np_; j++)
@@ -563,7 +578,8 @@ namespace CVI
 						id_equations_[count++] = false;
 
 					// Porosity
-					id_equations_[count++] = true;
+					if (porosity_treatment_ == POROSITY_COUPLED)
+						id_equations_[count++] = true;
 
 					// Surface species
 					for (unsigned int j = 0; j < surf_np_; j++)
@@ -593,7 +609,8 @@ namespace CVI
 					id_equations_[count++] = false;
 
 				// Porosity
-				id_equations_[count++] = true;
+				if (porosity_treatment_ == POROSITY_COUPLED)
+					id_equations_[count++] = true;
 
 				// Surface species
 				for (unsigned int j = 0; j < surf_np_; j++)
@@ -975,6 +992,10 @@ namespace CVI
 			SetInitialConditionsFromBackupFile(path_to_backup_file);
 			start_from_backup_ = true;
 		}
+
+		// Store epsilon
+		epsilon_old_ = epsilon_;
+		cumulative_epsilon_source_term_.setZero();
 	}
 
 	void Reactor2D::SetTimeTotal(const double time_total)
@@ -1475,8 +1496,11 @@ namespace CVI
 
 	void Reactor2D::SubEquations_Porosity()
 	{
-		for (unsigned int i = 0; i < np_; i++)
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
+		if (porosity_treatment_ == POROSITY_COUPLED)
+		{
+			for (unsigned int i = 0; i < np_; i++)
+				depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
+		}
 	}
 
 	void Reactor2D::SubEquations_SurfaceSpeciesFractions()
@@ -1740,7 +1764,8 @@ namespace CVI
 					Y_[i](j) = y[count++];
 
 				// Porosity
-				epsilon_(i) = y[count++];
+				if (porosity_treatment_ == POROSITY_COUPLED)
+					epsilon_(i) = y[count++];
 
 				// Surface densities
 				for (unsigned int j = 0; j < surf_np_; j++)
@@ -1775,7 +1800,8 @@ namespace CVI
 					dy[count++] = dY_over_dt_[i](j);
 
 				// Porosity
-				dy[count++] = depsilon_over_dt_(i);
+				if (porosity_treatment_ == POROSITY_COUPLED)
+					dy[count++] = depsilon_over_dt_(i);
 
 				// Surface densities
 				for (unsigned int j = 0; j < surf_np_; j++)
@@ -1813,7 +1839,8 @@ namespace CVI
 				for (unsigned int j = 0; j < nc_; j++)
 					v[count++] = Y_[i](j);
 
-				v[count++] = epsilon_[i];
+				if (porosity_treatment_ == POROSITY_COUPLED)
+					v[count++] = epsilon_[i];
 
 				for (unsigned int j = 0; j < surf_np_; j++)
 					v[count++] = GammaFromEqn_[i](j);
@@ -1839,7 +1866,8 @@ namespace CVI
 				for (unsigned int j = 0; j < nc_; j++)
 					Y_[i](j) = v[count++];
 
-				epsilon_(i) = v[count++];
+				if (porosity_treatment_ == POROSITY_COUPLED)
+					epsilon_(i) = v[count++];
 
 				for (unsigned int j = 0; j < surf_np_; j++)
 					GammaFromEqn_[i](j) = v[count++];
@@ -1880,7 +1908,8 @@ namespace CVI
 				for (unsigned int j = 0; j < nc_; j++)
 					v[count++] = zero;
 
-				v[count++] = zero;
+				if (porosity_treatment_ == POROSITY_COUPLED)
+					v[count++] = zero;
 
 				for (unsigned int j = 0; j < surf_np_; j++)
 					v[count++] = zero;
@@ -1909,7 +1938,8 @@ namespace CVI
 				for (unsigned int j = 0; j < nc_; j++)
 					v[count++] = one;
 
-				v[count++] = one;
+				if (porosity_treatment_ == POROSITY_COUPLED)
+					v[count++] = one;
 
 				for (unsigned int j = 0; j < surf_np_; j++)
 					v[count++] = one;
@@ -2146,12 +2176,15 @@ namespace CVI
 
 			// Reset to zero
 			t_old_ = t0;
+			t_final_ = tf;
 			homogeneous_total_mass_source_.setZero();
 			heterogeneous_total_mass_source_.setZero();
 			total_mass_exchanged_.setZero();
 			total_mass_produced_.setZero();
+			cumulative_epsilon_source_term_.setZero();
 
 			// Old values
+			epsilon_old_ = epsilon_;
 			for (unsigned int j = 0; j < nc_; j++)
 			{
 				Eigen::VectorXd rhojeps(np_);
@@ -2196,6 +2229,22 @@ namespace CVI
 				std::string backup_file = "Solution." + hours.str() + ".xml";
 				PrintXMLFile( (output_backup_folder_ / backup_file).string(), tf);
 			}
+
+			// Update porosity
+			if (porosity_treatment_ != POROSITY_COUPLED)
+			{
+				if (porosity_treatment_ == POROSITY_DECOUPLED_CUMULATIVE)
+				{
+					for (unsigned int i = 0; i < np_; i++)
+						epsilon_(i) = epsilon_old_(i) + cumulative_epsilon_source_term_(i);
+				}
+				else if (porosity_treatment_ == POROSITY_DECOUPLED_FINALVALUE)
+				{
+					for (unsigned int i = 0; i < np_; i++)
+						epsilon_(i) = epsilon_old_(i) -omega_deposition_per_unit_volume_(i) / rho_graphite_ * (tf - t0);
+				}
+			}
+
 		}
 
 		return true;
@@ -3877,6 +3926,21 @@ namespace CVI
 					const double mfr = mfr_west[j] + mfr_east[j] + mfr_north[j] + mfr_south[j];
 					total_mass_exchanged_(j) += mfr * (t - t_old_);
 				}
+			}
+		}
+
+		// Updated porosity
+		if (porosity_treatment_ != POROSITY_COUPLED)
+		{
+			if (porosity_treatment_ == POROSITY_DECOUPLED_CUMULATIVE)
+			{
+				const double tf = std::min(t, t_final_);
+				for (unsigned int i = 0; i < np_; i++)
+					cumulative_epsilon_source_term_(i) += -omega_deposition_per_unit_volume_(i) / rho_graphite_ * (t - t_old_);
+			}
+			else if (porosity_treatment_ == POROSITY_DECOUPLED_FINALVALUE)
+			{
+				// Do nothing
 			}
 		}
 

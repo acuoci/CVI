@@ -72,6 +72,11 @@ namespace CVI
 				"none",
 				"none"));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorosityTreatment",
+				OpenSMOKE::SINGLE_STRING,
+				"Treatment of porosity equation: coupled | decoupled-cumulative | decoupled-finalvalue (default: coupled)",
+				false));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Output",
 				OpenSMOKE::SINGLE_PATH,
 				"Name of the folder containing the output files",
