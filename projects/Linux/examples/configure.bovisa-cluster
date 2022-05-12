@@ -8,7 +8,8 @@ CXX=g++ \
 --with-boost-lib=/software/chimica2/libraries/boost/boost-1.72.0-gcc-9.2.0/lib/ \
 --with-mkl=/home/chimica2/cuoci/intel-2019/mkl/ \
 --with-bzzmath-include=/software/chimica2/libraries/bzzmath/bzzmath-6.0/hpp/release-9.2.0/ \
---with-bzzmath-lib=/software/chimica2/libraries/bzzmath/bzzmath-6.0/lib/release-9.2.0/libBzzMath6_GNU.a \
+--with-bzzmath-lib=/software/chimica2/libraries/bzzmath/bzzmath-6.0/lib/release-9.2.0/libBzzMath6_GNU.a
+
 --with-umfpack-include=/software/chimica2/libraries/suitesparse/suitesparse-5.6.0-gcc-9.2.0/include/ \
 --with-umfpack-lib=/software/chimica2/libraries/suitesparse/suitesparse-5.6.0-gcc-9.2.0/lib/ \
 --with-superlu-include=/software/chimica2/libraries/superlu/superlu/superlu-4.3-gcc-9.2.0/include/ \

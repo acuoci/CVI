@@ -605,6 +605,8 @@ namespace CVI
 		unsigned int count_update_plug_flow_;				//!< counter of steps for updating plug flow
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 		std::ofstream fROPA_CB_;					//!< name of file where to write production history of C(B)
+		std::ofstream fROPA_Graphite_;					//!< name of file where to write production history of graphite
+
 
 		boost::filesystem::path output_folder_;						//!< name of output folder
 		boost::filesystem::path output_tecplot_folder_;				//!< name of output folder for Tecplot files
