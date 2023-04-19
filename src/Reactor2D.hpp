@@ -242,6 +242,23 @@ namespace CVI
 			fROPA_CB_ << std::endl;
 		}
 
+		// Production of c(B)
+		{
+			fROPA_cB_.open((output_ropa_folder_ / "ROPA_cB.out").string().c_str(), std::ios::out);
+			fROPA_cB_.setf(std::ios::scientific);
+			
+			fROPA_cB_ << std::left << std::setw(16) << "time[s](1)";
+			fROPA_cB_ << std::left << std::setw(20) << "dep[kmol/m3/s](2)";
+			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
+			{
+				std::stringstream index; index << (i + 1);
+				std::stringstream col; col << (i + 3);
+				std::string label = "r" + index.str() + "(" + col.str() + ")";
+				fROPA_cB_ << std::left << std::setw(16) << label;
+			}
+			fROPA_cB_ << std::endl;
+		}
+
 		// Production of Graphite
 		{
 			fROPA_Graphite_.open((output_ropa_folder_ / "ROPA_Graphite.out").string().c_str(), std::ios::out);
@@ -336,11 +353,21 @@ namespace CVI
 		// Deposition rate [kg/m3/s]
 		omega_deposition_per_unit_volume_.resize(np_);
 
+		// Deposition rate per bulk species [kg/m3/s]
+		omega_deposition_per_unit_volume_bulk_species_.resize(heterogeneousDetailedMechanism_.bulk_nc());
+		for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+			omega_deposition_per_unit_volume_bulk_species_[ii].resize(np_);
+
 		// Loss for the homogeneous phase because the heterogeneous reactions [kg/m3/s]
 		omega_loss_per_unit_volume_.resize(np_);
 
 		// Deposition rate [kg/m2/s]
 		omega_deposition_per_unit_area_.resize(np_);
+
+		// Deposition rate per bulk species [kg/m2/s]
+		omega_deposition_per_unit_area_bulk_species_.resize(heterogeneousDetailedMechanism_.bulk_nc());
+		for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+			omega_deposition_per_unit_area_bulk_species_[ii].resize(np_);
 
 		// Effective diffusion coefficients [m2/s]
 		gamma_star_.resize(np_);
@@ -1228,6 +1255,12 @@ namespace CVI
 					omega_deposition_per_unit_area_(i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_area()*heterogeneousDetailedMechanism_.mw_carbon();			// [kg/m2/s]
 					omega_deposition_per_unit_volume_(i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_volume()*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m3/s]
 
+					for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+					{
+						omega_deposition_per_unit_area_bulk_species_[ii](i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_area(ii)*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m3/s]
+						omega_deposition_per_unit_volume_bulk_species_[ii](i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_volume(ii)*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m3/s]
+					}
+
 					omega_loss_per_unit_volume_(i) = 0.;
 					for (unsigned int j = 0; j < nc_; j++)
 						omega_loss_per_unit_volume_(i) += heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsSurfaceMap_.MW(j);					// [kg/m3/s]
@@ -1238,6 +1271,11 @@ namespace CVI
 					omega_deposition_per_unit_area_(i) *= smoothing_coefficient;
 					omega_deposition_per_unit_volume_(i) *= smoothing_coefficient;
 					omega_loss_per_unit_volume_(i) *= smoothing_coefficient;
+					for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+					{
+						omega_deposition_per_unit_area_bulk_species_[ii](i) *= smoothing_coefficient;
+						omega_deposition_per_unit_volume_bulk_species_[ii](i) *= smoothing_coefficient;
+					}
 				}
 			}
 		}
@@ -2516,7 +2554,7 @@ namespace CVI
 			for (unsigned int j = 0; j < surf_nc_; j++)
 				fOutput << "\"" << thermodynamicsSurfaceMap_.NamesOfSpecies()[nc_ + j] << "\", ";
 
-			// Heterogeneous reaction rates
+			// Heterogeneous deposition rate
 			{
 				fOutput << "\"rDep[kg/m2/s]\"" << ", ";
 				fOutput << "\"rDep[kg/m3/s]\"" << ", ";
@@ -2530,6 +2568,15 @@ namespace CVI
 				fOutput << "\"RhetC2H2[kml/m3/s]\"" << ", ";
 				fOutput << "\"RhetC6H6[kml/m3/s]\"" << ", ";
 				fOutput << "\"RhetH2[kml/m3/s]\"" << ", ";
+			}
+
+			// Heterogeneous deposition rates for bulk species
+			for (unsigned int i=0;i<heterogeneousDetailedMechanism_.bulk_nc();i++)
+			{
+				const std::string name = thermodynamicsSurfaceMap_.vector_names_bulk_species()[i];
+				fOutput << "\"rDep-" << name <<"[kg/m2/s]\"" << ", ";
+				fOutput << "\"rDep-" << name <<"[kg/m3/s]\"" << ", ";
+				fOutput << "\"rDep-" << name <<"[m/s]\"" << ", ";
 			}
 
 			// Finalize
@@ -2622,6 +2669,15 @@ namespace CVI
 					fOutput << std::setprecision(9) << std::setw(20) << -heterogeneousDetailedMechanism_.Rgas()(thermodynamicsSurfaceMap_.IndexOfSpecies("C2H2"));
 					fOutput << std::setprecision(9) << std::setw(20) << -heterogeneousDetailedMechanism_.Rgas()(thermodynamicsSurfaceMap_.IndexOfSpecies("C6H6"));
 					fOutput << std::setprecision(9) << std::setw(20) << -heterogeneousDetailedMechanism_.Rgas()(thermodynamicsSurfaceMap_.IndexOfSpecies("H2"));
+				}
+
+				// Heterogeneous deposition rates for individual bulk species
+				for (unsigned int i=0;i<heterogeneousDetailedMechanism_.bulk_nc();i++)
+				{
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousDetailedMechanism_.r_deposition_per_unit_area(i)*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m2/s]
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousDetailedMechanism_.r_deposition_per_unit_volume(i)*heterogeneousDetailedMechanism_.mw_carbon();	// [kg/m3/s]
+					fOutput << std::setprecision(9) << std::setw(20) << heterogeneousDetailedMechanism_.r_deposition_per_unit_volume(i)*heterogeneousDetailedMechanism_.mw_carbon() /
+																							(porousMedium_.Sv() / rho_graphite_);														// [m/s]																		// [m/s]
 				}
 
 				// Finalize
@@ -3373,12 +3429,26 @@ namespace CVI
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaKnstd[K]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaVisc[-]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "etaViscstd[K]", count);
-		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[mm/s]", count);
-		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[mm/s]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[mm/h]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[mm/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[g/m2/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[g/m2/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[g/m3/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[g/m3/h]", count);
+
+		for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+		{
+			const std::string name = thermodynamicsSurfaceMap_.vector_names_bulk_species()[ii];
+			
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDep-"+name+"[mm/h]"), count);
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDepstd-"+name+"[mm/h]"), count);
+
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDep-"+name+"[g/m2/h]"), count);
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDepstd-"+name+"[g/m2/h]"), count);
+
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDep-"+name+"[g/m3/h]"), count);
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDepstd-"+name+"[g/m3/h]"), count);
+		}
 
 		// Heterogeneous reaction rates: contributions to the bulk density
 		OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, "dRhoB[kg/m3]", count);
@@ -3421,7 +3491,7 @@ namespace CVI
 				const double rho_bulk_std = VolumeStandardDeviation(rho_bulk_mean, rho_bulk_);
 				const double r_deposition_per_unit_area_mean = VolumeAveraged(omega_deposition_per_unit_area_);		// [kg/m2/s]
 				const double r_deposition_per_unit_volume_mean = VolumeAveraged(omega_deposition_per_unit_volume_);	// [kg/m3/s]
-
+				
 				std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t;		// [s]
 				std::cout << std::left << std::setw(14) << std::scientific << std::setprecision(6) << t / 3600.;
 				std::cout << std::left << std::setw(14) << std::fixed << std::setprecision(6) << rho_bulk_mean;
@@ -3487,6 +3557,22 @@ namespace CVI
 				const double r_deposition_per_unit_volume_mean = VolumeAveraged(omega_deposition_per_unit_volume_);
 				const double r_deposition_per_unit_volume_std = VolumeStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
 
+				Eigen::VectorXd r_deposition_per_unit_area_mean_bulk_species(heterogeneousDetailedMechanism_.bulk_nc());
+				Eigen::VectorXd r_deposition_per_unit_volume_mean_bulk_species(heterogeneousDetailedMechanism_.bulk_nc());
+				for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+				{
+					r_deposition_per_unit_area_mean_bulk_species(ii) = VolumeAveraged(omega_deposition_per_unit_area_bulk_species_[ii]);
+					r_deposition_per_unit_volume_mean_bulk_species(ii) = VolumeAveraged(omega_deposition_per_unit_volume_bulk_species_[ii]);
+				}
+
+				Eigen::VectorXd r_deposition_per_unit_area_std_bulk_species(heterogeneousDetailedMechanism_.bulk_nc());
+				Eigen::VectorXd r_deposition_per_unit_volume_std_bulk_species(heterogeneousDetailedMechanism_.bulk_nc());
+				for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+				{
+					r_deposition_per_unit_area_std_bulk_species(ii) = VolumeStandardDeviation(r_deposition_per_unit_area_mean_bulk_species(ii), omega_deposition_per_unit_area_bulk_species_[ii]);
+					r_deposition_per_unit_volume_std_bulk_species(ii) = VolumeStandardDeviation(r_deposition_per_unit_volume_mean_bulk_species(ii), omega_deposition_per_unit_volume_bulk_species_[ii]);
+				}
+
 				const double delta_rhobulk_mean = VolumeAveraged(delta_rhobulk_);
 				Eigen::VectorXd delta_rhobulk_due_to_single_reaction_mean(heterogeneousMechanism_.r().size());
 				for (int j = 0; j < heterogeneousMechanism_.r().size(); j++)
@@ -3525,14 +3611,26 @@ namespace CVI
 				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_mean;
 				fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << eta_viscous_std;
 
-				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1000.;		// [mm/s]
-				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / rho_graphite_*1000.;	// [mm/s]
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1000.*3600.;	// [mm/h]
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / rho_graphite_*1000.*3600.;		// [mm/h]
 
-				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean *1000.*3600.;	// [g/m2/h]
+				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean *1000.*3600.;		// [g/m2/h]
 				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std *1000.*3600.;		// [g/m2/h]
 
 				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_mean *1000.*3600.;	// [g/m3/h]
 				fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_std *1000.*3600.;	// [g/m3/h]
+
+				for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+				{
+					fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean_bulk_species(ii) / rho_graphite_*1000.*3600.;	// [mm/h]
+					fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std_bulk_species(ii) / rho_graphite_*1000.*3600.;	// [mm/h]
+
+					fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean_bulk_species(ii) *1000.*3600.;			// [g/m2/h]
+					fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std_bulk_species(ii) *1000.*3600.;			// [g/m2/h]
+
+					fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_mean_bulk_species(ii) *1000.*3600.;			// [g/m3/h]
+					fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_std_bulk_species(ii) *1000.*3600.;			// [g/m3/h]
+				}
 
 				// Heterogeneous reaction rates: contributions to the bulk density
 				fMonitoring_ << std::left << std::setw(width_increased) << std::fixed << std::setprecision(4) << delta_rhobulk_mean;	// [kg/m3]
@@ -3615,6 +3713,81 @@ namespace CVI
 					fROPA_CB_ << std::endl;
 				}
 
+				// ROPA on c(B)
+				if (thermodynamicsSurfaceMap_.IndexOfSpeciesWithoutError("c(B)") > 0)
+				{
+					// Bulk activities
+					Eigen::VectorXd a(bulk_nc_);
+					a.setConstant(1.);
+
+					// Index of C(B) species
+					const unsigned int index_of_cB = thermodynamicsSurfaceMap_.IndexOfSpecies("c(B)") - 1;
+
+					// Stoichiometric vector for C(B)
+					const Eigen::SparseMatrix<double> nur = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_reactants();
+					const Eigen::SparseMatrix<double> nuf = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_products();
+					const Eigen::VectorXd nu_cB = nuf.col(index_of_cB)- nur.col(index_of_cB);
+
+					// Total number of reactions
+					const unsigned int nr = nur.rows();
+
+					// Memory allocation
+					// rcB (kmol/m3/s) is the average deposition rate of cB
+					std::vector<Eigen::VectorXd> r_cB(nr);
+					for (unsigned int j = 0; j < nr; j++)
+						r_cB[j].resize(np_);
+
+					// Loop over all the points
+					for (unsigned int i = 0; i < np_; i++)
+					{
+						// Molar fractions
+						double mw;
+						Eigen::VectorXd omega = Y_[i];
+						Eigen::VectorXd x(omega.size());
+						thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
+
+						// Concentrations
+						const double cTot = rho_gas_(i) / mw_(i);
+						Eigen::VectorXd c = cTot*x;
+
+						// Calculates thermodynamic properties
+						thermodynamicsMap_.SetTemperature(T_(i));
+						thermodynamicsMap_.SetPressure(P_(i));
+
+						// Calculates kinetics
+						kineticsMap_.SetTemperature(T_(i));
+						kineticsMap_.SetPressure(P_(i));
+
+						// Heterogeneous mechanism
+						heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+						heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+						// Calculation of heterogeneous terms
+						heterogeneousDetailedMechanism_.FormationRates(Sv_(i), c, Z_[i], a, Gamma_[i]);
+
+						// Reaction rates
+						std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
+
+						// Contributions to formation of C(B)
+						// The units of heterogeneous gas-solid reaction rates are in kmol/m2/s
+						// We multiply by the surface per unit of volume (1/m) to have the deposition rate in kmol/m3/s
+						for (unsigned int j = 0; j < nr; j++)
+							r_cB[j](i) = Sv_(i) * r[j] * nu_cB(j);
+					}
+
+					// Volume averaged deposition rate in (kmol/m3/s)
+					Eigen::VectorXd r_cB_averaged(nr);
+					for (unsigned int j = 0; j < nr; j++)
+						r_cB_averaged(j) = VolumeAveraged(r_cB[j]);
+
+					// Write on file
+					fROPA_cB_ << std::left << std::setw(16) << t;
+					fROPA_cB_ << std::left << std::setw(20) << r_cB_averaged.sum();
+					for (unsigned int j = 0; j < nr; j++)
+						fROPA_cB_ << std::left << std::setw(16) << r_cB_averaged(j);
+					fROPA_cB_ << std::endl;
+				}
+
 				// ROPA on Graphite
 				{
 					// Bulk activities
@@ -3637,8 +3810,14 @@ namespace CVI
 						ratio_c_over_tot(k) = WC*thermodynamicsSurfaceMap_.atomic_composition()(nc_+k,jC)/thermodynamicsSurfaceMap_.MW(nc_+k);
 					}
 
-					//std::cout << "nr: " << nur.rows() << " cols: " << nur.cols() << std::endl;
-					//std::cout << "nc: " << nc_ << " nsolid: " << nsolid << std::endl;
+					
+
+					// Reactions
+					//std::cout << "nr=" << nur.rows() << std::endl;
+					//std::cout << "ngas=" << nc_ << " nsolid=" << nsolid << " not=" <<  nur.cols() << std::endl;
+					//std::cout << "Solid-species nCarbons" << std::endl;					
+					//for (unsigned int k=0;k<nsolid;k++)
+					//	std::cout << k+1 << ratio_c_over_tot(k) << std::endl;
 
 					// Total number of reactions
 					const unsigned int nr = nur.rows();
@@ -3646,10 +3825,13 @@ namespace CVI
 					// Memory allocation
 					// rGraphite (kmol/m3/s) is the average deposition rate of graphite
 					std::vector<Eigen::VectorXd> r_Graphite(nr);
+					//std::vector<Eigen::VectorXd> r_Graphite_from_CB(nr);
+					//std::vector<Eigen::VectorXd> r_Graphite_from_cB(nr);
 					for (unsigned int j = 0; j < nr; j++)
 					{
-						r_Graphite[j].resize(np_);
-						r_Graphite[j].setZero();
+						r_Graphite[j].resize(np_);		r_Graphite[j].setZero();
+					//	r_Graphite_from_CB[j].resize(np_);	r_Graphite_from_CB[j].setZero();
+					//	r_Graphite_from_cB[j].resize(np_);	r_Graphite_from_cB[j].setZero();
 					}
 
 					// Loop over all the points
@@ -3689,15 +3871,15 @@ namespace CVI
 						// Then we multiply times the molecular weight to have kg/m3/s
 						for (unsigned int k=0;k<nsolid;k++)
 						{
-						//	std::cout << "Species: " << k << " MW: " << thermodynamicsSurfaceMap_.MW(nc_+k) << " " << ratio_c_over_tot(k) << std::endl;
+						//	std::cout << "Species: " << k+1 << " MW: " << thermodynamicsSurfaceMap_.MW(nc_+k) << " " << ratio_c_over_tot(k) << std::endl;
 							for (unsigned int j = 0; j < nr; j++)
 							{
-						//		if (nu_surf[k](j)!=0.) std::cout << "  React: " << j << " nu: " << nu_surf[k](j) << std::endl;
+							//	if (nu_surf[k](j)!=0.) std::cout << "  React: " << j+1 << " nu: " << nu_surf[k](j) << std::endl;
 								r_Graphite[j](i) += Sv_(i) * r[j] * nu_surf[k](j) * thermodynamicsSurfaceMap_.MW(nc_+k)*ratio_c_over_tot(k);
 							}
 						}
 
-					//	getchar();
+						//getchar();
 					}
 
 					// Volume averaged deposition rate in (kg/m3/s)

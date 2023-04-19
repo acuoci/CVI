@@ -1,19 +1,31 @@
 ./configure \
 CXX=g++ \
---enable-openmp=no \
---prefix=/home/chimica2/cuoci/Development/MyCodes/CVI/exe/linux/gnu64-serial-mkl \
+--enable-openmp=yes \
+--prefix=/home/chimica2/cuoci/Development/MyCodes/OpenSMOKEppSolvers/exe/linux/gnu64-serial-mkl \
 --with-opensmoke=/home/chimica2/cuoci/Development/MyCodes/OpenSMOKEpp \
---with-eigen=/software/chimica2/libraries/eigen/eigen-3.4.r1/ \
---with-boost-include=/software/chimica2/libraries/boost/boost-1.72.0-gcc-9.2.0/include/ \
---with-boost-lib=/software/chimica2/libraries/boost/boost-1.72.0-gcc-9.2.0/lib/ \
---with-mkl=/home/chimica2/cuoci/intel-2019/mkl/ \
+--with-eigen=/software/chimica2/libraries/eigen/eigen-3.4.0/ \
+--with-boost-include=/software/chimica2/libraries/boost/boost-1.81.0-gcc-9.2.0/include/ \
+--with-boost-lib=/software/chimica2/libraries/boost/boost-1.81.0-gcc-9.2.0/lib/ \
+--with-libconfig-include=/software/chimica2/libraries/libconfig/libconfig-1.5-gcc-9.2.0/include/ \
+--with-libconfig-lib=/software/chimica2/libraries/libconfig/libconfig-1.5-gcc-9.2.0/lib/libconfig++.a \
+--with-mkl=//home/chimica2/cuoci/intel/oneapi/mkl/latest/ \
+--with-ceq=/software/chimica2/libraries/ceq/libceq-gcc-9.2.0.a \
+--with-linpack=/software/chimica2/libraries/linpack/linpack-gcc-9.2.0/lib/libLINPACK_gcc_64bit.a \
+--with-radau=/software/chimica2/libraries/radau/radau-gcc-9.2.0/lib/libRADAU_LAPACK_gcc_64bit.a \
+--with-mebdf=/software/chimica2/libraries/mebdf/medf-gcc-9.2.0/lib/libMEBDF_LAPACK_gcc_64bit.a \
+--with-odepack=/software/chimica2/libraries/odepack/odepack-gcc-9.2.0/lib/libODEPACK_LAPACK_gcc_64bit.a \
 --with-bzzmath-include=/software/chimica2/libraries/bzzmath/bzzmath-6.0/hpp/release-9.2.0/ \
 --with-bzzmath-lib=/software/chimica2/libraries/bzzmath/bzzmath-6.0/lib/release-9.2.0/libBzzMath6_GNU.a
 
---with-umfpack-include=/software/chimica2/libraries/suitesparse/suitesparse-5.6.0-gcc-9.2.0/include/ \
---with-umfpack-lib=/software/chimica2/libraries/suitesparse/suitesparse-5.6.0-gcc-9.2.0/lib/ \
---with-superlu-include=/software/chimica2/libraries/superlu/superlu/superlu-4.3-gcc-9.2.0/include/ \
---with-superlu-lib=/software/chimica2/libraries/superlu/superlu/superlu-4.3-gcc-9.2.0/lib/libSuperLU43_gcc_64bit.a
+ \
+
+--with-daspk=/software/chimica2/libraries/daspk/daspk-gcc-9.2.0/lib/libDASPK20_LAPACK_gcc_64bit.a \
+--with-superlu-include=/software/chimica2/libraries/superlu/superlu/superlu-5.3.0-gcc-9.2.0/include/ \
+--with-superlu-lib=/software/chimica2/libraries/superlu/superlu/superlu-5.3.0-gcc-9.2.0/lib64/libsuperlu.a \
+--with-umfpack-include=/software/chimica2/libraries/suitesparse/suitesparse-5.10.1-gcc-9.2.0/include/ \
+--with-umfpack-lib=/software/chimica2/libraries/suitesparse/suitesparse-5.10.1-gcc-9.2.0/lib/ \
+--with-sundials-include=/software/chimica2/libraries/sundials/sundials-6.1.0-opensmoke++/serial-gcc-9.2.0/include/ \
+--with-sundials-lib=/software/chimica2/libraries/sundials/sundials-6.1.0-opensmoke++/serial-gcc-9.2.0/lib64/
 
 ./configure \
 CXX=icpc \

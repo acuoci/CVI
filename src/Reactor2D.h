@@ -554,7 +554,9 @@ namespace CVI
 		Eigen::VectorXd					omega_deposition_per_unit_volume_;			//!< deposition rate [kg/m3/s]
 		Eigen::VectorXd					omega_deposition_per_unit_area_;			//!< deposition rate [kg/m2/s]
 		Eigen::VectorXd					omega_loss_per_unit_volume_;				//!< loss for the homogeneous phase because of heterogeneous reactions [kg/m3/s]
-
+		std::vector<Eigen::VectorXd>			omega_deposition_per_unit_area_bulk_species_;		//!< deposition rate [kg/m2/s]
+		std::vector<Eigen::VectorXd>			omega_deposition_per_unit_volume_bulk_species_;		//!< deposition rate [kg/m3/s]
+		
 		// Diffusion
 		std::vector<Eigen::VectorXd>	gamma_star_;	//!< mass diffusion coefficients [m2/s]
 
@@ -605,6 +607,7 @@ namespace CVI
 		unsigned int count_update_plug_flow_;				//!< counter of steps for updating plug flow
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 		std::ofstream fROPA_CB_;					//!< name of file where to write production history of C(B)
+		std::ofstream fROPA_cB_;					//!< name of file where to write production history of c(B)
 		std::ofstream fROPA_Graphite_;					//!< name of file where to write production history of graphite
 
 

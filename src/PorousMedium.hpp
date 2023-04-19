@@ -109,7 +109,9 @@ namespace CVI
 				else if (value == "polynomial_onehalf")			porous_substrate_type_ = CVI::POLINOMIAL_ONEHALF;
 				else if (value == "from_spheres_to_cylinders")	porous_substrate_type_ = CVI::FROM_SPHERES_TO_CYLINDERS;
 				else if (value == "deutschmann_correlation")	porous_substrate_type_ = CVI::DEUTSCHMANN_CORRELATION;
-				else OpenSMOKE::FatalErrorMessage("@PorousSubstrate: Substrates available: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation");
+				else if (value == "tang_felt_correlation")	porous_substrate_type_ = CVI::TANG_FELT_CORRELATION;
+				else if (value == "tang_cloth_correlation")	porous_substrate_type_ = CVI::TANG_CLOTH_CORRELATION;
+				else OpenSMOKE::FatalErrorMessage("@PorousSubstrate: Substrates available: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation | tang_felt_correlation | tang_cloth_correlation");
 			}
 		}
 
@@ -211,6 +213,23 @@ namespace CVI
 			const double epsilon4 = epsilon2*epsilon2;
 			const double epsilon5 = epsilon3*epsilon2;
 			sv = -3.855762523198E+05*epsilon5 + 8.558541857891E+05*epsilon4 - 6.109196594973E+05*epsilon3 - 4.351758023548E+04*epsilon2 + 2.196529832093E+05*epsilon;
+		}
+		else if (porous_substrate_type_ == TANG_CLOTH_CORRELATION)
+		{
+			const double epsilon2 = epsilon*epsilon;
+			const double epsilon3 = epsilon2*epsilon;
+			const double epsilon4 = epsilon2*epsilon2;
+			
+			sv = 1647969.227*epsilon4 -802950.891*epsilon3 -29868.7377*epsilon2 +55980.45249*epsilon;
+		}
+		else if (porous_substrate_type_ == TANG_FELT_CORRELATION)
+		{
+			const double epsilon2 = epsilon*epsilon;
+			const double epsilon3 = epsilon2*epsilon;
+			const double epsilon4 = epsilon2*epsilon2;
+			
+			sv = -1.335107101E+05*epsilon2 +1.479173135E+05*epsilon;
+			
 		}
 
 		return sv;

@@ -72,7 +72,8 @@ namespace CVI
 					OpenSMOKE::Grid1D& grid,
 					const bool detailed_heterogeneous_kinetics,
 					const std::vector<bool>& site_non_conservation,
-					const std::string dae_species);
+					const std::string dae_species,
+					const boost::filesystem::path output_folder);
 
 		/**
 		*@brief Sets the conditions along the gas side
@@ -368,6 +369,8 @@ namespace CVI
 		Eigen::VectorXd					omega_deposition_per_unit_volume_;			//!< deposition rate [kg/m3/s]
 		Eigen::VectorXd					omega_deposition_per_unit_area_;			//!< deposition rate [kg/m2/s]
 		Eigen::VectorXd					omega_loss_per_unit_volume_;				//!< loss for the homogeneous phase because of heterogeneous reactions [kg/m3/s]
+		std::vector<Eigen::VectorXd>			omega_deposition_per_unit_area_bulk_species_;		//!< deposition rate [kg/m2/s]
+		std::vector<Eigen::VectorXd>			omega_deposition_per_unit_volume_bulk_species_;		//!< deposition rate [kg/m3/s]
 
 		// Diffusion
 		std::vector<Eigen::VectorXd>	gamma_star_;			//!< mass diffusion coefficients [m2/s]

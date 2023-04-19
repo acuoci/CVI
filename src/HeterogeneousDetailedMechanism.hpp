@@ -140,11 +140,20 @@ namespace CVI
 
 		
 		// Total heterogeneous deposition rate [kmol/m2/s]
-		r_heterogeneous_deposition_per_unit_area_ = Rbulk_from_surface_[1];
+ 		r_heterogeneous_deposition_per_unit_area_ = 0.;
+		for (unsigned int i=0;i<bulk_nc_;i++)
+			r_heterogeneous_deposition_per_unit_area_ += Rbulk_from_surface_[i+1];
 
 		// Heterogeneous deposition rate [kmol/m3/s]
 		r_heterogeneous_deposition_per_unit_volume_ = Sv*r_heterogeneous_deposition_per_unit_area_;
 
 		// Single constributions (TODO)
+		r_heterogeneous_deposition_per_unit_volume_single_contribution_.resize(bulk_nc_);
+		r_heterogeneous_deposition_per_unit_area_single_contribution_.resize(bulk_nc_);
+		for (unsigned int i=0;i<bulk_nc_;i++)
+		{
+			r_heterogeneous_deposition_per_unit_area_single_contribution_[i] = Rbulk_from_surface_[i+1];
+			r_heterogeneous_deposition_per_unit_volume_single_contribution_[i] = Sv*r_heterogeneous_deposition_per_unit_area_single_contribution_[i];
+		}
 	}
 }

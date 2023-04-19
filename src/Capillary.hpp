@@ -39,7 +39,8 @@ namespace CVI
 							OpenSMOKE::Grid1D& grid,
 							const bool detailed_heterogeneous_kinetics,
 							const std::vector<bool>& site_non_conservation,
-							const std::string dae_species) :
+							const std::string dae_species,
+							const boost::filesystem::path output_folder ) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -50,7 +51,8 @@ namespace CVI
 	heterogeneousDetailedMechanism_(heterogeneousDetailedMechanism),
 	grid_(grid),
 	detailed_heterogeneous_kinetics_(detailed_heterogeneous_kinetics),
-	site_non_conservation_(site_non_conservation)
+	site_non_conservation_(site_non_conservation),
+	output_folder_(output_folder)
 
 	{
 		n_steps_video_ = 10;
@@ -120,8 +122,6 @@ namespace CVI
 		ode_end_time_ = 1.;
 		tecplot_time_interval_ = 3600.;
 
-		output_folder_ = "Output";
-		
 		output_matlab_folder_ = output_folder_ / "Matlab";
 		OpenSMOKE::CreateDirectory(output_matlab_folder_);
 
@@ -190,11 +190,21 @@ namespace CVI
 		// Deposition rate [kg/m3/s]
 		omega_deposition_per_unit_volume_.resize(np_);
 
+		// Deposition rate per bulk species [kg/m3/s]
+		omega_deposition_per_unit_volume_bulk_species_.resize(heterogeneousDetailedMechanism_.bulk_nc());
+		for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+			omega_deposition_per_unit_volume_bulk_species_[ii].resize(np_);
+
 		// Loss for the homogeneous phase because the heterogeneous reactions [kg/m3/s]
 		omega_loss_per_unit_volume_.resize(np_);
 
 		// Deposition rate [kg/m2/s]
 		omega_deposition_per_unit_area_.resize(np_);
+
+		// Deposition rate per bulk species [kg/m2/s]
+		omega_deposition_per_unit_area_bulk_species_.resize(heterogeneousDetailedMechanism_.bulk_nc());
+		for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+			omega_deposition_per_unit_area_bulk_species_[ii].resize(np_);
 
 		// Effective diffusion coefficients [m2/s]
 		gamma_star_.resize(np_);
@@ -250,6 +260,13 @@ namespace CVI
 		omega_deposition_per_unit_volume_.setZero();
 		omega_deposition_per_unit_area_.setZero();
 		omega_loss_per_unit_volume_.setZero();
+
+		// Deposition rate per bulk species [kg/m3/s]
+		for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+		{
+			omega_deposition_per_unit_area_bulk_species_[ii].setZero();
+			omega_deposition_per_unit_volume_bulk_species_[ii].setZero();
+		}
 
 		// Detailed heterogeneous kinetics
 		if (detailed_heterogeneous_kinetics_ == true)
@@ -484,6 +501,20 @@ namespace CVI
 					transportMap_.MassDiffusionCoefficients(aux_gamma.GetHandle(), aux_X.GetHandle(), false);
 					for (unsigned int j = 0; j < nc_; j++)
 						gamma_star_[i](j) = aux_gamma[j + 1];
+
+					// Knudsen diffusion
+					/*
+					{
+						const double coefficient = 2. / 3.*(diameter_(i)/2.)*std::sqrt(8.*PhysicalConstants::R_J_kmol*T_(i) / PhysicalConstants::pi);
+		
+						Eigen::VectorXd gamma_knudsen(nc_);
+						for (unsigned int j = 0; j < nc_; j++)
+							gamma_knudsen(j) = coefficient/std::sqrt(thermodynamicsMap_.MW(j));
+
+						for (unsigned int j = 0; j < nc_; j++)
+							gamma_star_[i](j) = 1./(1./gamma_star_[i](j) + 1./gamma_knudsen(j));
+					}
+					*/
 				}
 			}
 
@@ -567,6 +598,12 @@ namespace CVI
 					omega_deposition_per_unit_area_(i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_area()*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m2/s]
 					omega_deposition_per_unit_volume_(i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_volume()*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m3/s]
 
+					for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+					{
+						omega_deposition_per_unit_area_bulk_species_[ii](i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_area(ii)*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m3/s]
+						omega_deposition_per_unit_volume_bulk_species_[ii](i) = heterogeneousDetailedMechanism_.r_deposition_per_unit_volume(ii)*heterogeneousDetailedMechanism_.mw_carbon();		// [kg/m3/s]
+					}
+
 					omega_loss_per_unit_volume_(i) = 0.;
 					for (unsigned int j = 0; j < nc_; j++)
 						omega_loss_per_unit_volume_(i) += heterogeneousDetailedMechanism_.Rgas()(j)*thermodynamicsMap_.MW(j);					// [kg/m3/s]
@@ -633,7 +670,7 @@ namespace CVI
 			for (unsigned int j = 0; j < nc_; j++)
 			{
 				dY_over_dt_[i](j) = 	gamma_star_[i](j)*rho_gas_(i)*d2Y_over_dx2_[i](j) +
-							(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
+							//(gamma_star_[i](j)*drho_gas_over_dx_(i) + dgamma_star_over_dx_[i](j)*rho_gas_(i))*dY_over_dx_[i](j) +
 							omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
 
 				dY_over_dt_[i](j) /= rho_gas_(i);
@@ -1595,6 +1632,7 @@ namespace CVI
 			}
 
 			const int width = 20;
+			const int width_increased = 26;
 
 			const double T_mean = AreaAveraged(T_);
 			const double T_std = AreaStandardDeviation(T_mean, T_);
@@ -1617,6 +1655,22 @@ namespace CVI
 			const double r_deposition_per_unit_volume_mean = AreaAveraged(omega_deposition_per_unit_volume_);
 			const double r_deposition_per_unit_volume_std = AreaStandardDeviation(r_deposition_per_unit_volume_mean, omega_deposition_per_unit_volume_);
 
+			Eigen::VectorXd r_deposition_per_unit_area_mean_bulk_species(heterogeneousDetailedMechanism_.bulk_nc());
+			Eigen::VectorXd r_deposition_per_unit_volume_mean_bulk_species(heterogeneousDetailedMechanism_.bulk_nc());
+			for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+			{
+				r_deposition_per_unit_area_mean_bulk_species(ii) =AreaAveraged(omega_deposition_per_unit_area_bulk_species_[ii]);
+				r_deposition_per_unit_volume_mean_bulk_species(ii) =AreaAveraged(omega_deposition_per_unit_volume_bulk_species_[ii]);				
+			}
+
+			Eigen::VectorXd r_deposition_per_unit_area_std_bulk_species(heterogeneousDetailedMechanism_.bulk_nc());
+			Eigen::VectorXd r_deposition_per_unit_volume_std_bulk_species(heterogeneousDetailedMechanism_.bulk_nc());
+			for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+			{
+				r_deposition_per_unit_area_std_bulk_species(ii) = AreaStandardDeviation(r_deposition_per_unit_area_mean_bulk_species(ii), omega_deposition_per_unit_area_bulk_species_[ii]);			
+				r_deposition_per_unit_volume_std_bulk_species(ii) = AreaStandardDeviation(r_deposition_per_unit_volume_mean_bulk_species(ii), omega_deposition_per_unit_volume_bulk_species_[ii]);
+			}
+
 			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t / 3600.;	// [h]
 			fMonitoring_ << std::left << std::setprecision(9) << std::setw(width) << t;			// [s]
 
@@ -1635,14 +1689,26 @@ namespace CVI
 			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << Sv_mean;	// [1/m]
 			fMonitoring_ << std::left << std::setw(width) << std::fixed << std::setprecision(4) << Sv_std;	// [1/m]
 
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1000.;		// [mm/s]
-			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / rho_graphite_*1000.;	// [mm/s]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean / rho_graphite_*1000.*3600.;		// [mm/h]
+			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std / rho_graphite_*1000.*3600.;	// [mm/h]
 
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean *1000.*3600.;	// [g/m2/h]
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std *1000.*3600.;		// [g/m2/h]
 
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_mean *1000.*3600.;	// [g/m3/h]
 			fMonitoring_ << std::left << std::setw(width) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_std *1000.*3600.;	// [g/m3/h]
+
+			for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+			{
+				fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean_bulk_species(ii) / rho_graphite_*1000.*3600.;		// [mm/h]
+				fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std_bulk_species(ii) / rho_graphite_*1000.*3600.;	// [mm/h]
+
+				fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_mean_bulk_species(ii) *1000.*3600.;	// [g/m2/h]
+				fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_area_std_bulk_species(ii) *1000.*3600.;		// [g/m2/h]
+
+				fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_mean_bulk_species(ii) *1000.*3600.;	// [g/m3/h]
+				fMonitoring_ << std::left << std::setw(width_increased) << std::scientific << std::setprecision(6) << r_deposition_per_unit_volume_std_bulk_species(ii) *1000.*3600.;	// [g/m3/h]
+			}
 
 			fMonitoring_ << std::endl;
 
@@ -1765,6 +1831,8 @@ namespace CVI
 	{
 		unsigned int count = 1;
 		const unsigned int width = 20;
+		const unsigned int width_increased = 26;
+
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "time[h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "time[s]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "T[K]", count);
@@ -1777,12 +1845,25 @@ namespace CVI
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "sstd[micron]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "Sv[1/m]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "Svstd[1/m]", count);
-		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[mm/s]", count);
-		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[mm/s]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[mm/h]", count);
+		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[mm/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[g/m2/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[g/m2/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDep[g/m3/h]", count);
 		OpenSMOKE::PrintTagOnASCIILabel(width, fMonitoring_, "rDepstd[g/m3/h]", count);
+
+		for (unsigned int ii=0;ii<heterogeneousDetailedMechanism_.bulk_nc();ii++)
+		{
+			const std::string name = thermodynamicsSurfaceMap_.vector_names_bulk_species()[ii];
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDep-"+name+"[mm/h]"), count);
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDepstd-"+name+"[mm/h]"), count);
+
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDep-"+name+"[g/m2/h]"), count);
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDepstd-"+name+"[g/m2/h]"), count);
+
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDep-"+name+"[g/m3/h]"), count);
+			OpenSMOKE::PrintTagOnASCIILabel(width_increased, fMonitoring_, ("rDepstd-"+name+"[g/m3/h]"), count);
+		}
 
 		fMonitoring_ << std::endl;
 	}

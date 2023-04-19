@@ -1143,7 +1143,7 @@ int main(int argc, char** argv)
 														*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, 
 														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 														*grid_x, detailed_heterogeneous_kinetics, 
-														SiteNonConservation, surface_dae_species);
+														SiteNonConservation, surface_dae_species, output_path);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
