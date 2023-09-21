@@ -235,6 +235,7 @@ namespace CVI
 		double mass_diffusion_multiplier_;
 
 		PorousSubstrateType porous_substrate_type_;		//!< type of substrate
+		double porous_substrate_correction_coefficient_;	//!< porous substrate correction coefficient
 
 		Eigen::VectorXd gamma_knudsen_;					//!< non-effective mass diffusion coefficients (Knudsen) [m2/s]
 		Eigen::VectorXd gamma_knudsen_effective_;		//!< effective mass diffusion coefficients (Knudsen) [m2/s]

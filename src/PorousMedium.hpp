@@ -115,6 +115,11 @@ namespace CVI
 			}
 		}
 
+		// Porous substrate correction coefficient
+		porous_substrate_correction_coefficient_ = 1.;
+		if (dictionary.CheckOption("@PorousSubstrateCorrectionCoefficient") == true)
+			dictionary.ReadDouble("@PorousSubstrateCorrectionCoefficient", porous_substrate_correction_coefficient_);
+
 		Initialize();
 	}
 
@@ -232,7 +237,7 @@ namespace CVI
 			
 		}
 
-		return sv;
+		return sv*porous_substrate_correction_coefficient_;
 	}
 
 	double PorousMedium::rp()

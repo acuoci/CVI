@@ -59,6 +59,11 @@ namespace CVI
 				"Porous substrate type: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation",
 				true));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousSubstrateCorrectionCoefficient",
+				OpenSMOKE::SINGLE_DOUBLE,
+				"Porous substrate correction coefficient",
+				false));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@MassDiffusionMultiplier",
 				OpenSMOKE::SINGLE_DOUBLE,
 				"Mass diffusion multiplier",
