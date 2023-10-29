@@ -3,11 +3,13 @@ AC_INIT([OpenSMOKEpp_CVI], [0.1], [alberto.cuoci@polimi.it])
 
 AM_INIT_AUTOMAKE
 
-AC_PROG_CC
-AC_PROG_CXX
+AC_PROG_RANLIB([AC_CHECK_PROG(RANLIB, ranlib, ranlib, :)])
 
 AC_PROG_CC([gcc icc])
 AC_PROG_CXX([g++ icpc])
+
+AC_PROG_FC([gfortran ifort])
+AC_PROG_F77([gfortran ifort])
 
 CXXFLAGS=''
 

@@ -66,6 +66,7 @@ void OpenSMOKE_Reactor2D_DaeSystem::assign(CVI::Reactor2D *reactor)
 	ptReactor = reactor;
 }
 
+#include "math/native-dae-solvers/interfaces/TridiagonalBlock_OpenSMOKEppDae.h"
 #include "math/native-dae-solvers/interfaces/Band_OpenSMOKEppDae.h"
 #include "math/native-dae-solvers/interfaces/Sparse_OpenSMOKEppDae.h"
 
