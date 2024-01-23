@@ -56,7 +56,7 @@ namespace CVI
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousSubstrate",
 				OpenSMOKE::SINGLE_STRING,
-				"Porous substrate type: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation",
+				"Porous substrate type: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation | user-defined",
 				true));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorousSubstrateCorrectionCoefficient",
@@ -77,6 +77,11 @@ namespace CVI
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@SmoothingCoefficientPorosity",
 				OpenSMOKE::SINGLE_DOUBLE,
 				"Smoothing coefficient for porosity (default: 200)",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@SpecificAreaProfile",
+				OpenSMOKE::SINGLE_DICTIONARY,
+				"Name of dictionary describing the specific area profile",
 				false));
 		}
 	};

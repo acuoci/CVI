@@ -43,9 +43,10 @@ namespace CVI
 	}
 
 	PorousMedium::PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
-								OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
-								OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
-								OpenSMOKE::OpenSMOKE_Dictionary& dictionary ) :
+					OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
+					OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
+					OpenSMOKE::OpenSMOKE_Dictionary& dictionary,
+				        OpenSMOKE::OpenSMOKE_DictionaryManager& dictionaries ) :
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
 	transportMap_(transportMap)
@@ -103,15 +104,16 @@ namespace CVI
 			if (dictionary.CheckOption("@PorousSubstrate") == true)
 			{
 				dictionary.ReadString("@PorousSubstrate", value);
-				if (value == "polynomial")						porous_substrate_type_ = CVI::POLYNOMIAL;
-				else if (value == "random")						porous_substrate_type_ = CVI::RANDOM;
-				else if (value == "random_hardcore")			porous_substrate_type_ = CVI::RANDOM_HARDCORE;
-				else if (value == "polynomial_onehalf")			porous_substrate_type_ = CVI::POLINOMIAL_ONEHALF;
+				if (value == "polynomial")			porous_substrate_type_ = CVI::POLYNOMIAL;
+				else if (value == "random")			porous_substrate_type_ = CVI::RANDOM;
+				else if (value == "random_hardcore")		porous_substrate_type_ = CVI::RANDOM_HARDCORE;
+				else if (value == "polynomial_onehalf")		porous_substrate_type_ = CVI::POLINOMIAL_ONEHALF;
 				else if (value == "from_spheres_to_cylinders")	porous_substrate_type_ = CVI::FROM_SPHERES_TO_CYLINDERS;
 				else if (value == "deutschmann_correlation")	porous_substrate_type_ = CVI::DEUTSCHMANN_CORRELATION;
 				else if (value == "tang_felt_correlation")	porous_substrate_type_ = CVI::TANG_FELT_CORRELATION;
 				else if (value == "tang_cloth_correlation")	porous_substrate_type_ = CVI::TANG_CLOTH_CORRELATION;
-				else OpenSMOKE::FatalErrorMessage("@PorousSubstrate: Substrates available: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation | tang_felt_correlation | tang_cloth_correlation");
+				else if (value == "user-defined")		porous_substrate_type_ = CVI::USER_DEFINED;
+				else OpenSMOKE::FatalErrorMessage("@PorousSubstrate: Substrates available: polynomial | random | random_hardcore | polynomial_onehalf | from_spheres_to_cylinders | deutschmann_correlation | tang_felt_correlation | tang_cloth_correlation | user-defined");
 			}
 		}
 
@@ -119,6 +121,24 @@ namespace CVI
 		porous_substrate_correction_coefficient_ = 1.;
 		if (dictionary.CheckOption("@PorousSubstrateCorrectionCoefficient") == true)
 			dictionary.ReadDouble("@PorousSubstrateCorrectionCoefficient", porous_substrate_correction_coefficient_);
+
+		// Specific area profile
+		if (porous_substrate_type_ == CVI::USER_DEFINED)
+		{
+			std::string name_of_specific_area_profile_subdictionary;
+			dictionary.ReadDictionary("@SpecificAreaProfile", name_of_specific_area_profile_subdictionary);
+
+			OpenSMOKE::OpenSMOKEVectorDouble x, y;
+			std::string x_variable, y_variable;
+			GetXYProfileFromDictionary(dictionaries(name_of_specific_area_profile_subdictionary), x, y, x_variable, y_variable);
+
+			if (x_variable != "dimensionless")
+				OpenSMOKE::FatalErrorMessage("The @SpecificAreaProfile must be defined versus porosity, which is dimensionless type");
+			if (y_variable != "area-per-unit-of-volume")
+				OpenSMOKE::FatalErrorMessage("The @SpecificAreaProfile must define the specific area profile");
+
+			specific_area_profile_ = new OpenSMOKE::FixedProfile(x.Size(), x.GetHandle(), y.GetHandle());
+		}
 
 		Initialize();
 	}
@@ -233,8 +253,11 @@ namespace CVI
 			const double epsilon3 = epsilon2*epsilon;
 			const double epsilon4 = epsilon2*epsilon2;
 			
-			sv = -1.335107101E+05*epsilon2 +1.479173135E+05*epsilon;
-			
+			sv = -1.335107101E+05*epsilon2 +1.479173135E+05*epsilon;	
+		}
+		else if (porous_substrate_type_ == USER_DEFINED)
+		{			
+			sv = specific_area_profile_->Interpolate(epsilon);	
 		}
 
 		return sv*porous_substrate_correction_coefficient_;
