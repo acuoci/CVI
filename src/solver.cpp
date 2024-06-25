@@ -587,6 +587,14 @@ int main(int argc, char** argv)
 		}
 	}
 
+	// Read the capillary diameter
+	bool is_capillary_knudsen_diffusion = false;
+	if (dictionaries(main_dictionary_name_).CheckOption("@CapillaryKnudsenDiffusion") == true)
+	{
+		
+		dictionaries(main_dictionary_name_).ReadBool("@CapillaryKnudsenDiffusion", is_capillary_knudsen_diffusion);
+	}
+
 	// Read inlet conditions
 	double inlet_T;
 	double inlet_P;
@@ -1153,9 +1161,13 @@ int main(int argc, char** argv)
 		capillary->SetInitialConditions(initial_T, initial_P, capillary_diameter, initial_omega, Gamma0, initial_Z);
 		capillary->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
 		capillary->SetTimeTotal(time_total);
+		capillary->SetKnudsenDiffusion(is_capillary_knudsen_diffusion);
 		capillary->SetDaeTimeInterval(dae_time_interval);
 		capillary->SetOdeEndTime(ode_end_time);
 		capillary->SetTecplotTimeInterval(tecplot_time_interval);
+
+		if (steps_video>0)	capillary->SetStepsVideo(steps_video);
+		if (steps_file>0)	capillary->SetStepsFile(steps_file);
 
 		if (on_the_fly_ropa == true)
 			capillary->SetSurfaceOnTheFlyROPA(onTheFlyROPA);

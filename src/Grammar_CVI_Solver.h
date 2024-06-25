@@ -231,6 +231,11 @@ namespace CVI
 				"Initial diameter of capillary",
 				false));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@CapillaryKnudsenDiffusion",
+				OpenSMOKE::SINGLE_BOOL,
+				"Knudsen diffusion included",
+				false));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@XVelocity",
 				OpenSMOKE::SINGLE_MEASURE,
 				"Uniform velocity along the x axis",

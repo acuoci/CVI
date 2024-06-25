@@ -62,6 +62,7 @@ namespace CVI
 		count_file_ = n_steps_file_;
 		count_tecplot_ = 0;
 		ropa_analysis_ = false;
+		is_knudsen_diffusion_ = false;
 
 		if (detailed_heterogeneous_kinetics_ == true)
 		{
@@ -140,6 +141,60 @@ namespace CVI
 		fMonitoring_.open((output_folder_ / "monitor.out").string().c_str(), std::ios::out);
 		fMonitoring_.setf(std::ios::scientific);
 		PrintLabelMonitoringFile();
+
+		// Production of C(B)
+		{
+			fROPA_CB_.open((output_ropa_folder_ / "ROPA_CB.out").string().c_str(), std::ios::out);
+			fROPA_CB_.setf(std::ios::scientific);
+			
+			fROPA_CB_ << std::left << std::setw(16) << "time[s](1)";
+			fROPA_CB_ << std::left << std::setw(20) << "dep[kmol/m2/s](2)";
+			fROPA_CB_ << std::left << std::setw(20) << "dep[kmol/m3/s](3)";
+			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
+			{
+				std::stringstream index; index << (i + 1);
+				std::stringstream col; col << (i + 4);
+				std::string label = "r" + index.str() + "(" + col.str() + ")";
+				fROPA_CB_ << std::left << std::setw(16) << label;
+			}
+			fROPA_CB_ << std::endl;
+		}
+
+		// Production of c(B)
+		{
+			fROPA_cB_.open((output_ropa_folder_ / "ROPA_cB.out").string().c_str(), std::ios::out);
+			fROPA_cB_.setf(std::ios::scientific);
+			
+			fROPA_cB_ << std::left << std::setw(16) << "time[s](1)";
+			fROPA_cB_ << std::left << std::setw(20) << "dep[kmol/m2/s](2)";
+			fROPA_cB_ << std::left << std::setw(20) << "dep[kmol/m3/s](3)";
+			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
+			{
+				std::stringstream index; index << (i + 1);
+				std::stringstream col; col << (i + 4);
+				std::string label = "r" + index.str() + "(" + col.str() + ")";
+				fROPA_cB_ << std::left << std::setw(16) << label;
+			}
+			fROPA_cB_ << std::endl;
+		}
+
+		// Production of Graphite
+		{
+			fROPA_Graphite_.open((output_ropa_folder_ / "ROPA_Graphite.out").string().c_str(), std::ios::out);
+			fROPA_Graphite_.setf(std::ios::scientific);
+			
+			fROPA_Graphite_ << std::left << std::setw(16) << "time[s](1)";
+			fROPA_Graphite_ << std::left << std::setw(20) << "dep[kg/m2/s](2)";
+			fROPA_Graphite_ << std::left << std::setw(20) << "dep[kg/m3/s](3)";
+			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
+			{
+				std::stringstream index; index << (i + 1);
+				std::stringstream col; col << (i + 4);
+				std::string label = "r" + index.str() + "(" + col.str() + ")";
+				fROPA_Graphite_ << std::left << std::setw(16) << label;
+			}
+			fROPA_Graphite_ << std::endl;
+		}
 		
 		MemoryAllocation();
 		SetAlgebraicDifferentialEquations();
@@ -210,6 +265,16 @@ namespace CVI
 		gamma_star_.resize(np_);
 		for (unsigned int i = 0; i < np_; i++)
 			gamma_star_[i].resize(nc_);
+
+		// Fick diffusion coefficients [m2/s]
+		gamma_fick_.resize(np_);
+		for (unsigned int i = 0; i < np_; i++)
+			gamma_fick_[i].resize(nc_);
+
+		// Knudsen diffusion coefficients [m2/s]
+		gamma_knudsen_.resize(np_);
+		for (unsigned int i = 0; i < np_; i++)
+			gamma_knudsen_[i].resize(nc_);
 
 		// Diffusion fluxes [???]
 		j_star_.resize(np_ - 1);
@@ -468,6 +533,11 @@ namespace CVI
 		count_file_ = n_steps_file_;
 	}
 
+	void Capillary::SetKnudsenDiffusion(const bool flag)
+	{
+		is_knudsen_diffusion_ = flag;
+	}
+
 	void Capillary::Properties()
 	{
 		for (unsigned int i = 0; i < np_; i++)
@@ -498,23 +568,28 @@ namespace CVI
 
 				// Mixture diffusion coefficients
 				{
+					// Fick diffusion
 					transportMap_.MassDiffusionCoefficients(aux_gamma.GetHandle(), aux_X.GetHandle(), false);
 					for (unsigned int j = 0; j < nc_; j++)
-						gamma_star_[i](j) = aux_gamma[j + 1];
+						gamma_fick_[i](j) = aux_gamma[j + 1];
 
 					// Knudsen diffusion
-					/*
+					if (is_knudsen_diffusion_ == true)
 					{
-						const double coefficient = 2. / 3.*(diameter_(i)/2.)*std::sqrt(8.*PhysicalConstants::R_J_kmol*T_(i) / PhysicalConstants::pi);
+						const double coefficient = diameter_(i)/3.*std::sqrt(8.*PhysicalConstants::R_J_kmol*T_(i) / PhysicalConstants::pi);
 		
-						Eigen::VectorXd gamma_knudsen(nc_);
 						for (unsigned int j = 0; j < nc_; j++)
-							gamma_knudsen(j) = coefficient/std::sqrt(thermodynamicsMap_.MW(j));
+							gamma_knudsen_[i](j) = coefficient/std::sqrt(thermodynamicsMap_.MW(j));
 
 						for (unsigned int j = 0; j < nc_; j++)
-							gamma_star_[i](j) = 1./(1./gamma_star_[i](j) + 1./gamma_knudsen(j));
+							gamma_star_[i](j) = 1./(1./gamma_fick_[i](j) + 1./gamma_knudsen_[i](j));
 					}
-					*/
+					// No Knudsen diffusion
+					else
+					{
+						for (unsigned int j = 0; j < nc_; j++)
+							gamma_star_[i](j) = gamma_fick_[i](j);
+					}
 				}
 			}
 
@@ -1711,6 +1786,275 @@ namespace CVI
 			}
 
 			fMonitoring_ << std::endl;
+
+			// ROPA on C(B)
+			{
+				// Bulk activities
+				Eigen::VectorXd a(bulk_nc_);
+				a.setConstant(1.);
+
+				// Index of C(B) species
+				const unsigned int index_of_CB = thermodynamicsSurfaceMap_.IndexOfSpecies("C(B)") - 1;
+
+				// Stoichiometric vector for C(B)
+				const Eigen::SparseMatrix<double> nur = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_reactants();
+				const Eigen::SparseMatrix<double> nuf = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_products();
+				const Eigen::VectorXd nu_CB = nuf.col(index_of_CB)- nur.col(index_of_CB);
+
+				// Total number of reactions
+				const unsigned int nr = nur.rows();
+
+				// Memory allocation
+				// rCB_volume (kmol/m3/s) is the average deposition rate of CB
+				std::vector<Eigen::VectorXd> r_CB_volume(nr);
+				for (unsigned int j = 0; j < nr; j++)
+					r_CB_volume[j].resize(np_);
+
+				// Memory allocation
+				// rCB_area (kmol/m2/s) is the average deposition rate of CB
+				Eigen::VectorXd r_CB_area(np_);
+				r_CB_area.setZero();
+
+				// Loop over all the points
+				for (unsigned int i = 0; i < np_; i++)
+				{
+					// Molar fractions
+					double mw;
+					Eigen::VectorXd omega = Y_[i];
+					Eigen::VectorXd x(omega.size());
+					thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
+
+					// Concentrations (kmol/m3)
+					const double cTot = rho_gas_(i) / mw_(i);
+					Eigen::VectorXd c = cTot*x;
+
+					// Calculates thermodynamic properties
+					thermodynamicsMap_.SetTemperature(T_(i));
+					thermodynamicsMap_.SetPressure(P_(i));
+
+					// Calculates kinetics
+					kineticsMap_.SetTemperature(T_(i));
+					kineticsMap_.SetPressure(P_(i));
+
+					// Heterogeneous mechanism
+					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+					heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+					// Calculation of heterogeneous terms
+					const double Sv = 4. / diameter_(i);
+					heterogeneousDetailedMechanism_.FormationRates(Sv, c, Z_[i], a, Gamma_[i]);
+
+					// Reaction rates
+					std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
+
+					// Contributions to formation of C(B)
+					// The units of heterogeneous gas-solid reaction rates are in kmol/m2/s
+					// We multiply by the surface per unit of volume (1/m) to have the deposition rate in kmol/m3/s
+					for (unsigned int j = 0; j < nr; j++)
+					{
+						r_CB_volume[j](i) = Sv * r[j] * nu_CB(j);
+						r_CB_area(i) += r[j] * nu_CB(j);
+					}
+				}
+
+				// Volume averaged deposition rate in (kmol/m3/s)
+				Eigen::VectorXd r_CB_averaged_volume(nr);
+				for (unsigned int j = 0; j < nr; j++)
+					r_CB_averaged_volume(j) = AreaAveraged(r_CB_volume[j]);
+
+				// Write on file
+				fROPA_CB_ << std::left << std::setw(16) << t;
+				fROPA_CB_ << std::left << std::setw(20) << AreaAveraged(r_CB_area);
+				fROPA_CB_ << std::left << std::setw(20) << r_CB_averaged_volume.sum();
+				for (unsigned int j = 0; j < nr; j++)
+					fROPA_CB_ << std::left << std::setw(16) << r_CB_averaged_volume(j);
+				fROPA_CB_ << std::endl;
+			}
+
+			// ROPA on c(B)
+			if (thermodynamicsSurfaceMap_.IndexOfSpeciesWithoutError("c(B)") > 0)
+			{
+				// Bulk activities
+				Eigen::VectorXd a(bulk_nc_);
+				a.setConstant(1.);
+
+				// Index of C(B) species
+				const unsigned int index_of_cB = thermodynamicsSurfaceMap_.IndexOfSpecies("c(B)") - 1;
+
+				// Stoichiometric vector for C(B)
+				const Eigen::SparseMatrix<double> nur = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_reactants();
+				const Eigen::SparseMatrix<double> nuf = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_products();
+				const Eigen::VectorXd nu_cB = nuf.col(index_of_cB)- nur.col(index_of_cB);
+
+				// Total number of reactions
+				const unsigned int nr = nur.rows();
+
+				// Memory allocation
+				// rcB_volume (kmol/m3/s) is the average deposition rate of cB
+				std::vector<Eigen::VectorXd> r_cB_volume(nr);
+				for (unsigned int j = 0; j < nr; j++)
+					r_cB_volume[j].resize(np_);
+
+				// Memory allocation
+				// rcB_area (kmol/m2/s) is the average deposition rate of cB
+				Eigen::VectorXd r_cB_area(np_);
+				r_cB_area.setZero();
+
+				// Loop over all the points
+				for (unsigned int i = 0; i < np_; i++)
+				{
+					// Molar fractions
+					double mw;
+					Eigen::VectorXd omega = Y_[i];
+					Eigen::VectorXd x(omega.size());
+					thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
+
+					// Concentrations
+					const double cTot = rho_gas_(i) / mw_(i);
+					Eigen::VectorXd c = cTot*x;
+
+					// Calculates thermodynamic properties
+					thermodynamicsMap_.SetTemperature(T_(i));
+					thermodynamicsMap_.SetPressure(P_(i));
+
+					// Calculates kinetics
+					kineticsMap_.SetTemperature(T_(i));
+					kineticsMap_.SetPressure(P_(i));
+
+					// Heterogeneous mechanism
+					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+					heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+					// Calculation of heterogeneous terms
+					const double Sv = 4. / diameter_(i);
+					heterogeneousDetailedMechanism_.FormationRates(Sv, c, Z_[i], a, Gamma_[i]);
+
+					// Reaction rates
+					std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
+
+					// Contributions to formation of C(B)
+					// The units of heterogeneous gas-solid reaction rates are in kmol/m2/s
+					// We multiply by the surface per unit of volume (1/m) to have the deposition rate in kmol/m3/s
+					for (unsigned int j = 0; j < nr; j++)
+					{
+						r_cB_volume[j](i) = Sv * r[j] * nu_cB(j);
+						r_cB_area(i) += r[j] * nu_cB(j);
+					}
+				}
+
+				// Volume averaged deposition rate in (kmol/m3/s)
+				Eigen::VectorXd r_cB_averaged_volume(nr);
+				for (unsigned int j = 0; j < nr; j++)
+					r_cB_averaged_volume(j) = AreaAveraged(r_cB_volume[j]);
+
+				// Write on file
+				fROPA_cB_ << std::left << std::setw(16) << t;
+				fROPA_cB_ << std::left << std::setw(20) << AreaAveraged(r_cB_area);
+				fROPA_cB_ << std::left << std::setw(20) << r_cB_averaged_volume.sum();
+				for (unsigned int j = 0; j < nr; j++)
+					fROPA_cB_ << std::left << std::setw(16) << r_cB_averaged_volume(j);
+				fROPA_cB_ << std::endl;
+			}
+
+			// ROPA on Graphite
+			{
+				// Bulk activities
+				Eigen::VectorXd a(bulk_nc_);
+				a.setConstant(1.);
+
+				// Stoichiometric vectors
+				const Eigen::SparseMatrix<double> nur = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_reactants();
+				const Eigen::SparseMatrix<double> nuf = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_products();
+
+				// Debug
+				const double WC = OpenSMOKE::AtomicWeights["C"];
+				const unsigned int jC = thermodynamicsMap_.IndexOfElementWithoutError("C") - 1;
+				const unsigned int nsolid = nur.cols() - nc_;
+				std::vector<Eigen::VectorXd> nu_surf(nsolid);
+				Eigen::VectorXd ratio_c_over_tot(nsolid);
+				for (unsigned int k=0;k<nsolid;k++)
+				{
+					nu_surf[k] = nuf.col(nc_+k)- nur.col(nc_+k);
+					ratio_c_over_tot(k) = WC*thermodynamicsSurfaceMap_.atomic_composition()(nc_+k,jC)/thermodynamicsSurfaceMap_.MW(nc_+k);
+				}
+
+				// Total number of reactions
+				const unsigned int nr = nur.rows();
+
+				// Memory allocation
+				// rGraphite (kmol/m3/s) is the average deposition rate of graphite
+				std::vector<Eigen::VectorXd> r_Graphite_volume(nr);
+				for (unsigned int j = 0; j < nr; j++)
+				{
+					r_Graphite_volume[j].resize(np_);		
+					r_Graphite_volume[j].setZero();
+				}
+
+				// Memory allocation
+				// rGraphite (kmol/m2/s) is the average deposition rate of graphite
+				Eigen::VectorXd r_Graphite_area(np_);
+				r_Graphite_area.setZero();
+
+				// Loop over all the points
+				for (unsigned int i = 0; i < np_; i++)
+				{
+					// Molar fractions
+					double mw;
+					Eigen::VectorXd omega = Y_[i];
+					Eigen::VectorXd x(omega.size());
+					thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
+
+					// Concentrations
+					const double cTot = rho_gas_(i) / mw_(i);
+					Eigen::VectorXd c = cTot*x;
+
+					// Calculates thermodynamic properties
+					thermodynamicsMap_.SetTemperature(T_(i));
+					thermodynamicsMap_.SetPressure(P_(i));
+
+					// Calculates kinetics
+					kineticsMap_.SetTemperature(T_(i));
+					kineticsMap_.SetPressure(P_(i));
+
+					// Heterogeneous mechanism
+					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+					heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+					// Calculation of heterogeneous terms
+					const double Sv = 4. / diameter_(i);
+					heterogeneousDetailedMechanism_.FormationRates(Sv, c, Z_[i], a, Gamma_[i]);
+
+					// Reaction rates
+					std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
+
+					// Contributions to formation of Graphite
+					// The units of heterogeneous gas-solid reaction rates are in kmol/m2/s
+					// We multiply by the surface per unit of volume (1/m) to have the deposition rate in kmol/m3/s
+					// Then we multiply times the molecular weight to have kg/m3/s
+					for (unsigned int k=0;k<nsolid;k++)
+					{
+						for (unsigned int j = 0; j < nr; j++)
+						{
+							r_Graphite_volume[j](i) += Sv * r[j] * nu_surf[k](j) * thermodynamicsSurfaceMap_.MW(nc_+k)*ratio_c_over_tot(k);
+							r_Graphite_area(i) += r[j] * nu_surf[k](j) * thermodynamicsSurfaceMap_.MW(nc_+k)*ratio_c_over_tot(k);
+						}
+						
+					}
+				}
+
+				// Volume averaged deposition rate in (kg/m3/s)
+				Eigen::VectorXd r_Graphite_averaged_volume(nr);
+				for (unsigned int j = 0; j < nr; j++)
+					r_Graphite_averaged_volume(j) = AreaAveraged(r_Graphite_volume[j]);
+
+				// Write on file
+				fROPA_Graphite_ << std::left << std::setw(16) << t;
+				fROPA_Graphite_ << std::left << std::setw(20) << AreaAveraged(r_Graphite_area);
+				fROPA_Graphite_ << std::left << std::setw(20) << r_Graphite_averaged_volume.sum();
+				for (unsigned int j = 0; j < nr; j++)
+					fROPA_Graphite_ << std::left << std::setw(16) << r_Graphite_averaged_volume(j);
+				fROPA_Graphite_ << std::endl;
+			}
 
 			count_file_ = 0;
 		}

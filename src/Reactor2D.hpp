@@ -265,7 +265,7 @@ namespace CVI
 			fROPA_Graphite_.setf(std::ios::scientific);
 			
 			fROPA_Graphite_ << std::left << std::setw(16) << "time[s](1)";
-			fROPA_Graphite_ << std::left << std::setw(20) << "dep[kmol/m3/s](2)";
+			fROPA_Graphite_ << std::left << std::setw(20) << "dep[kg/m3/s](2)";
 			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
 			{
 				std::stringstream index; index << (i + 1);
