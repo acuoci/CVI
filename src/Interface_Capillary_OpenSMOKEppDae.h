@@ -66,5 +66,7 @@ void OpenSMOKE_Capillary_DaeSystem::assign(CVI::Capillary *reactor)
 	ptCapillary = reactor;
 }
 
+#include "math/native-dae-solvers/interfaces/TridiagonalBlock_OpenSMOKEppDae.h"
 #include "math/native-dae-solvers/interfaces/Band_OpenSMOKEppDae.h"
+#include "math/native-dae-solvers/interfaces/Sparse_OpenSMOKEppDae.h"
 

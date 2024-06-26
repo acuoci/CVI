@@ -1205,7 +1205,28 @@ namespace CVI
 
 	int Capillary::Solve(DaeSMOKE::DaeSolver_Parameters& dae_parameters, const double t0, const double tf)
 	{
-		int flag = DaeSMOKE::Solve_Band_OpenSMOKEppDae<Capillary, OpenSMOKE_Capillary_DaeSystem>(this, dae_parameters, t0, tf);
+		int flag = 0;
+
+		if (dae_parameters.type() == DaeSMOKE::DaeSolver_Parameters::DAE_INTEGRATOR_OPENSMOKEPP)
+		{
+			if (dae_parameters.sparse_linear_algebra() == false)
+			{
+				if (dae_parameters.jacobian_structure() == OpenSMOKE::JacobianStructureType::JACOBIAN_STRUCTURE_BAND)
+				{
+					flag = DaeSMOKE::Solve_Band_OpenSMOKEppDae<Capillary, OpenSMOKE_Capillary_DaeSystem>(this, dae_parameters, t0, tf);
+				}
+				else if (dae_parameters.jacobian_structure() == OpenSMOKE::JacobianStructureType::JACOBIAN_STRUCTURE_TRIDIAGONAL_BLOCK ||
+					 dae_parameters.jacobian_structure() == OpenSMOKE::JacobianStructureType::JACOBIAN_STRUCTURE_DENSE )
+				{
+					flag = DaeSMOKE::Solve_TridiagonalBlock_OpenSMOKEppDae<Capillary, OpenSMOKE_Capillary_DaeSystem>(this, dae_parameters, 0., tf);
+				}
+			}
+			else
+			{
+				flag = DaeSMOKE::Solve_Sparse_OpenSMOKEppDae<Capillary, OpenSMOKE_Capillary_DaeSystem>(this, dae_parameters, t0, tf);
+			}
+		}
+
 		return flag;
 	}
 
