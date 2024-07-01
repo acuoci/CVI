@@ -25,7 +25,7 @@
 \*-----------------------------------------------------------------------*/
 
 #include <boost/timer/timer.hpp>
-#include <ida/ida_spils.h>
+#include <ida/ida_ls.h>
 
 typedef struct 
 {
@@ -34,11 +34,11 @@ typedef struct
 } *IDAUserData;
 
 
-int ida_equations(realtype t, N_Vector y, N_Vector yp, N_Vector res, void *user_data)
+int ida_equations(sunrealtype t, N_Vector y, N_Vector yp, N_Vector res, void *user_data)
 {
-	realtype *pt_y = NV_DATA_S(y);
-	realtype *pt_res = NV_DATA_S(res);
-	realtype *pt_yp = NV_DATA_S(yp);
+	sunrealtype *pt_y = NV_DATA_S(y);
+	sunrealtype *pt_res = NV_DATA_S(res);
+	sunrealtype *pt_yp = NV_DATA_S(yp);
 
 	reactor2d->Equations(t, pt_y, pt_res);
 	reactor2d->CorrectDifferentialEquations(pt_yp, pt_res);
@@ -46,10 +46,10 @@ int ida_equations(realtype t, N_Vector y, N_Vector yp, N_Vector res, void *user_
 	return 0;
 }
 
-int ida_initial_derivatives(realtype t, N_Vector y, N_Vector yp, void *user_data)
+int ida_initial_derivatives(sunrealtype t, N_Vector y, N_Vector yp, void *user_data)
 {
-	realtype *pt_y = NV_DATA_S(y);
-	realtype *pt_yp = NV_DATA_S(yp);
+	sunrealtype *pt_y = NV_DATA_S(y);
+	sunrealtype *pt_yp = NV_DATA_S(yp);
 
 	reactor2d->Equations(t, pt_y, pt_yp);
 	reactor2d->CorrectAlgebraicEquations(pt_yp);
@@ -57,25 +57,25 @@ int ida_initial_derivatives(realtype t, N_Vector y, N_Vector yp, void *user_data
 	return 0;
 }
 
-int ida_preconditioner_setup(realtype t, N_Vector y, N_Vector yp, N_Vector rr, realtype c_j, void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
+int ida_preconditioner_setup(sunrealtype t, N_Vector y, N_Vector yp, N_Vector rr, sunrealtype c_j, void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
 	IDAUserData data;
 	data = (IDAUserData)user_data;
 
-	realtype *pt_y = NV_DATA_S(y);
-	realtype *pt_J = NV_DATA_S(data->J);
+	sunrealtype *pt_y = NV_DATA_S(y);
+	sunrealtype *pt_J = NV_DATA_S(data->J);
 
 	reactor2d->DiagonalJacobian(t, pt_y, pt_J);
 	reactor2d->DiagonalJacobianForIDA(c_j, pt_J);
 
-	realtype *pt_invJ = NV_DATA_S(data->invJ);
+	sunrealtype *pt_invJ = NV_DATA_S(data->invJ);
 	for (int i = 0; i < NV_LENGTH_S(y); i++)
 		pt_invJ[i] = 1. / pt_J[i];
 
 	return(0);
 }
 
-int ida_preconditioner_solution(realtype t, N_Vector y, N_Vector yp, N_Vector rr, N_Vector rvec, N_Vector zvec, realtype c_j, realtype delta, void *user_data, N_Vector tmp)
+int ida_preconditioner_solution(sunrealtype t, N_Vector y, N_Vector yp, N_Vector rr, N_Vector rvec, N_Vector zvec, sunrealtype c_j, sunrealtype delta, void *user_data, N_Vector tmp)
 {
 	IDAUserData data;
 	data = (IDAUserData)user_data;
@@ -85,13 +85,11 @@ int ida_preconditioner_solution(realtype t, N_Vector y, N_Vector yp, N_Vector rr
 	return(0);
 }
 
-int ida_print_solution(realtype t, N_Vector y)
+int ida_print_solution(sunrealtype t, N_Vector y)
 {
 	double* ydata = N_VGetArrayPointer(y);
 	reactor2d->Print(t, ydata);
 	return 0;
 }
 
-
-#include "math\native-dae-solvers\interfaces\Band_Ida.h"
-
+#include "math/native-dae-solvers/interfaces/Band_Ida.h"

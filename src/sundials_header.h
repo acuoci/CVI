@@ -35,9 +35,9 @@
 \*-----------------------------------------------------------------------*/
 
 #include <ida/ida.h>
-#include <ida/ida_direct.h>
+#include <ida/ida_ls.h>
 #include <kinsol/kinsol.h>
-#include <kinsol/kinsol_direct.h>
+#include <kinsol/kinsol_ls.h>
 #include <nvector/nvector_serial.h>
 #include <sundials/sundials_types.h>
 
@@ -70,30 +70,30 @@ static int check_flag(void *flagvalue, char *funcname, int opt)
 	return(0);
 }
 
-realtype N_SumAbs(N_Vector x)
+sunrealtype N_SumAbs(N_Vector x)
 {
-	realtype *xd;
+	sunrealtype *xd;
 	xd = NULL;
 
 	long int N = NV_LENGTH_S(x);
 	xd = NV_DATA_S(x);
 
-	realtype sum = 0.;
+	sunrealtype sum = 0.;
 	for (long int i = 0; i < N; i++)
 		sum += std::fabs(xd[i]);
 
 	return(sum);
 }
 
-realtype N_Norm2(N_Vector x)
+sunrealtype N_Norm2(N_Vector x)
 {
-	realtype *xd;
+	sunrealtype *xd;
 	xd = NULL;
 
 	long int N = NV_LENGTH_S(x);
 	xd = NV_DATA_S(x);
 
-	realtype sum = 0.;
+	sunrealtype sum = 0.;
 	for (long int i = 0; i < N; i++)
 		sum += xd[i] * xd[i];
 
