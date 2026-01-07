@@ -1015,7 +1015,7 @@ int main(int argc, char** argv)
 										*porous_medium, 
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 										*grid_x, detailed_heterogeneous_kinetics,
-										SiteNonConservation, surface_dae_species, output_path);
+										SiteNonConservation, gas_dae_species, surface_dae_species, output_path, porosity_treatment);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -1092,7 +1092,7 @@ int main(int argc, char** argv)
 			*porous_medium,
 			*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 			*grid_x, detailed_heterogeneous_kinetics,
-			SiteNonConservation, surface_dae_species, output_path);
+			SiteNonConservation, gas_dae_species, surface_dae_species, output_path, porosity_treatment);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());

@@ -56,6 +56,8 @@ namespace CVI
 	This class provides the tools to solve the reaction-diffusion equations in 1D 
 	*/
 
+	enum PorosityTreatment { POROSITY_COUPLED, POROSITY_DECOUPLED_CUMULATIVE, POROSITY_DECOUPLED_FINALVALUE };
+
 	class Reactor1D
 	{
 	public:
@@ -81,8 +83,10 @@ namespace CVI
 					OpenSMOKE::Grid1D& grid,
 					const bool detailed_heterogeneous_kinetics,
 					const std::vector<bool>& site_non_conservation,
-					const std::string dae_species,
-					const boost::filesystem::path output_folder);
+					const std::string gas_dae_species,
+					const std::string surface_dae_species,
+					const boost::filesystem::path output_folder,
+					const PorosityTreatment porosity_treatment );
 
 		/**
 		*@brief Sets the planar symmetry
@@ -357,7 +361,8 @@ namespace CVI
 		bool dae_formulation_;
 		bool detailed_heterogeneous_kinetics_;
 		double rho_graphite_;
-		unsigned int dae_species_index_;
+		unsigned int surface_dae_species_index_;
+		unsigned int gas_dae_species_index_;
 
 		int i_current;
 
@@ -410,6 +415,9 @@ namespace CVI
 		Eigen::VectorXd					Sv_;				//!< available area per unit of volume [1/m]
 		Eigen::VectorXd					rp_;				//!< radius of pores [m]
 
+		Eigen::VectorXd					epsilon_old_;						//!< porosity of porous medium [-]
+		Eigen::VectorXd					cumulative_epsilon_source_term_;	//!< source term for epsilon (cumulative) [-]
+
 		// Reactions	
 		std::vector<Eigen::VectorXd>	omega_homogeneous_from_homogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
 		std::vector<Eigen::VectorXd>	omega_homogeneous_from_heterogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneus reactions)
@@ -456,12 +464,17 @@ namespace CVI
 		Eigen::VectorXd						aux_eigen;			//!< auxiliary eigen vector
 		
 		// Output
+		double t_old_;								//!< time at the end of the previous step [s]
+		double t_final_;							//!< final time for the current macro time step [s]
 		unsigned int n_steps_video_;				//!< number of steps for updating info on the screen
 		unsigned int n_steps_file_;					//!< number of steps for updating info on files
 		unsigned int count_dae_video_;				//!< counter of steps for updating info on the screen
 		unsigned int count_ode_video_;				//!< counter of steps for updating info on the screen
 		unsigned int count_file_;					//!< counter of steps for updating info on file
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
+		std::ofstream fROPA_CB_;					//!< name of file where to write production history of C(B)
+		std::ofstream fROPA_cB_;					//!< name of file where to write production history of c(B)
+		std::ofstream fROPA_Graphite_;					//!< name of file where to write production history of graphite
 
 		// Output folders
 		boost::filesystem::path output_folder_;					//!< name of output folder
@@ -486,6 +499,8 @@ namespace CVI
 		#if OPENSMOKE_USE_BZZMATH == 1
 			BzzDaeSparseObject dae_object_;
 		#endif
+
+		enum PorosityTreatment porosity_treatment_;			// How the porosity equation is included in the system of equations
 	};
 }
 
