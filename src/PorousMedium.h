@@ -33,9 +33,12 @@
 // CHEMKIN maps
 #include "maps/Maps_CHEMKIN"
 
+// Fixed profile
+#include "utilities/profiles/FixedProfile.h"
+
 namespace CVI
 {
-	enum PorousSubstrateType { POLYNOMIAL, RANDOM, RANDOM_HARDCORE, POLINOMIAL_ONEHALF, FROM_SPHERES_TO_CYLINDERS, DEUTSCHMANN_CORRELATION };
+	enum PorousSubstrateType { POLYNOMIAL, RANDOM, RANDOM_HARDCORE, POLINOMIAL_ONEHALF, FROM_SPHERES_TO_CYLINDERS, DEUTSCHMANN_CORRELATION, TANG_FELT_CORRELATION, TANG_CLOTH_CORRELATION, USER_DEFINED };
 
 	//!  A class to manage properties of porous media
 	/*!
@@ -64,7 +67,8 @@ namespace CVI
 		PorousMedium(	OpenSMOKE::ThermodynamicsMap_CHEMKIN& thermodynamicsMap,
 						OpenSMOKE::KineticsMap_CHEMKIN& kineticsMap,
 						OpenSMOKE::TransportPropertiesMap_CHEMKIN& transportMap,
-						OpenSMOKE::OpenSMOKE_Dictionary& dictionary);
+						OpenSMOKE::OpenSMOKE_Dictionary& dictionary,
+						OpenSMOKE::OpenSMOKE_DictionaryManager& dictionaries);
 
 		/**
 		*@brief Sets the temperature at which the properties have to be evaluated
@@ -198,6 +202,7 @@ namespace CVI
 		*/
 		void FickEffectiveDiffusionCoefficients(const Eigen::VectorXd& mole_fractions);
 
+
 		/**
 		*@brief Prints useful data on the screen
 		*/
@@ -235,6 +240,7 @@ namespace CVI
 		double mass_diffusion_multiplier_;
 
 		PorousSubstrateType porous_substrate_type_;		//!< type of substrate
+		double porous_substrate_correction_coefficient_;	//!< porous substrate correction coefficient
 
 		Eigen::VectorXd gamma_knudsen_;					//!< non-effective mass diffusion coefficients (Knudsen) [m2/s]
 		Eigen::VectorXd gamma_knudsen_effective_;		//!< effective mass diffusion coefficients (Knudsen) [m2/s]
@@ -244,6 +250,8 @@ namespace CVI
 
 		double epsilon_threshold_;
 		double epsilon_smoothing_coefficient_;
+
+		OpenSMOKE::FixedProfile* specific_area_profile_;		//!< specific area profile
 	};
 }
 

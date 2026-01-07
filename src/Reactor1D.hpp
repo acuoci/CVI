@@ -49,8 +49,10 @@ namespace CVI
 							OpenSMOKE::Grid1D& grid,
 							const bool detailed_heterogeneous_kinetics,
 							const std::vector<bool>& site_non_conservation,
-							const std::string dae_species,
-							const boost::filesystem::path output_folder) :
+							const std::string gas_dae_species,
+							const std::string surface_dae_species,
+							const boost::filesystem::path output_folder,
+							const PorosityTreatment porosity_treatment ) :
 
 	thermodynamicsMap_(thermodynamicsMap),
 	kineticsMap_(kineticsMap),
@@ -63,8 +65,11 @@ namespace CVI
 	grid_(grid),
 	detailed_heterogeneous_kinetics_(detailed_heterogeneous_kinetics),
 	site_non_conservation_(site_non_conservation),
-	output_folder_(output_folder)
+	output_folder_(output_folder),
+	porosity_treatment_(porosity_treatment)
 	{
+		t_old_ = 0.;
+		t_final_ = 0.;
 		n_steps_video_ = 10;
 		count_dae_video_ = 1;
 		count_ode_video_ = 1;
@@ -97,14 +102,18 @@ namespace CVI
 			bulk_nc_ = thermodynamicsSurfaceMap_.number_of_bulk_species();
 
 			// Block size
-			block_ = nc_ + 1 + surf_np_ + surf_nc_;
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				block_ = nc_ + 1 + surf_np_ + surf_nc_;
+			else
+				block_ = nc_ + 0 + surf_np_ + surf_nc_;
+
 
 			// Graphite density [kg/m3]
 			rho_graphite_ = heterogeneousDetailedMechanism_.rho_graphite();
 
 			// Dae species
 			dae_formulation_ = true;
-			dae_species_index_ = thermodynamicsSurfaceMap_.IndexOfSpecies(dae_species) - (nc_ + 1);
+			surface_dae_species_index_ = thermodynamicsSurfaceMap_.IndexOfSpecies(surface_dae_species) - (nc_ + 1);
 		}
 		else
 		{
@@ -122,7 +131,10 @@ namespace CVI
 			bulk_nc_ = 0;
 
 			// Block size
-			block_ = nc_ + 1;
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				block_ = nc_ + 1;
+			else
+				block_ = nc_ + 0;
 
 			// Graphite density [kg/m3]
 			rho_graphite_ = heterogeneousMechanism_.rho_graphite();
@@ -136,6 +148,8 @@ namespace CVI
 		band_size_ = 2 * block_ - 1;
 
 		planar_symmetry_ = true;
+
+		gas_dae_species_index_ = thermodynamicsMap_.IndexOfSpecies(gas_dae_species)-1;
 
 		output_matlab_folder_ = output_folder_ / "Matlab";
 		OpenSMOKE::CreateDirectory(output_matlab_folder_);
@@ -156,6 +170,57 @@ namespace CVI
 		fMonitoring_.setf(std::ios::scientific);
 		PrintLabelMonitoringFile();
 
+		// Production of C(B)
+		{
+			fROPA_CB_.open((output_ropa_folder_ / "ROPA_CB.out").string().c_str(), std::ios::out);
+			fROPA_CB_.setf(std::ios::scientific);
+			
+			fROPA_CB_ << std::left << std::setw(16) << "time[s](1)";
+			fROPA_CB_ << std::left << std::setw(20) << "dep[kmol/m3/s](2)";
+			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
+			{
+				std::stringstream index; index << (i + 1);
+				std::stringstream col; col << (i + 3);
+				std::string label = "r" + index.str() + "(" + col.str() + ")";
+				fROPA_CB_ << std::left << std::setw(16) << label;
+			}
+			fROPA_CB_ << std::endl;
+		}
+
+		// Production of c(B)
+		{
+			fROPA_cB_.open((output_ropa_folder_ / "ROPA_cB.out").string().c_str(), std::ios::out);
+			fROPA_cB_.setf(std::ios::scientific);
+			
+			fROPA_cB_ << std::left << std::setw(16) << "time[s](1)";
+			fROPA_cB_ << std::left << std::setw(20) << "dep[kmol/m3/s](2)";
+			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
+			{
+				std::stringstream index; index << (i + 1);
+				std::stringstream col; col << (i + 3);
+				std::string label = "r" + index.str() + "(" + col.str() + ")";
+				fROPA_cB_ << std::left << std::setw(16) << label;
+			}
+			fROPA_cB_ << std::endl;
+		}
+
+		// Production of Graphite
+		{
+			fROPA_Graphite_.open((output_ropa_folder_ / "ROPA_Graphite.out").string().c_str(), std::ios::out);
+			fROPA_Graphite_.setf(std::ios::scientific);
+			
+			fROPA_Graphite_ << std::left << std::setw(16) << "time[s](1)";
+			fROPA_Graphite_ << std::left << std::setw(20) << "dep[kg/m3/s](2)";
+			for (unsigned int i = 0; i < kineticsSurfaceMap_.NumberOfReactions(); i++)
+			{
+				std::stringstream index; index << (i + 1);
+				std::stringstream col; col << (i + 3);
+				std::string label = "r" + index.str() + "(" + col.str() + ")";
+				fROPA_Graphite_ << std::left << std::setw(16) << label;
+			}
+			fROPA_Graphite_ << std::endl;
+		}
+
 		MemoryAllocation();
 		SetAlgebraicDifferentialEquations();
 	}
@@ -174,6 +239,8 @@ namespace CVI
 		
 		// Porosity [-]
 		epsilon_.resize(np_);
+		epsilon_old_.resize(np_);
+		cumulative_epsilon_source_term_.resize(np_);
 
 		// Permeability [m2]
 		permeability_.resize(np_);
@@ -267,7 +334,8 @@ namespace CVI
 		drho_gas_over_dx_.resize(np_);
 
 		// Time derivatives: porosity [1/s]
-		depsilon_over_dt_.resize(np_);
+		if (porosity_treatment_ == POROSITY_COUPLED)
+			depsilon_over_dt_.resize(np_);
 
 		// Reset to zero
 		for (unsigned int i = 0; i < np_-1; i++)
@@ -381,7 +449,11 @@ namespace CVI
 		{
 			for (unsigned int j = 0; j < nc_; j++)
 				id_equations_[count++] = false;
-			id_equations_[count++] = true;
+
+			// Porosity
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				id_equations_[count++] = true;
+
 			for (unsigned int j = 0; j < surf_np_; j++)
 				id_equations_[count++] = true;
 
@@ -392,10 +464,10 @@ namespace CVI
 			}
 			else
 			{
-				for (unsigned int j = 0; j < dae_species_index_; j++)
+				for (unsigned int j = 0; j < surface_dae_species_index_; j++)
 					id_equations_[count++] = true;
 				id_equations_[count++] = false;
-				for (unsigned int j = dae_species_index_ + 1; j < surf_nc_; j++)
+				for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
 					id_equations_[count++] = true;
 			}
 		}
@@ -403,9 +475,17 @@ namespace CVI
 		// Internal points
 		for (int i = 1; i < grid_.Ni(); i++)
 		{
-			for (unsigned int j = 0; j < nc_; j++)
+			// Species
+			for (unsigned int j = 0; j < gas_dae_species_index_; j++)
 				id_equations_[count++] = true;
-			id_equations_[count++] = true;
+			id_equations_[count++] = false;
+			for (unsigned int j = gas_dae_species_index_ + 1; j < nc_; j++)
+				id_equations_[count++] = true;
+
+			// Porosity
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				id_equations_[count++] = true;
+
 			for (unsigned int j = 0; j < surf_np_; j++)
 				id_equations_[count++] = true;
 
@@ -416,10 +496,10 @@ namespace CVI
 			}
 			else
 			{
-				for (unsigned int j = 0; j < dae_species_index_; j++)
+				for (unsigned int j = 0; j < surface_dae_species_index_; j++)
 					id_equations_[count++] = true;
 				id_equations_[count++] = false;
-				for (unsigned int j = dae_species_index_ + 1; j < surf_nc_; j++)
+				for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
 					id_equations_[count++] = true;
 			}
 		}
@@ -428,7 +508,11 @@ namespace CVI
 		{
 			for (unsigned int j = 0; j < nc_; j++)
 				id_equations_[count++] = false;
-			id_equations_[count++] = true;
+			
+			// Porosity
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				id_equations_[count++] = true;
+
 			for (unsigned int j = 0; j < surf_np_; j++)
 				id_equations_[count++] = true;
 
@@ -439,10 +523,10 @@ namespace CVI
 			}
 			else
 			{
-				for (unsigned int j = 0; j < dae_species_index_; j++)
+				for (unsigned int j = 0; j < surface_dae_species_index_; j++)
 					id_equations_[count++] = true;
 				id_equations_[count++] = false;
-				for (unsigned int j = dae_species_index_ + 1; j < surf_nc_; j++)
+				for (unsigned int j = surface_dae_species_index_ + 1; j < surf_nc_; j++)
 					id_equations_[count++] = true;
 			}
 		}
@@ -550,6 +634,10 @@ namespace CVI
 		P_.setConstant(P_gas);
 		T_.setConstant(T_gas);
 		epsilon_.setConstant(porousMedium_.porosity());
+
+		// Store epsilon
+		epsilon_old_ = epsilon_;
+		cumulative_epsilon_source_term_.setZero();
 	}
 
 	void Reactor1D::Properties()
@@ -770,8 +858,14 @@ namespace CVI
 		// Internal points
 		for (int i = 1; i < grid_.Ni(); i++)
 		{
+			const int center = i;
+			const int east  = center + 1;
+			const int west  = center - 1;
+			
+
 			for (unsigned int j = 0; j < nc_; j++)
 			{
+				/*
 				// Explicit derivatives
 				if (planar_symmetry_ == true)
 				{
@@ -788,7 +882,28 @@ namespace CVI
 				dY_over_dt_[i](j) += epsilon_(i)*omega_homogeneous_from_homogeneous_[i](j) + omega_homogeneous_from_heterogeneous_[i](j) - Y_[i](j)*omega_loss_per_unit_volume_(i);
 
 				dY_over_dt_[i](j) /= (rho_gas_(i)*epsilon_(i));
+				*/
+
+				const double c_east = 0.50* (gamma_star_[east](j)*rho_gas_[east] + gamma_star_[center](j)*rho_gas_[center]);
+				const double c_west = 0.50* (gamma_star_[west](j)*rho_gas_[west] + gamma_star_[center](j)*rho_gas_[center]);
+				      double diffusion = (c_east*(Y_[east](j) - Y_[center](j)) / grid_.dxe()(i)-c_west*(Y_[center](j) - Y_[west](j)) / grid_.dxw()(i)) / grid_.dxc_over_2()(i);
+
+				const double homogeneous_reactions = epsilon_(center)*omega_homogeneous_from_homogeneous_[center](j);
+				const double heterogeneous_reactions = 	omega_homogeneous_from_heterogeneous_[center](j) + 
+									Y_[center](j)*omega_deposition_per_unit_volume_(center);
+
+				if (planar_symmetry_ == false)
+				{
+					const double dY_over_dr = (Y_[east](j) - Y_[west](j)) / (grid_.x()[i + 1] - grid_.x()[i - 1]);
+					const double diffusion_radial = gamma_star_[center](j)*rho_gas_[center] * dY_over_dr / grid_.x()[i];
+					diffusion += diffusion_radial;
+				}
+
+				dY_over_dt_[center](j) = diffusion + homogeneous_reactions + heterogeneous_reactions;
+				dY_over_dt_[center](j) /= (rho_gas_(center)*epsilon_(center));
 			}
+
+			dY_over_dt_[center](gas_dae_species_index_) = 1.-Y_[center].sum();
 		}
 
 		// External side
@@ -798,18 +913,22 @@ namespace CVI
 
 	void Reactor1D::SubEquations_Porosity()
 	{
-		// Internal side
-		if (planar_symmetry_ == true)
-			depsilon_over_dt_(0) = -omega_deposition_per_unit_volume_(0) / rho_graphite_;
-		else
-			depsilon_over_dt_(0) = -omega_deposition_per_unit_volume_(0) / rho_graphite_;
+		if (porosity_treatment_ == POROSITY_COUPLED)
+		{
 
-		// Internal points
-		for (int i = 1; i < grid_.Ni(); i++)
-			depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
+			// Internal side
+			if (planar_symmetry_ == true)
+				depsilon_over_dt_(0) = -omega_deposition_per_unit_volume_(0) / rho_graphite_;
+			else
+				depsilon_over_dt_(0) = -omega_deposition_per_unit_volume_(0) / rho_graphite_;
 
-		// External side
-		depsilon_over_dt_(grid_.Ni()) = -omega_deposition_per_unit_volume_(grid_.Ni()) / rho_graphite_;
+			// Internal points
+			for (int i = 1; i < grid_.Ni(); i++)
+				depsilon_over_dt_(i) = -omega_deposition_per_unit_volume_(i) / rho_graphite_;
+
+			// External side
+			depsilon_over_dt_(grid_.Ni()) = -omega_deposition_per_unit_volume_(grid_.Ni()) / rho_graphite_;
+		}
 	}
 
 	void Reactor1D::SubEquations_SurfaceSpeciesFractions()
@@ -833,7 +952,7 @@ namespace CVI
 			}
 
 			if (dae_formulation_ == true)
-				dZ_over_dt_[i](dae_species_index_) = 1. - Z_[i].sum();
+				dZ_over_dt_[i](surface_dae_species_index_) = 1. - Z_[i].sum();
 		}
 	}
 
@@ -945,7 +1064,8 @@ namespace CVI
 				Y_[i](j) = y[count++];
 
 			// Porosity
-			epsilon_(i) = y[count++];
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				epsilon_(i) = y[count++];
 
 			// Surface densities
 			for (unsigned int j = 0; j < surf_np_; j++)
@@ -973,7 +1093,8 @@ namespace CVI
 				dy[count++] = dY_over_dt_[i](j);
 			
 			// Porosity
-			dy[count++] = depsilon_over_dt_(i);
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				dy[count++] = depsilon_over_dt_(i);
 
 			// Surface densities
 			for (unsigned int j = 0; j < surf_np_; j++)
@@ -1003,7 +1124,8 @@ namespace CVI
 			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = Y_[i](j);
 
-			v[count++] = epsilon_[i];
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				v[count++] = epsilon_[i];
 
 			for (unsigned int j = 0; j < surf_np_; j++)
 				v[count++] = GammaFromEqn_[i](j);
@@ -1021,7 +1143,8 @@ namespace CVI
 			for (unsigned int j = 0; j < nc_; j++)
 				Y_[i](j) = v[count++];
 
-			epsilon_(i) = v[count++];
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				epsilon_(i) = v[count++];
 
 			for (unsigned int j = 0; j < surf_np_; j++)
 				GammaFromEqn_[i](j) = v[count++];
@@ -1046,7 +1169,8 @@ namespace CVI
 			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = zero;
 
-			v[count++] = zero;
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				v[count++] = zero;
 
 			for (unsigned int j = 0; j < surf_np_; j++)
 				v[count++] = zero;
@@ -1066,7 +1190,8 @@ namespace CVI
 			for (unsigned int j = 0; j < nc_; j++)
 				v[count++] = one;
 
-			v[count++] = one;
+			if (porosity_treatment_ == POROSITY_COUPLED)
+				v[count++] = one;
 
 			for (unsigned int j = 0; j < surf_np_; j++)
 				v[count++] = one;
@@ -1231,8 +1356,15 @@ namespace CVI
 		unsigned int number_intervals = static_cast<unsigned int>(time_total_ / dae_time_interval_);
 		for (unsigned int k = 1; k <= number_intervals; k++)
 		{
+			
 			const double t0 = (k - 1)*dae_time_interval_;
 			const double tf = t0 + dae_time_interval_;
+			t_old_ = t0;
+			t_final_ = tf;
+
+			// Old values
+			cumulative_epsilon_source_term_.setZero();
+			epsilon_old_ = epsilon_;
 
 			// Solve
 			int flag = Solve(dae_parameters, t0, tf);
@@ -1254,6 +1386,21 @@ namespace CVI
 
 			if (ropa_analysis_ == true)
 				PrintROPA(tf, (output_ropa_folder_ / ropa_file).string().c_str());
+
+			// Update porosity
+			if (porosity_treatment_ != POROSITY_COUPLED)
+			{
+				if (porosity_treatment_ == POROSITY_DECOUPLED_CUMULATIVE)
+				{
+					for (unsigned int i = 0; i < np_; i++)
+						epsilon_(i) = epsilon_old_(i) + cumulative_epsilon_source_term_(i);
+				}
+				else if (porosity_treatment_ == POROSITY_DECOUPLED_FINALVALUE)
+				{
+					for (unsigned int i = 0; i < np_; i++)
+						epsilon_(i) = epsilon_old_(i) -omega_deposition_per_unit_volume_(i) / rho_graphite_ * (tf - t0);
+				}
+			}
 		}
 
 		return true;
@@ -1887,9 +2034,264 @@ namespace CVI
 
 			fMonitoring_ << std::endl;
 
+			// ROPA on C(B)
+			{
+				// Bulk activities
+				Eigen::VectorXd a(bulk_nc_);
+				a.setConstant(1.);
+
+				// Index of C(B) species
+				const unsigned int index_of_CB = thermodynamicsSurfaceMap_.IndexOfSpecies("C(B)") - 1;
+
+				// Stoichiometric vector for C(B)
+				const Eigen::SparseMatrix<double> nur = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_reactants();
+				const Eigen::SparseMatrix<double> nuf = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_products();
+				const Eigen::VectorXd nu_CB = nuf.col(index_of_CB)- nur.col(index_of_CB);
+
+				// Total number of reactions
+				const unsigned int nr = nur.rows();
+
+				// Memory allocation
+				// rCB (kmol/m3/s) is the average deposition rate of CB
+				std::vector<Eigen::VectorXd> r_CB(nr);
+				for (unsigned int j = 0; j < nr; j++)
+					r_CB[j].resize(np_);
+
+				// Loop over all the points
+				for (unsigned int i = 0; i < np_; i++)
+				{
+					// Molar fractions
+					double mw;
+					Eigen::VectorXd omega = Y_[i];
+					Eigen::VectorXd x(omega.size());
+					thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
+
+					// Concentrations
+					const double cTot = rho_gas_(i) / mw_(i);
+					Eigen::VectorXd c = cTot*x;
+
+					// Calculates thermodynamic properties
+					thermodynamicsMap_.SetTemperature(T_(i));
+					thermodynamicsMap_.SetPressure(P_(i));
+
+					// Calculates kinetics
+					kineticsMap_.SetTemperature(T_(i));
+					kineticsMap_.SetPressure(P_(i));
+
+					// Heterogeneous mechanism
+					heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+					heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+					// Calculation of heterogeneous terms
+					heterogeneousDetailedMechanism_.FormationRates(Sv_(i), c, Z_[i], a, Gamma_[i]);
+
+					// Reaction rates
+					std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
+
+					// Contributions to formation of C(B)
+					// The units of heterogeneous gas-solid reaction rates are in kmol/m2/s
+					// We multiply by the surface per unit of volume (1/m) to have the deposition rate in kmol/m3/s
+					for (unsigned int j = 0; j < nr; j++)
+						r_CB[j](i) = Sv_(i) * r[j] * nu_CB(j);
+				}
+
+				// Volume averaged deposition rate in (kmol/m3/s)
+				Eigen::VectorXd r_CB_averaged(nr);
+				for (unsigned int j = 0; j < nr; j++)
+					r_CB_averaged(j) = AreaAveraged(r_CB[j]);
+
+				// Write on file
+				fROPA_CB_ << std::left << std::setw(16) << t;
+				fROPA_CB_ << std::left << std::setw(20) << r_CB_averaged.sum();
+				for (unsigned int j = 0; j < nr; j++)
+					fROPA_CB_ << std::left << std::setw(16) << r_CB_averaged(j);
+				fROPA_CB_ << std::endl;
+			}
+
+// ROPA on c(B)
+				if (thermodynamicsSurfaceMap_.IndexOfSpeciesWithoutError("c(B)") > 0)
+				{
+					// Bulk activities
+					Eigen::VectorXd a(bulk_nc_);
+					a.setConstant(1.);
+
+					// Index of C(B) species
+					const unsigned int index_of_cB = thermodynamicsSurfaceMap_.IndexOfSpecies("c(B)") - 1;
+
+					// Stoichiometric vector for C(B)
+					const Eigen::SparseMatrix<double> nur = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_reactants();
+					const Eigen::SparseMatrix<double> nuf = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_products();
+					const Eigen::VectorXd nu_cB = nuf.col(index_of_cB)- nur.col(index_of_cB);
+
+					// Total number of reactions
+					const unsigned int nr = nur.rows();
+
+					// Memory allocation
+					// rcB (kmol/m3/s) is the average deposition rate of cB
+					std::vector<Eigen::VectorXd> r_cB(nr);
+					for (unsigned int j = 0; j < nr; j++)
+						r_cB[j].resize(np_);
+
+					// Loop over all the points
+					for (unsigned int i = 0; i < np_; i++)
+					{
+						// Molar fractions
+						double mw;
+						Eigen::VectorXd omega = Y_[i];
+						Eigen::VectorXd x(omega.size());
+						thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
+
+						// Concentrations
+						const double cTot = rho_gas_(i) / mw_(i);
+						Eigen::VectorXd c = cTot*x;
+
+						// Calculates thermodynamic properties
+						thermodynamicsMap_.SetTemperature(T_(i));
+						thermodynamicsMap_.SetPressure(P_(i));
+
+						// Calculates kinetics
+						kineticsMap_.SetTemperature(T_(i));
+						kineticsMap_.SetPressure(P_(i));
+
+						// Heterogeneous mechanism
+						heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+						heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+						// Calculation of heterogeneous terms
+						heterogeneousDetailedMechanism_.FormationRates(Sv_(i), c, Z_[i], a, Gamma_[i]);
+
+						// Reaction rates
+						std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
+
+						// Contributions to formation of C(B)
+						// The units of heterogeneous gas-solid reaction rates are in kmol/m2/s
+						// We multiply by the surface per unit of volume (1/m) to have the deposition rate in kmol/m3/s
+						for (unsigned int j = 0; j < nr; j++)
+							r_cB[j](i) = Sv_(i) * r[j] * nu_cB(j);
+					}
+
+					// Volume averaged deposition rate in (kmol/m3/s)
+					Eigen::VectorXd r_cB_averaged(nr);
+					for (unsigned int j = 0; j < nr; j++)
+						r_cB_averaged(j) = AreaAveraged(r_cB[j]);
+
+					// Write on file
+					fROPA_cB_ << std::left << std::setw(16) << t;
+					fROPA_cB_ << std::left << std::setw(20) << r_cB_averaged.sum();
+					for (unsigned int j = 0; j < nr; j++)
+						fROPA_cB_ << std::left << std::setw(16) << r_cB_averaged(j);
+					fROPA_cB_ << std::endl;
+				}
+
+				// ROPA on Graphite
+				{
+					// Bulk activities
+					Eigen::VectorXd a(bulk_nc_);
+					a.setConstant(1.);
+
+					// Stoichiometric vectors
+					const Eigen::SparseMatrix<double> nur = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_reactants();
+					const Eigen::SparseMatrix<double> nuf = heterogeneousDetailedMechanism_.kineticsSurfaceMap().stoichiometry().stoichiometric_matrix_products();
+
+					// Debug
+					const double WC = OpenSMOKE::AtomicWeights["C"];
+					const unsigned int jC = thermodynamicsMap_.IndexOfElementWithoutError("C") - 1;
+					const unsigned int nsolid = nur.cols() - nc_;
+					std::vector<Eigen::VectorXd> nu_surf(nsolid);
+					Eigen::VectorXd ratio_c_over_tot(nsolid);
+					for (unsigned int k=0;k<nsolid;k++)
+					{
+						nu_surf[k] = nuf.col(nc_+k)- nur.col(nc_+k);
+						ratio_c_over_tot(k) = WC*thermodynamicsSurfaceMap_.atomic_composition()(nc_+k,jC)/thermodynamicsSurfaceMap_.MW(nc_+k);
+					}
+
+					// Total number of reactions
+					const unsigned int nr = nur.rows();
+
+					// Memory allocation
+					// rGraphite (kmol/m3/s) is the average deposition rate of graphite
+					std::vector<Eigen::VectorXd> r_Graphite(nr);
+					for (unsigned int j = 0; j < nr; j++)
+					{
+						r_Graphite[j].resize(np_);		r_Graphite[j].setZero();
+					}
+
+					// Loop over all the points
+					for (unsigned int i = 0; i < np_; i++)
+					{
+						// Molar fractions
+						double mw;
+						Eigen::VectorXd omega = Y_[i];
+						Eigen::VectorXd x(omega.size());
+						thermodynamicsMap_.MoleFractions_From_MassFractions(x.data(), mw, omega.data());
+
+						// Concentrations
+						const double cTot = rho_gas_(i) / mw_(i);
+						Eigen::VectorXd c = cTot*x;
+
+						// Calculates thermodynamic properties
+						thermodynamicsMap_.SetTemperature(T_(i));
+						thermodynamicsMap_.SetPressure(P_(i));
+
+						// Calculates kinetics
+						kineticsMap_.SetTemperature(T_(i));
+						kineticsMap_.SetPressure(P_(i));
+
+						// Heterogeneous mechanism
+						heterogeneousDetailedMechanism_.SetTemperature(T_(i));
+						heterogeneousDetailedMechanism_.SetPressure(P_(i));
+
+						// Calculation of heterogeneous terms
+						heterogeneousDetailedMechanism_.FormationRates(Sv_(i), c, Z_[i], a, Gamma_[i]);
+
+						// Reaction rates
+						std::vector<double> r = heterogeneousDetailedMechanism_.kineticsSurfaceMap().GiveMeReactionRates();
+
+						// Contributions to formation of Graphite
+						// The units of heterogeneous gas-solid reaction rates are in kmol/m2/s
+						// We multiply by the surface per unit of volume (1/m) to have the deposition rate in kmol/m3/s
+						// Then we multiply times the molecular weight to have kg/m3/s
+						for (unsigned int k=0;k<nsolid;k++)
+						{
+							for (unsigned int j = 0; j < nr; j++)
+							{
+								r_Graphite[j](i) += Sv_(i) * r[j] * nu_surf[k](j) * thermodynamicsSurfaceMap_.MW(nc_+k)*ratio_c_over_tot(k);
+							}
+						}
+					}
+
+					// Volume averaged deposition rate in (kg/m3/s)
+					Eigen::VectorXd r_Graphite_averaged(nr);
+					for (unsigned int j = 0; j < nr; j++)
+						r_Graphite_averaged(j) = AreaAveraged(r_Graphite[j]);
+
+					// Write on file
+					fROPA_Graphite_ << std::left << std::setw(16) << t;
+					fROPA_Graphite_ << std::left << std::setw(20) << r_Graphite_averaged.sum();
+					for (unsigned int j = 0; j < nr; j++)
+						fROPA_Graphite_ << std::left << std::setw(16) << r_Graphite_averaged(j);
+					fROPA_Graphite_ << std::endl;
+				}
+
 			count_file_ = 0;
 		}
 
+		// Updated porosity
+		if (porosity_treatment_ != POROSITY_COUPLED)
+		{
+			if (porosity_treatment_ == POROSITY_DECOUPLED_CUMULATIVE)
+			{
+				const double tf = std::min(t, t_final_);
+				for (unsigned int i = 0; i < np_; i++)
+					cumulative_epsilon_source_term_(i) += -omega_deposition_per_unit_volume_(i) / rho_graphite_ * (t - t_old_);
+			}
+			else if (porosity_treatment_ == POROSITY_DECOUPLED_FINALVALUE)
+			{
+				// Do nothing
+			}
+		}
+
+		t_old_ = t;
 		count_dae_video_++;
 		count_file_++;
 	}

@@ -1,4 +1,4 @@
-/*----------------------------------------------------------------------*\
+/*-----------------------------------------------------------------------*\
 |    ___                   ____  __  __  ___  _  _______                  |
 |   / _ \ _ __   ___ _ __ / ___||  \/  |/ _ \| |/ / ____| _     _         |
 |  | | | | '_ \ / _ \ '_ \\___ \| |\/| | | | | ' /|  _| _| |_ _| |_       |
@@ -56,6 +56,7 @@ namespace CVI
 	enum GaseousPhase { GASEOUS_PHASE_FROM_PLUG_FLOW, GASEOUS_PHASE_FROM_CFD };
 	enum EquationsSet { EQUATIONS_SET_COMPLETE, EQUATIONS_SET_ONLYTEMPERATURE };
 	enum WallType { IMPERMEABLE, NOT_IMPERMEABLE };
+//	enum PorosityTreatment { POROSITY_COUPLED, POROSITY_DECOUPLED_CUMULATIVE, POROSITY_DECOUPLED_FINALVALUE };
 
 	//!  A class to solve the reaction-diffusion equations in 1D 
 	/*!
@@ -93,7 +94,8 @@ namespace CVI
 					const std::vector<bool>& site_non_conservation,
 					const std::string gas_dae_species,
 					const std::string surface_dae_species,
-					const boost::filesystem::path output_folder);
+					const boost::filesystem::path output_folder,
+					const PorosityTreatment porosity_treatment );
 
 		/**
 		*@brief Sets the planar symmetry
@@ -541,6 +543,9 @@ namespace CVI
 		Eigen::VectorXd					Sv_;				//!< available area per unit of volume [1/m]
 		Eigen::VectorXd					rp_;				//!< radius of pores [m]
 
+		Eigen::VectorXd					epsilon_old_;						//!< porosity of porous medium [-]
+		Eigen::VectorXd					cumulative_epsilon_source_term_;	//!< source term for epsilon (cumulative) [-]
+
 		// Reactions
 		std::vector<Eigen::VectorXd>	omega_homogeneous_from_homogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from homogeneous reactions)
 		std::vector<Eigen::VectorXd>	omega_homogeneous_from_heterogeneous_;		//!< formation rates of gaseous species [kg/m3/s] (only contribution from heterogeneous reactions)
@@ -549,7 +554,9 @@ namespace CVI
 		Eigen::VectorXd					omega_deposition_per_unit_volume_;			//!< deposition rate [kg/m3/s]
 		Eigen::VectorXd					omega_deposition_per_unit_area_;			//!< deposition rate [kg/m2/s]
 		Eigen::VectorXd					omega_loss_per_unit_volume_;				//!< loss for the homogeneous phase because of heterogeneous reactions [kg/m3/s]
-
+		std::vector<Eigen::VectorXd>			omega_deposition_per_unit_area_bulk_species_;		//!< deposition rate [kg/m2/s]
+		std::vector<Eigen::VectorXd>			omega_deposition_per_unit_volume_bulk_species_;		//!< deposition rate [kg/m3/s]
+		
 		// Diffusion
 		std::vector<Eigen::VectorXd>	gamma_star_;	//!< mass diffusion coefficients [m2/s]
 
@@ -589,8 +596,9 @@ namespace CVI
 		EquationsSet	equations_set_;					//!< current set of equations to be solved
 		
 		// Output
-		double t_old_;							//!< time at the end of the previous step [s]
-		unsigned int n_steps_video_;					//!< number of steps for updating info on the screen
+		double t_old_;								//!< time at the end of the previous step [s]
+		double t_final_;							//!< final time for the current macro time step [s]
+		unsigned int n_steps_video_;				//!< number of steps for updating info on the screen
 		unsigned int count_dae_video_;				//!< counter of steps for updating info on the screen
 		unsigned int count_ode_video_;				//!< counter of steps for updating info on the screen
 		unsigned int n_steps_file_;					//!< number of steps for updating info on the file
@@ -599,6 +607,9 @@ namespace CVI
 		unsigned int count_update_plug_flow_;				//!< counter of steps for updating plug flow
 		std::ofstream fMonitoring_;					//!< name of file to monitor integral quantities over the time
 		std::ofstream fROPA_CB_;					//!< name of file where to write production history of C(B)
+		std::ofstream fROPA_cB_;					//!< name of file where to write production history of c(B)
+		std::ofstream fROPA_Graphite_;					//!< name of file where to write production history of graphite
+
 
 		boost::filesystem::path output_folder_;						//!< name of output folder
 		boost::filesystem::path output_tecplot_folder_;				//!< name of output folder for Tecplot files
@@ -671,6 +682,7 @@ namespace CVI
 		CVI::WallType east_wall_type_;
 		CVI::WallType west_wall_type_;
 
+		enum PorosityTreatment porosity_treatment_;			// How the porosity equation is included in the system of equations
 	};
 }
 

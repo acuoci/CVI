@@ -31,14 +31,14 @@ Dictionary CVI_Solver
 	@InletStream				inlet-stream;
 	@InitialConditions			initial-conditions;
 
-	@CapillaryDiameter			1 mm;
-	@XPoints	        		10;	
-	@XLength					17.5 mm;
+	@CapillaryDiameter			1.1 mm;
+	@XPoints	        		30;	
+	@XLength					17 mm;
 	@XStretchingFactor			1.00;
 	
-	@ResidenceTime				0.5 s;
-	@TimeTotal					180 h;
-	@DaeTimeInterval			45  h;
+	@ResidenceTime				0.08 s;
+	@TimeTotal					400 h;
+	@DaeTimeInterval			100  h;
 	
 	@TecplotTimeInterval	  	1 h;
 	
@@ -62,7 +62,8 @@ Dictionary on-the-fly-ropa
 
 Dictionary Surface-CARBON
 {
-	@SurfaceFractions 		Hz(S) 0.75 H(S) 0.25; 
+	@SurfaceFractions 		Hz(S) 0.50 
+							H(S)  0.50; 
 	@SiteNonConservation	false;
 }
 
@@ -105,14 +106,14 @@ Dictionary plug-flow-reactor
 Dictionary inlet-stream
 {	
 	@MoleFractions			CH4 1.0;
-	@Temperature			1100	C;
-	@Pressure				20000	Pa;
+	@Temperature			1125	C;
+	@Pressure				10e3	Pa;
 }
 
 Dictionary initial-conditions
 {	
-	@Temperature	1100	C;
-	@Pressure		20e3	Pa;
+	@Temperature	1125	C;
+	@Pressure		10e3	Pa;
 	@MoleFractions	N2		1.00;
 }
 

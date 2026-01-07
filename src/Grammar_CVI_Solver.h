@@ -72,6 +72,11 @@ namespace CVI
 				"none",
 				"none"));
 
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@PorosityTreatment",
+				OpenSMOKE::SINGLE_STRING,
+				"Treatment of porosity equation: coupled | decoupled-cumulative | decoupled-finalvalue (default: coupled)",
+				false));
+
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@Output",
 				OpenSMOKE::SINGLE_PATH,
 				"Name of the folder containing the output files",
@@ -224,6 +229,11 @@ namespace CVI
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@CapillaryDiameter",
 				OpenSMOKE::SINGLE_MEASURE,
 				"Initial diameter of capillary",
+				false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@CapillaryKnudsenDiffusion",
+				OpenSMOKE::SINGLE_BOOL,
+				"Knudsen diffusion included",
 				false));
 
 			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@XVelocity",

@@ -3,11 +3,13 @@ AC_INIT([OpenSMOKEpp_CVI], [0.1], [alberto.cuoci@polimi.it])
 
 AM_INIT_AUTOMAKE
 
-AC_PROG_CC
-AC_PROG_CXX
+AC_PROG_RANLIB([AC_CHECK_PROG(RANLIB, ranlib, ranlib, :)])
 
 AC_PROG_CC([gcc icc])
 AC_PROG_CXX([g++ icpc])
+
+AC_PROG_FC([gfortran ifort])
+AC_PROG_F77([gfortran ifort])
 
 CXXFLAGS=''
 
@@ -109,7 +111,7 @@ AS_IF([test "$SYSTEM_BOOST" = "no"], [
 		      AC_MSG_ERROR([Library file libboost_chrono.a or libboost_chrono.so not found. Try downloading the Boost C++ libraries from http://www.boost.org])))
 
 	BOOST_INCLUDE_DIR="-I$with_boost_include_path"
-	BOOST_LIBS="-L$with_boost_lib_path -lboost_regex -lboost_timer -lboost_chrono -lboost_date_time -lboost_program_options -lboost_filesystem -lboost_system "
+	BOOST_LIBS="-L$with_boost_lib_path -lboost_regex -lboost_timer -lboost_chrono -lboost_date_time -lboost_program_options -lboost_filesystem -lboost_system -lboost_atomic"
 ])
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
@@ -206,7 +208,7 @@ AC_ARG_WITH([sundials-include], [AS_HELP_STRING([--with-sundials-include=DIR],
 
 AC_ARG_WITH([sundials-lib], [AS_HELP_STRING([--with-sundials-lib=PATH], 
             [path to the Sundials libraries])], 
-            [ with_sundials_lib_path=$with_sundials_lib; USE_SUNDIALS=" -DOPENSMOKE_USE_SUNDIALS=1 "; SUNDIALS_LIBS=" -L$with_sundials_lib_path -lsundials_ida -lsundials_kinsol -lsundials_cvode -lsundials_nvecserial -lklu -lbtf -lamd -lsuitesparseconfig -lcolamd ";
+            [ with_sundials_lib_path=$with_sundials_lib; USE_SUNDIALS=" -DOPENSMOKE_USE_SUNDIALS=1 "; SUNDIALS_LIBS=" -L$with_sundials_lib_path -lsundials_ida -lsundials_kinsol -lsundials_cvode -lsundials_sunlinsollapackband -lsundials_sunlinsollapackdense -lsundials_sunmatrixsparse -lsundials_sunmatrixband -lsundials_sunmatrixdense -lsundials_nvecserial -lklu -lbtf -lamd -lsuitesparseconfig -lsundials_core -lcolamd ";
 
 		AC_CHECK_FILE([${with_sundials_lib_path}/libsundials_nvecserial.so], [], 
               	AC_MSG_ERROR([Library file ${with_sundials_lib_path}/libsundials_nvecserial.so not found. Try downloading the Sundials libraries from http://computation.llnl.gov/projects/sundials-suite-nonlinear-differential-algebraic-equation-solvers])) ])

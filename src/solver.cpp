@@ -160,6 +160,20 @@ int main(int argc, char** argv)
 		else OpenSMOKE::FatalErrorMessage("Wrong @Symmetry: Planar | Cylindrical");
 	}
 
+	// Type of problem
+	CVI::PorosityTreatment porosity_treatment = CVI::PorosityTreatment::POROSITY_COUPLED;
+	{
+		if (dictionaries(main_dictionary_name_).CheckOption("@PorosityTreatment") == true)
+		{
+			std::string value;
+			dictionaries(main_dictionary_name_).ReadString("@PorosityTreatment", value);
+			if (value == "coupled")						porosity_treatment = CVI::PorosityTreatment::POROSITY_COUPLED;
+			else if (value == "decoupled-cumulative")	porosity_treatment = CVI::PorosityTreatment::POROSITY_DECOUPLED_CUMULATIVE;
+			else if (value == "decoupled-finalvalue")	porosity_treatment = CVI::PorosityTreatment::POROSITY_DECOUPLED_FINALVALUE;
+			else OpenSMOKE::FatalErrorMessage("Wrong @PorosityTreatment: coupled | decoupled-cumulative | decoupled-finalvalue");
+		}
+	}
+
 	// Plug flow reactor
 	std::string dict_name_plug_flow;
 	if (dictionaries(main_dictionary_name_).CheckOption("@PlugFlowReactor") == true)
@@ -573,6 +587,14 @@ int main(int argc, char** argv)
 		}
 	}
 
+	// Read the capillary diameter
+	bool is_capillary_knudsen_diffusion = false;
+	if (dictionaries(main_dictionary_name_).CheckOption("@CapillaryKnudsenDiffusion") == true)
+	{
+		
+		dictionaries(main_dictionary_name_).ReadBool("@CapillaryKnudsenDiffusion", is_capillary_knudsen_diffusion);
+	}
+
 	// Read inlet conditions
 	double inlet_T;
 	double inlet_P;
@@ -849,7 +871,7 @@ int main(int argc, char** argv)
 		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
 
 		// Set porous medium
-		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium), dictionaries);
 
 		// Creates the reactor
 		reactor2d = new CVI::Reactor2D(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML,
@@ -857,7 +879,7 @@ int main(int argc, char** argv)
 										*porous_medium, *porosity_defect,
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 										*grid_x, *grid_y, *plug_flow_reactor,
-										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path);
+										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path, porosity_treatment);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -910,7 +932,7 @@ int main(int argc, char** argv)
 		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
 
 		// Set porous medium
-		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium), dictionaries);
 
 		// Creates the reactor
 		CVI::PlugFlowReactorCoupled* plug_flow_reactor = nullptr; // dummy
@@ -921,7 +943,7 @@ int main(int argc, char** argv)
 										*porous_medium, *porosity_defect,
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 										*grid_x, *grid_y, *plug_flow_reactor,
-										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path);
+										detailed_heterogeneous_kinetics, SiteNonConservation, gas_dae_species, surface_dae_species, output_path, porosity_treatment);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -985,7 +1007,7 @@ int main(int argc, char** argv)
 		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
 
 		// Set porous medium
-		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium), dictionaries);
 
 		// Creates the reactor
 		reactor1d = new CVI::Reactor1D(	*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, 
@@ -993,7 +1015,7 @@ int main(int argc, char** argv)
 										*porous_medium, 
 										*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 										*grid_x, detailed_heterogeneous_kinetics,
-										SiteNonConservation, surface_dae_species, output_path);
+										SiteNonConservation, gas_dae_species, surface_dae_species, output_path, porosity_treatment);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -1062,7 +1084,7 @@ int main(int argc, char** argv)
 		CVI::HeterogeneousDetailedMechanism* heterogeneous_detailed_mechanism = new CVI::HeterogeneousDetailedMechanism(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, *thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, true, true);
 
 		// Set porous medium
-		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium));
+		CVI::PorousMedium* porous_medium = new CVI::PorousMedium(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML, dictionaries(dict_name_porous_medium), dictionaries);
 
 		// Creates the reactor
 		reactor1d = new CVI::Reactor1D(*thermodynamicsMapXML, *kineticsMapXML, *transportMapXML,
@@ -1070,7 +1092,7 @@ int main(int argc, char** argv)
 			*porous_medium,
 			*heterogeneous_mechanism, *heterogeneous_detailed_mechanism,
 			*grid_x, detailed_heterogeneous_kinetics,
-			SiteNonConservation, surface_dae_species, output_path);
+			SiteNonConservation, gas_dae_species, surface_dae_species, output_path, porosity_treatment);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -1129,7 +1151,7 @@ int main(int argc, char** argv)
 														*thermodynamicsSurfaceMapXML, *kineticsSurfaceMapXML, 
 														*heterogeneous_mechanism, *heterogeneous_detailed_mechanism, 
 														*grid_x, detailed_heterogeneous_kinetics, 
-														SiteNonConservation, surface_dae_species);
+														SiteNonConservation, surface_dae_species, output_path);
 
 		// Initial surface fractions
 		Eigen::VectorXd initial_Z(thermodynamicsSurfaceMapXML->number_of_site_species());
@@ -1139,9 +1161,13 @@ int main(int argc, char** argv)
 		capillary->SetInitialConditions(initial_T, initial_P, capillary_diameter, initial_omega, Gamma0, initial_Z);
 		capillary->SetGasSide(inlet_T, inlet_P, plug_flow_reactor->Y());
 		capillary->SetTimeTotal(time_total);
+		capillary->SetKnudsenDiffusion(is_capillary_knudsen_diffusion);
 		capillary->SetDaeTimeInterval(dae_time_interval);
 		capillary->SetOdeEndTime(ode_end_time);
 		capillary->SetTecplotTimeInterval(tecplot_time_interval);
+
+		if (steps_video>0)	capillary->SetStepsVideo(steps_video);
+		if (steps_file>0)	capillary->SetStepsFile(steps_file);
 
 		if (on_the_fly_ropa == true)
 			capillary->SetSurfaceOnTheFlyROPA(onTheFlyROPA);

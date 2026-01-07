@@ -88,6 +88,12 @@ namespace CVI
 		double mw_carbon() const { return mw_carbon_; }
 
 		/**
+		*@brief Returns the number of bulk species
+		*@return the number of bulk species
+		*/
+		unsigned int bulk_nc() const {return bulk_nc_; }
+
+		/**
 		*@brief Calculates the formation rates of species due to the heterogeneous reactions
 		*@param Sv ratio between available area and gaseous volume [1/m]
 		*@param C concentrations of gaseous species [kmol/m3]
@@ -127,11 +133,16 @@ namespace CVI
 		*/
 		double r_deposition_per_unit_area() const { return r_heterogeneous_deposition_per_unit_area_; }
 
+		double r_deposition_per_unit_area(const unsigned int i) const { return r_heterogeneous_deposition_per_unit_area_single_contribution_[i]; }
+
+
 		/**
 		*@brief Returns the deposition rate per unit of volume
 		*@return the deposition rate [kmol/m3/s]
 		*/
 		double r_deposition_per_unit_volume() const { return r_heterogeneous_deposition_per_unit_volume_; }
+
+		double r_deposition_per_unit_volume(const unsigned int i) const { return r_heterogeneous_deposition_per_unit_volume_single_contribution_[i]; }
 
 		/**
 		*@brief Returns the deposition rate per unit of surface for single reactions [kmol/m2/s]
@@ -223,6 +234,8 @@ namespace CVI
 		double r_heterogeneous_deposition_per_unit_area_;									//!< total deposition rate per unit of surface [kmol/m2/s]
 		double r_heterogeneous_deposition_per_unit_volume_;									//!< total deposition rate per unit of volume [kmol/m3/s]
 
+		Eigen::VectorXd r_heterogeneous_deposition_per_unit_area_single_contribution_;
+		Eigen::VectorXd r_heterogeneous_deposition_per_unit_volume_single_contribution_;
 	};
 }
 
